@@ -1,0 +1,19 @@
+#! /usr/bin/env zsh
+
+# convertto-pdf: Convert markdown file to PDF using pandoc Docker image
+
+if [[ -z $1 || $1 != *.md ]]; then
+    echo "Please provide a markdown file as the first argument"
+    exit 1
+fi
+
+local _path=$(dirname $1)
+_path=$(cd $_path && pwd)
+local _pwd=$(pwd)
+local _filename=$(basename $1 .md)
+
+docker run                                                        \
+    --rm                                                          \
+    --mount type=bind,source="${_path}",target=/data              \
+    pandoc/latex --from=gfm --to=pdf "${_filename}".md --output="${_filename}".pdf
+

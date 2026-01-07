@@ -1,0 +1,61 @@
+#! /usr/bin/env zsh
+
+# read-dockerlog: Read and follow Docker container logs
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts] <CONTAINER_NAME>
+
+See also:
+    ${0:t}
+"
+local _help="Description:
+    Reads the output of docker container log.
+
+Usage:
+    ${0:t} <CONTAINER_NAME>
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    read-dockerlog <CONTAINER_NAME>
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && exit 0
+
+
+# Driver -----------------------------------------------------------------------
+function read_dockerlog() {
+    docker logs "${_arg}" 2>&1
+}
+
+
+read_dockerlog
+
+
+unfunction _synopsis
+unfunction _help
+unfunction read_dockerlog

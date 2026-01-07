@@ -1,0 +1,81 @@
+#! /usr/bin/env zsh
+
+# write-executable: Write the input to a script and make the script executable
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} <filename>
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Read input from stdin and write it to a script file adding a zsh shebang at
+    the top of the file, and making it executable.
+
+Usage:
+    ${0:t} <filename>
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    resolve-gitpathrepository | sed -e 's/^/git clone /' | ${0:t} clone-gitrepository
+    echo 'foreach file in *(.); do echo \$file; done' | ${0:t} list-file
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+[[ -z $_arg ]] && echo "Error: Missing required argument (filename)" && return 1
+
+
+# Driver -----------------------------------------------------------------------
+function write_executable() {
+    local filename=${1}
+    local content
+    
+    # Read all input from stdin
+    content=$(cat)
+    
+    # Write shebang and content to file
+    {
+        echo '#! /usr/bin/env zsh'
+        echo
+        echo "${content}"
+    } > "${filename}"
+    
+    # Make the file executable
+    chmod +x "${filename}"
+    
+    echo "Created executable script: ${filename}"
+}
+
+
+write_executable "${_arg}"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction write_executable

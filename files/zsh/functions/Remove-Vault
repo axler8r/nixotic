@@ -1,0 +1,94 @@
+#! /usr/bin/env zsh
+
+# remove-vault: Delete a LUKS encrypted vault file
+
+# Help
+if [[ "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <vault-name> [--force]
+
+Description:
+    Delete a LUKS encrypted vault file. Ensures the vault is not mounted before deletion.
+    Specify a vault name (e.g., 'mydata') to remove ${HOME}/Vaults/.<name>.vault
+    Prompts for confirmation unless --force is specified.
+
+Options:
+    --force    Skip confirmation prompt
+
+Arguments:
+    vault-name    Vault name (e.g., mydata) or full path to vault file
+
+Examples:
+    ${0:t} mydata
+    ${0:t} secrets --force
+    ${0:t} ~/Vaults/.mydata.vault      # Explicit path
+EOF
+    return 0
+fi
+
+# Parse arguments
+local vault_input=""
+local force_flag=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force)    force_flag=true; shift ;;
+        *)          vault_input="$1"; shift ;;
+    esac
+done
+
+# Validate argument
+if [[ -z "${vault_input}" ]]; then
+    echo "Error: Vault name required"
+    echo "Usage: ${0:t} <vault-name> [--force]"
+    return 1
+fi
+
+# Detect if input is a path (contains /) or a vault name
+local vault_file=""
+local vault_name=""
+
+if [[ "${vault_input}" == */* ]]; then
+    # Full path provided
+    vault_file="${vault_input/#\~/$HOME}"
+    vault_name="${vault_file:t:r:s/^\.//}"  # Extract name, remove leading dot
+else
+    # Vault name provided - construct path
+    vault_name="${vault_input}"
+    vault_file="${HOME}/Vaults/.${vault_name}.vault"
+fi
+
+# Check if vault file exists
+if [[ ! -f "${vault_file}" ]]; then
+    echo "Error: Vault file not found: ${vault_file}"
+    return 1
+fi
+
+# Extract vault name and mapper name
+local mapper_name="${vault_name}"
+
+# Check if vault is currently mounted
+if [[ -e "/dev/mapper/${mapper_name}" ]]; then
+    echo "Error: Vault is currently mounted. Dismount first with:"
+    echo "  dismount-vault ${vault_name}"
+    return 1
+fi
+
+# Confirm deletion
+if [[ "${force_flag}" != true ]]; then
+    echo "WARNING: This will permanently delete the vault file:"
+    echo "  ${vault_file}"
+    echo -n "Are you sure? (yes/no): "
+    read -r response
+    if [[ "${response}" != "yes" ]]; then
+        echo "Aborted"
+        return 0
+    fi
+fi
+
+# Delete vault file
+echo "Removing vault file: ${vault_file}"
+rm --force "${vault_file}" || return 1
+
+echo "Vault removed successfully"
+

@@ -1,0 +1,19 @@
+#! /usr/bin/env zsh
+
+# optimize-gitrepository: Optimize git repository by running gc and prune
+
+local _dirs=("$@")
+local _git_dirs=()
+foreach _dir in "${_dirs[@]}"; do
+    [[ -d "$_dir" && -d "$_dir/.git" ]] && _git_dirs+=("${_dir}")
+done
+
+local _command=$(cat << EOL
+git -C {} fetch --prune \
+&& git -C {} fsck --full \
+&& git -C {} reflog expire --expire=90.days.ago \
+&& git -C {} gc --prune=90.days.ago
+EOL
+)
+
+parallel --jobs 4 --progress --joblog optimize-gitrepository-$(date +%Y%m%d%H%M%S).log "${_command}" ::: "${_git_dirs[@]}"

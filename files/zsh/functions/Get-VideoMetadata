@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# get-videometadata: Extract and display video file metadata
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <video-file>" && return 0
+
+videofile=${1}
+ffprobe -v quiet -show_format -print_format json ${videofile} | yq --prettyPrint

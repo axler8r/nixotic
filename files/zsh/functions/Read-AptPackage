@@ -1,0 +1,58 @@
+#! /usr/bin/env zsh
+
+# read-aptpackage: Display detailed information about an APT package
+
+local _synopsis="Synopsis:
+    ${0} <package-name>
+
+See also:
+    ${0} --help
+"
+local _help="Description:
+    Show the files in an apt package.
+
+Usage:
+    ${0:t} [opts] <package-name>
+
+Options:
+    --help      Show this help message.
+    --sync      Sync the apt-file database.
+
+Examples:
+    ${0:t} net-tools
+    ${0:t} --sync
+
+Preconditions:
+    apt-file must be installed.
+"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)
+            echo "${_help}"
+            exit 0
+            ;;
+        --sync)
+            sudo apt-file update
+            exit 0
+            ;;
+        *)
+            if [[ -z $package ]]; then
+                package=$1
+            else
+                echo "Unknown option: $1" >&2
+                exit 1
+            fi
+            ;;
+    esac
+    shift
+done
+
+# Driver function
+function read_aptpackage() {
+    apt-file list $package
+}
+
+read_aptpackage
+
+unfunction read_aptpackage

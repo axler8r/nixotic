@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# get-latestasdfpluginversion: List the latest installed version of an asdf plugin
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} [args]" && return 0
+
+# Main logic here
+asdf latest "${1}"

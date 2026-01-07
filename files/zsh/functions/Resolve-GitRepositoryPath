@@ -1,0 +1,78 @@
+#! /usr/bin/env zsh
+
+# resolve-gitpathrepository: Resolve and display git repository path information
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Maps git repository directories to their remote fetch URLs.
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    resolve-gitpathrepository
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && exit 0
+
+
+# Driver -----------------------------------------------------------------------
+function resolve_gitpathrepository() {
+    if command -v git > /dev/null 2>&1
+    then
+        foreach __AX_DIRECTORY in *(/)
+        do
+            pushd $__AX_DIRECTORY
+            if git rev-parse --git-dir > /dev/null 2>&1; then
+                git remote --verbose | grep "fetch"
+                pwd
+            fi
+            popd
+        done \
+        | sed --expression="s/origin//" \
+        | sed --expression="s/ (fetch)//" \
+        | paste --delimiters=" " - - \
+        | column --table
+    else
+        echo "git is not installed."
+    fi
+}
+
+
+resolve_gitpathrepository
+
+
+unfunction _synopsis
+unfunction _help
+unfunction resolve_gitpathrepository

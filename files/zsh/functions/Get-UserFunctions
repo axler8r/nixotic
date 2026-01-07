@@ -1,0 +1,175 @@
+#! /usr/bin/env zsh
+
+# get-userfunctions: List all user functions
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Lists all user functions that follow PowerShell naming conventions
+    (<verb>-<noun>) with their descriptions.
+
+Usage:
+    ${0:t} [options]
+
+Options:
+    --help          Show this help message
+    --powershell    Show only PowerShell-style functions (PascalCase)
+    --linux         Show only Linux-style functions (lowercase-with-hyphens)
+
+Examples:
+    ${0:t}                  # Show all, organized by style
+    ${0:t} --powershell     # Show only PowerShell functions
+    ${0:t} --linux          # Show only Linux functions
+"
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+_get_functions_dir() {
+    local functions_dir
+    if [[ -n "${funcfiletrace[1]}" ]]; then
+        functions_dir="${funcfiletrace[1]%:*}"
+        functions_dir="${functions_dir:A:h}"
+    else
+        functions_dir="${0:A:h}"
+    fi
+    echo "$functions_dir"
+}
+
+_extract_function_description() {
+    local func_file="$1"
+    local func_name="${func_file:t}"
+    
+    # Read the file and extract the description from the comment line
+    local description=""
+    while IFS= read -r line; do
+        # Look for lines like: # function-name: Description text
+        # Match case-insensitively since file may be PascalCase but comment may be lowercase
+        if [[ "$line" =~ ^#[[:space:]]*[A-Za-z]+-[A-Za-z0-9]+:[[:space:]]*(.+)$ ]]; then
+            description="${match[1]}"
+            break
+        fi
+    done < "$func_file"
+    
+    echo "$description"
+}
+
+_is_powershell_style() {
+    local func_name="$1"
+    # PowerShell style: starts with uppercase letter
+    [[ "$func_name" =~ ^[A-Z][A-Za-z]+-[A-Za-z0-9]+$ ]]
+}
+
+_is_linux_style() {
+    local func_name="$1"
+    # Linux style: starts with lowercase letter
+    [[ "$func_name" =~ ^[a-z][a-z]+-[a-z0-9-]+$ ]]
+}
+
+_is_symlink() {
+    local func_file="$1"
+    [[ -L "$func_file" ]]
+}
+
+_list_function_files() {
+    local functions_dir="$1"
+    local filter="$2"  # "powershell", "linux", or "all"
+    
+    if [[ ! -d "$functions_dir" ]]; then
+        return 1
+    fi
+    
+    local -a powershell_funcs
+    local -a linux_funcs
+    
+    # Collect and categorize all functions
+    for func_file in "${functions_dir}"/*(-.:t); do
+        if [[ "$func_file" =~ ^[A-Za-z]+-[A-Za-z0-9-]+$ ]]; then
+            local description=$(_extract_function_description "${functions_dir}/${func_file}")
+            local is_symlink=""
+            
+            if _is_symlink "${functions_dir}/${func_file}"; then
+                is_symlink=" → $(readlink "${functions_dir}/${func_file}")"
+            fi
+            
+            if [[ -z "$description" ]]; then
+                description="(no description)"
+            fi
+            
+            local formatted_line=$(printf "%-33s %s%s" "$func_file" "$description" "$is_symlink")
+            
+            if _is_powershell_style "$func_file"; then
+                powershell_funcs+=("$formatted_line")
+            elif _is_linux_style "$func_file"; then
+                linux_funcs+=("$formatted_line")
+            fi
+        fi
+    done
+    
+    # Output based on filter
+    case "$filter" in
+        powershell)
+            printf '%s\n' "${powershell_funcs[@]}" | sort
+            ;;
+        linux)
+            printf '%s\n' "${linux_funcs[@]}" | sort
+            ;;
+        all)
+            if [[ ${#powershell_funcs[@]} -gt 0 ]]; then
+                echo ""
+                echo "PowerShell-Style Functions:"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                printf '%s\n' "${powershell_funcs[@]}" | sort
+            fi
+            
+            if [[ ${#linux_funcs[@]} -gt 0 ]]; then
+                echo ""
+                echo "Linux-Style Functions:"
+                echo "━━━━━━━━━━━━━━━━━━━━━━"
+                printf '%s\n' "${linux_funcs[@]}" | sort
+            fi
+            ;;
+    esac
+}
+
+# Options ----------------------------------------------------------------------
+local _filter="all"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help) _help && return 0 ;;
+        --powershell) _filter="powershell" ;;
+        --linux) _filter="linux" ;;
+        *) echo "Error: Unknown option: $1" >&2 && return 1 ;;
+    esac
+    shift
+done
+
+# Main -------------------------------------------------------------------------
+local _functions_dir=$(_get_functions_dir)
+
+echo "User Functions (from ${_functions_dir}):"
+echo "========================================="
+_list_function_files "$_functions_dir" "$_filter"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction _get_functions_dir
+unfunction _extract_function_description
+unfunction _is_powershell_style
+unfunction _is_linux_style
+unfunction _is_symlink
+unfunction _list_function_files

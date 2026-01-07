@@ -1,0 +1,78 @@
+#! /usr/bin/env zsh
+
+# get-attribute: Get extended file system attribute value
+
+# variables --------------------------------------------------------------------
+local _self="${0}"
+local _help="
+synopsis: ${_self} <attribute> <path>
+    Get an attribute on a file or directory.
+
+options:
+    -h, --help     Show this help message and exit.
+    -v, --version  Show version information and exit.
+
+arguments:
+    <attribute>  The attribute to get.
+    <path>       The path to the file or directory.
+
+example:
+    get-attribute user.comment /path/to/file
+    get-attribute user.app.name /path/to/directory
+"
+local _version="0.7.1"
+
+
+# functions --------------------------------------------------------------------
+function _show_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+function _show_version() {
+    echo "${_version}"
+}
+
+
+# option parsing ---------------------------------------------------------------
+zparseopts -D -E {h,-help}=_show_help {v,-version}=_show_version
+local _attribute=${1}
+local _path=${2}
+
+
+# option actions ---------------------------------------------------------------
+[[ -n "${_show_help}" ]] && echo "${_help}" && return 0
+[[ -n "${_show_version}" ]] && echo "${_version}" && return 0
+
+
+# checks -----------------------------------------------------------------------
+[[ -z "${_attribute}" || -z "${_path}" ]] && {
+    echo "Error: Missing arguments."
+    echo "${_help}"
+    return 1
+}
+[[ ! -e "${_path}" ]] && {
+    echo "Error: Path does not exist."
+    return 1
+}
+[[ ! -w "${_path}" ]] && {
+    echo "Error: Path is not writable."
+    return 1
+}
+[[ ! -d "${_path}" && ! -f "${_path}" ]] && {
+    echo "Error: Path is not a file or directory."
+    return 1
+}
+[[ ! "${_attribute}" =~ ^[a-zA-Z0-9._-]+$ ]] && {
+    echo "Error: Invalid attribute name."
+    return 1
+}
+
+
+# main -------------------------------------------------------------------------
+getfattr --name user."${_attribute}" "${_path}"
+
+
+# cleanup ----------------------------------------------------------------------
+unfunction _show_version
+unfunction _show_help
+

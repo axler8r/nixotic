@@ -1,0 +1,7 @@
+#! /usr/bin/env zsh
+
+# test-reboot: Check if system reboot is required
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+[[ -f /var/run/reboot-required ]] && echo "Reboot required!" || echo "No reboot required."

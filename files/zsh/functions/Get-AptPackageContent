@@ -1,0 +1,14 @@
+#! /usr/bin/env zsh
+
+# get-aptpackagecontent: List the contents of an installed APT package
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} [args]" && return 0
+
+# Main logic here
+if [[ -z "$1" ]]; then
+  echo "Please provide the name of an installed APT package."
+  return 1
+fi
+
+dpkg -L "$1"
+

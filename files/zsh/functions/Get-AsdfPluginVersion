@@ -1,0 +1,10 @@
+#! /usr/bin/env zsh
+
+#! /usr/bin/env zsh
+
+# get-currentasdfpluginversion: List the current installed version of an asdf plugin
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} [args]" && return 0
+
+# Main logic here
+asdf current --no-header "${1}" | awk '{print $2}'

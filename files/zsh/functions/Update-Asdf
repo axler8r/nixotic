@@ -1,0 +1,12 @@
+#! /usr/bin/env zsh
+
+# update-asdf: Update all asdf plugins to their latest versions
+
+echo "Updating asdf plugins..."
+foreach app in $(asdf latest --all | grep missing | awk {print $1})
+do
+    echo "Updating ${app}..."
+    asdf install "${app}" latest
+    asdf set --home "${app}" latest
+    echo
+done

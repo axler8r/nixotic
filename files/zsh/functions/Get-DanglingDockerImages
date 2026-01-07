@@ -1,0 +1,64 @@
+#! /usr/bin/env zsh
+
+# get-dockerdanglingimage: List all dangling Docker images
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Get all dangling docker images.
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    get-dockerdanglingimage
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && exit 0
+
+
+# Driver -----------------------------------------------------------------------
+function get_dockerdanglingimage() {
+    local _header="REPOSITORY|TAG|CREATED|SIZE|ID"
+    local _image=$(docker image list --format="{{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.Size}}|{{.ID}}" --filter="dangling=true" | sort)
+    echo "${_header}\n${_image}" | column --table --separator="|"
+    printf "\n"
+}
+
+
+get_dockerdanglingimage
+
+
+unfunction _synopsis
+unfunction _help
+unfunction get_dockerdanglingimage

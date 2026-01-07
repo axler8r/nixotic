@@ -1,0 +1,70 @@
+#! /usr/bin/env zsh
+
+# update-dockerimage: Update Docker images to their latest versions
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Update docker images.
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    update-dockerimage
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && exit 0
+
+
+# Driver -----------------------------------------------------------------------
+function update_dockerimage() {
+    local _images=$(docker image list --format="{{.Repository}}:{{.Tag}}")
+    local _updateable=$(                         \
+        echo "${_images}"                        \
+            | sed --expression='/^vsc/d'         \
+            | sed --expression='/^axler8r/d'     \
+            | sed --expression='/\<none\>/d'     \
+            | sed --expression='/devcontainer/d' \
+    )
+    echo "${_updateable}" | xargs -L1 docker pull
+    printf "\n"
+}
+
+
+update_dockerimage
+
+
+unfunction _synopsis
+unfunction _help
+unfunction update_dockerimage

@@ -1,0 +1,9 @@
+#! /usr/bin/env zsh
+
+# get-aptuserinstalls: list user-installed APT packages
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} [args]" && return 0
+
+# Main logic here
+comm -13 <(apt-mark showauto | sort) <(apt-mark showmanual | sort)
+

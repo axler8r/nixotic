@@ -1,0 +1,18 @@
+#! /usr/bin/env zsh
+
+# find-dockerimage: Search for Docker images by name pattern
+
+if [ $# -lt 1 ]; then
+  echo "Usage: ${0:t} <search-term>"
+  exit 1
+fi
+
+# Join all arguments into a single search term
+search_term="$*"
+echo "Searching for Docker images matching: '$search_term'"
+
+docker search "${search_term}" --format '{{.Name}} {{.StarCount}}' \
+| awk -F'/' '{print $1, $2, $3}' \
+| sort -k1,1 -k3,3nr \
+| awk '{printf "%s/%s %s\n", $1, $2, $3}' \
+| column -t

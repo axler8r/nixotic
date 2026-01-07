@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# get-defaultbrowser: Display default browser for HTTP/HTTPS
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+echo "HTTP:  " $(xdg-mime query default x-scheme-handler/http)
+echo "HTTPS: " $(xdg-mime query default x-scheme-handler/https)

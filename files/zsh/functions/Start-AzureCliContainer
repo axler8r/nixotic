@@ -1,0 +1,14 @@
+#! /usr/bin/env zsh
+
+# start-dockerazcli: Start Azure CLI in a Docker container
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <container-name>" && return 0
+
+if [[ -z "$1" ]]; then
+    echo "Error: Missing container name argument"
+    return 1
+fi
+
+NAME=$1
+docker run --name="${NAME}" --rm --interactive --tty --pull=always --user=nonroot \
+    --mount type=volume,source="${NAME}",target=/home/nonroot mcr.microsoft.com/azure-cli:latest

@@ -1,0 +1,10 @@
+#! /usr/bin/env zsh
+
+# get-githublicenses: List all available GitHub licenses
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+curl -s https://api.github.com/licenses \
+    | jq -r '.[] | "\(.key)\t\(.name)"' \
+    | awk 'BEGIN{print "Key\tDescription"; print "------------\t---------------------------------------"} {printf "%s\t%s\n", $1, substr($0, index($0,$2))}' \
+    | column -t -s $'\t'

@@ -1,0 +1,29 @@
+#! /usr/bin/env zsh
+
+# write-image: Write disk image to target device using dd
+
+_source=$1
+_target=${2:-/dev/sda}
+
+_help() {
+    cat <<EOF
+Usage:
+    ${0:t} <source> [target]
+
+Burns an image to a target device. The source is the image file (.img or .iso)
+to burn. The target is the device to burn to. The default target is /dev/sda.
+EOF
+}
+
+burn_image() {
+    dd bs=1M if=./${_source}                             \
+    | pv --size=$(stat --format %s ./${_source}) --bytes \
+    | sudo dd conv=fdatasync of=${_target}
+}
+
+if [[ -z ${_source} ]]; then
+    _help
+    exit 1
+fi
+
+burn_image

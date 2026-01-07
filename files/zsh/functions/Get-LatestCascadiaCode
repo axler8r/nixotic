@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# get-latestcascadiacode: Display the latest Cascadia Code font version
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+echo $(wget -qO- 'https://api.github.com/repos/microsoft/cascadia-code/releases/latest' \
+    | jq -r '. | "\(.tag_name) released on \(.created_at[:10])"')

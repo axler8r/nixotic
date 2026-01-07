@@ -1,0 +1,73 @@
+#! /usr/bin/env zsh
+
+# get-swapusage: Display swap memory usage by process
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Display swap memory usage for all processes currently using swap.
+    Results are sorted by swap usage with highest usage first.
+    Output format: swap usage (KB) | process ID | process name
+
+Usage:
+    ${0:t} [opts]
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    ${0:t}
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          echo "Unknown option: $1" && return 1 ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function get_swap_usage() {
+    foreach dir in /proc/*/; do
+        pid=$(basename $dir)
+        if [[ $pid =~ ^[0-9]+$ ]]; then
+            swap=$(grep VmSwap $dir/status 2>/dev/null | awk '{print $2}')
+            if [[ -n $swap && $swap -gt 0 ]]; then
+                name=$(grep "^Name:" $dir/status 2>/dev/null | awk '{print $2}')
+                printf "%'10.fkB | %8s | %s\n" "$swap" "$pid" "$name"
+            fi
+        fi
+    done | sort --key=1 --numeric-sort --reverse
+}
+
+
+get_swap_usage
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction get_swap_usage

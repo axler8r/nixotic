@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# get-latestasdf: Display latest asdf version
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+echo $(wget -qO- 'https://api.github.com/repos/asdf-vm/asdf/releases/latest' \
+    | jq -r '. | "\(.tag_name) released on \(.created_at[:10])"')

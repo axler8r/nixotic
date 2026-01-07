@@ -1,0 +1,356 @@
+#!/usr/bin/env zsh
+#
+# Shell Aliases Configuration
+# See: .zsh/functions/CONVENTIONS.md for complete naming conventions
+#
+# Naming Pattern:
+#   - PascalCase aliases are canonical (e.g., Get-IpAddress)
+#   - lowercase aliases are shortcuts (e.g., get-ipaddress)
+#   - Helper functions use __ax_{namespace}_{verb}_{descriptive_name}
+#
+# Convention: Canonical alias defined first, followed by lowercase shortcut
+#
+
+alias ..=' cd .. '
+alias ...=' cd ../../ '
+alias ....=' cd ../../../ '
+alias .....=' cd ../../../../ '
+alias df=' df --human-readable --exclude-type=squashfs --exclude-type=tmpfs --exclude-type=devtmpfs --print-type '
+alias lnvim=' nvim -c "set background=light" '
+alias manw='MANWIDTH="" command man '
+alias now=" date +'%Y-%m-%d %H:%M:%S' "
+alias nvim=' nvim '
+alias popd=' popd -q '
+alias pushd=' pushd -q '
+alias stack=' dirs -v '
+alias Get-IpAddress=' printf "%s\n" "$(curl --silent --get https://api.ipify.org)" '
+alias get-ipaddress=' Get-IpAddress '
+alias Get-TerminalDimensions=' echo $LINES × $COLUMNS '
+alias get-terminaldimensions=' Get-TerminalDimensions '
+alias Get-WindowsKey=' sudo strings /sys/firmware/acpi/tables/MSDM | command tail --lines=1 '
+alias get-windowskey=' Get-WindowsKey '
+alias Set-CenterNewWindow=' gsettings set org.gnome.mutter center-new-windows true '
+alias set-centernewwindow=' Set-CenterNewWindow '
+alias Update-System=' sudo apt update && sudo apt upgrade --yes && sudo apt autoremove --yes && sudo apt autoclean --yes && sudo snap refresh '
+alias update-system=' Update-System '
+
+if [[ -x $(which bat 2> /dev/null) ]] {
+    __ax_bat_format_help() {
+        "${@}" --help | bat --plain --language=help
+    }
+    alias Get-Help=' __ax_bat_format_help '
+    alias get-help=' Get-Help '
+    alias help=' Get-Help '
+    alias h=' Get-Help '
+
+    __ax_bat_read_log() {
+        tail --follow "${1}" | bat --file-name "${1}" --paging=never --language=log
+    }
+    alias Read-Log=' __ax_bat_read_log '
+    alias read-log=' Read-Log '
+    compdef _tail __ax_bat_read_log
+
+    [[ -x $(which fzf-tmux 2> /dev/null) ]] && \
+        alias fzf=' fzf-tmux --height 40% --reverse --preview "bat --color=always {}" '
+    man() {
+        local __AX_WIDTH="$(( COLUMNS > 93 ? 90 : COLUMNS - 3 ))"
+        MANWIDTH="${__AX_WIDTH}" command man $* | bat --style=plain --language=man
+    }
+}
+
+if [[ -x $(which docker 2> /dev/null) ]] {
+    alias Get-DockerDanglingVolumes=' docker volume list --quiet --filter="dangling=true" '
+    alias get-dockerdanglingvolume=' Get-DockerDanglingVolumes '
+    alias Get-DockerDanglingImageIds=' docker image list --filter="dangling=true" --format="{{.ID}}"'
+    alias get-dockerdanglingimageid=' Get-DockerDanglingImageIds '
+    alias Remove-DockerDanglingImages=' docker image list --filter="dangling=true" --format="{{.ID}}" | xargs -L1 docker rmi '
+    alias remove-dockerdanglingimage=' Remove-DockerDanglingImages '
+    alias Remove-DockerDanglingVolumes=' docker volume rm $(docker volume list --quiet --filter="dangling=true") '
+    alias remove-dockerdanglingvolume=' Remove-DockerDanglingVolumes '
+
+    local __AX_DOCKER_ARGS_RUN_AS_ME=(
+        "--user=$(id --user):$(id --group)"
+    )
+    local __AX_DOCKER_ARGS_ONE_TIME=(
+        '--rm'
+    )
+    local __AX_DOCKER_ARGS_UP_TO_DATE=(
+        '--pull=always'
+    )
+    local __AX_DOCKER_ARGS_INTERACTIVE=(
+        '--interactive'
+        '--tty'
+    )
+    local __AX_DOCKER_ARGS_BACKGROUND=(
+        '--detach'
+    )
+
+    # Elixir Livebook in Docker
+    __ax_docker_start_elixir_livebook() {
+        [[ -f /tmp/livebook*(.) ]] && rm /tmp/livebook*
+
+        local __AX_NAME="livebook-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --publish 8080:8080 \
+            --publish 8081:8081 \
+            --mount type=bind,source="$(pwd)",target="/data" \
+            $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+            ghcr.io/livebook-dev/livebook:latest > "/tmp/${__AX_NAME}.log"
+    }
+    alias Start-DockerElixirLivebook=' __ax_docker_start_elixir_livebook '
+    alias start-dockerelixirlivebook=' Start-DockerElixirLivebook '
+
+    __ax_docker_start_elixir_livebook_cuda() {
+        local __AX_BASE_NAME="livebook-cuda"
+        [[ -f /tmp/${__AX_BASE_NAME}*(.) ]] && rm /tmp/${__AX_BASE_NAME}*
+
+        local __AX_NAME="${__AX_BASE_NAME}-$(date +%Y%m%d%H%M%S)"
+        docker run \
+            --name "${__AX_NAME}" \
+            --gpus all \
+            --publish 8080:8080 \
+            --publish 8081:8081 \
+            --mount type=bind,source="$(pwd)",target="/data" \
+            $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+            ghcr.io/livebook-dev/livebook:0.16.4-cuda12 > "/tmp/${__AX_NAME}.log"
+    }
+    alias Start-DockerElixirLivebookCuda=' __ax_docker_start_elixir_livebook_cuda '
+    alias start-dockerelixirlivebookcuda=' Start-DockerElixirLivebookCuda '
+
+    # Jupyter in Docker
+    __ax_docker_start_jupyter_notebook() {
+        [[ -f /tmp/jupyternotebook*(.) ]] && rm /tmp/jupyternotebook*
+
+        local __AX_NAME="jupyternotebook-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --publish 8888:8888 \
+            --mount type=bind,source="$(pwd)",target="/home/jovyan/work" \
+            $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+            quay.io/jupyter/base-notebook > "/tmp/${__AX_NAME}.log"
+    }
+    alias Start-DockerJupyterNotebook=' __ax_docker_start_jupyter_notebook '
+    alias start-dockerjupyternotebook=' Start-DockerJupyterNotebook '
+
+    __ax_docker_start_tensorflow_notebook() {
+        [[ -f /tmp/tensorflownotebook*(.) ]] && rm /tmp/tensorflownotebook*
+
+        local __AX_NAME="tensorflownotebook-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --publish 8888:8888 \
+            --mount type=bind,source="$(pwd)",target="/home/jovyan/work" \
+            $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+            quay.io/jupyter/tensorflow-notebook > "/tmp/${__AX_NAME}.log"
+    }
+    alias Start-DockerTensorflowNotebook=' __ax_docker_start_tensorflow_notebook '
+    alias start-dockertensorflownotebook=' Start-DockerTensorflowNotebook '
+    alias start-dockertesorflownotebook=' Start-DockerTensorflowNotebook '  # Legacy typo alias
+
+    # ZSH in Docker
+    __ax_docker_new_zsh_ubuntu() {
+        docker run \
+            --name "zsh-ubuntu" \
+            --mount "type=volume,source=ZSHUbuntu,target=/root" \
+            $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_UP_TO_DATE \
+            ubuntu:latest
+    }
+    alias New-DockerZshUbuntu=' __ax_docker_new_zsh_ubuntu '
+    alias new-dockerzshubuntu=' New-DockerZshUbuntu '
+    alias Start-DockerZshUbuntu=' docker start zsh-ubuntu '
+    alias start-dockerzshubuntu=' Start-DockerZshUbuntu '
+    alias Stop-DockerZshUbuntu=' docker stop zsh-ubuntu '
+    alias stop-dockerzshubuntu=' Stop-DockerZshUbuntu '
+    alias Connect-DockerZshUbuntu=' docker exec --interactive --tty zsh-ubuntu zsh '
+    alias connect-dockerzshubuntu=' Connect-DockerZshUbuntu '
+    alias Connect-DockerZshUbuntuBash=' docker exec --interactive --tty zsh-ubuntu bash '
+    alias connect-dockerzshubuntubash=' Connect-DockerZshUbuntuBash '
+    alias Remove-DockerZshUbuntu=' docker rm zsh-ubuntu && docker volume rm ZSHUbuntu '
+    alias remove-dockerzshubuntu=' Remove-DockerZshUbuntu '
+
+    __ax_docker_start_azure_cli() {
+        local __AX_NAME="azcli-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --mount type=volume,source="AzureCLI",target="/root" \
+            $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE \
+            mcr.microsoft.com/azure-cli
+    }
+    alias Start-DockerAzureCli=' __ax_docker_start_azure_cli '
+    alias start-dockerazcli=' Start-DockerAzureCli '
+
+    __ax_docker_start_azure_powershell() {
+        local __AX_NAME="azpwsh-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --mount type=volume,source="AzurePowerShell",target="/root" \
+            $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE \
+            mcr.microsoft.com/powershell
+    }
+    alias Start-DockerAzurePowerShell=' __ax_docker_start_azure_powershell '
+    alias start-dockerazpwsh=' Start-DockerAzurePowerShell '
+
+    __ax_docker_invoke_tesseract() {
+        [[ -f /tmp/tesseract*(.) ]] && rm /tmp/tesseract*
+
+        local __AX_NAME="tesseract-$(date +%Y%m%d%H%M%S)"
+
+        docker run \
+            --name "${__AX_NAME}" \
+            --mount type=bind,source="$(pwd)",target="/data" \
+            $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+            tesseractshadow/tesseract4re > "/tmp/${__AX_NAME}.log"
+    }
+    alias Invoke-DockerTesseract=' __ax_docker_invoke_tesseract '
+    alias invoke-dockertesseract=' Invoke-DockerTesseract '
+}
+
+if [[ -x $(which eza 2> /dev/null) ]] {
+    export EZA_COLORS="ur=32:uw=33:ux=31:ue=31:gr=32:gw=33:gx=31:tr=32:tw=33:tx=31:sn=32:sb=33:xx=34"
+
+    local __AX_EZA_ARGS_COMMON=(
+        '--color=always'
+        '--group'
+        '--sort=extension'
+        '--ignore-glob="tags*"'
+    )
+    local __AX_EZA_ARGS_PARAMS=(
+        '--classify'
+        '--color-scale'
+        '--color-scale-mode=fixed'
+        '--git'
+        '--group-directories-first'
+        '--icons'
+        '--ignore-glob=snap'
+        '--time-style=long-iso'
+    )
+    local __AX_EZA_ARGS_LONG=(
+        '--all'
+        '--header'
+        '--long'
+    )
+    local __AX_EZA_ARGS_DETAIL=(
+        '--accessed'
+        '--binary'
+        '--blocksize'
+        '--created'
+        '--inode'
+        '--links'
+        '--modified'
+    )
+    alias ls=' eza $__AX_EZA_ARGS_COMMON $__AX_EZA_ARGS_PARAMS '
+    alias l=' ls --git-ignore --oneline '
+    alias ll=' ls $__AX_EZA_ARGS_LONG '
+    alias llm=' ll --sort=modified '
+    alias la=' eza $__AX_EZA_ARGS_COMMON $__AX_EZA_ARGS_LONG $__AX_EZA_ARGS_DETAIL '
+    alias lt=' eza --tree $__AX_EZA_ARGS_COMMON $__AX_EZA_ARGS_PARAMS '
+    alias lx=' la --extended '
+} else {
+    [[ $(uname) == Darwin ]] && alias lsi='ls '
+    [[ $(uname) == Linux ]] && alias lsi='ls --ignore=snap '
+
+    local __AX_LS_ARGS_COMMON=(
+        '--color=auto'
+        '--group-directories-first'
+        '--hyperlink=auto'
+        '--human-readable'
+        '--sort=extension'
+    )
+
+    alias l=' ls -1 '
+    alias la=' ls -A '
+    alias ll=' ls -l '
+    alias ls=' lsi $__AX_LS_ARGS_COMMON '
+}
+
+if [[ -x $(which git 2> /dev/null) ]] {
+    alias Confirm-GitUntrackedCache=' git update-index --test-untracked-cache '
+    alias confirm-gituntrackedcache=' Confirm-GitUntrackedCache '
+    alias Set-GitUntrackedCache=' git update-index --split-index --untracked-cache '
+    alias set-gituntrackedcache=' Set-GitUntrackedCache '
+    [[ -x $(which parallel 2> /dev/null) ]] && \
+        alias Update-GitRepositories=' parallel cd {} ";" pwd ";" git pull ";" git submodule update ";"  echo ::: *(/) ' && \
+        alias update-gitrepository=' Update-GitRepositories '
+}
+
+if [[ -x $(which kitty 2> /dev/null) ]] {
+    local __AX_KITTY_ARGS_COMMON=(
+        '--title=kiTTY'
+        '--detach'
+    )
+    local __AX_KITTY_ARGS_SOLARIZED=(
+        '--override'
+        'include=${HOME}/.config/kitty/Solarized'
+    )
+    alias Open-Kitty=" kitty ${__AX_KITTY_ARGS_COMMON} "
+    alias open-kitty=" Open-Kitty "
+    alias Open-KittySolarizedDark=" kitty ${__AX_KITTY_ARGS_COMMON} ${__AX_KITTY_ARGS_SOLARIZED}_Dark.conf "
+    alias open-kittysolarizeddark=" Open-KittySolarizedDark "
+    alias okd=" Open-KittySolarizedDark "
+    alias Open-KittySolarizedLight=" kitty ${__AX_KITTY_ARGS_COMMON} ${__AX_KITTY_ARGS_SOLARIZED}_Light.conf "
+    alias open-kittysolarizedlight=" Open-KittySolarizedLight "
+    alias okl=" Open-KittySolarizedLight "
+}
+
+if [[ -x $(which lynx 2> /dev/null) ]] {
+    [[ -f ~/.config/lynx/solarized.lss ]] && \
+        alias lynx=' lynx -lss ~/.config/lynx/solarized.lss ' || \
+        alias lynx='lynx '
+}
+
+if [[ -x $(which tmux 2> /dev/null) ]] {
+    alias Split-TmuxWindow=' tmux split-window '
+    alias split-tmuxwindow=' Split-TmuxWindow '
+    alias tmsw=' Split-TmuxWindow '
+    alias tma=' tmux attach '
+}
+
+if [[ -x $(which zfs 2> /dev/null) ]] {
+    __ax_zfs_remove_snapshot() {
+        zsysctl state remove "${1}" --system
+        printf "\n"
+    }
+    alias Remove-ZfsSnapshot=' __ax_zfs_remove_snapshot '
+    alias remove-zfssnapshot=' Remove-ZfsSnapshot '
+
+    alias Get-ZfsSnapshots=' zfs list -r -t snapshot -S creation -o name,used,referenced,creation '
+    alias get-zfssnapshot=' Get-ZfsSnapshots '
+}
+
+
+[[ -x $(which bat 2> /dev/null) ]] && alias bat=' bat --paging=auto '
+[[ -x $(which cargo 2> /dev/null) ]] && alias cargo=' cargo '
+[[ -x $(which gh 2> /dev/null) ]] && alias gh=' gh '
+[[ -x $(which gh 2> /dev/null) ]] && eval "$(gh copilot alias -- zsh)"
+[[ -x $(which ncdu 2> /dev/null) ]] && alias ncdu=' ncdu --exclude ".git" '
+[[ -x $(which nvidia-settings 2> /dev/null) ]] && alias Get-NvidiaCudaCores=' nvidia-settings -q CUDACores -t ' && alias get-nvidiacudacores=' Get-NvidiaCudaCores '
+[[ -x $(which pipx 2> /dev/null) ]] && eval "$(register-python-argcomplete pipx)"
+[[ -x $(which stress-ng 2> /dev/null) ]] && alias Measure-Performance=' stress-ng ' && alias measure-performance=' Measure-Performance '
+[[ -x $(which task 2> /dev/null) ]] && alias task=' clear && task '
+[[ -x $(which tokei 2> /dev/null) ]] && alias tokei=' tokei --exclude .github --exclude .git --sort code '
+[[ -x $(which tree 2> /dev/null) ]] && alias tree=' tree -I snap --dirsfirst '
+[[ -x $(which xclip 2> /dev/null) ]] && alias Copy-Selection=' xclip -selection clipboard ' && alias copy-selection=' Copy-Selection '
+
+
+alias -s {asc,cs,dart,erl,ex{s},fs,htm{l},java,json,py,rebar,rs,scala,txt,xml}=nvim
+alias -s {pdf,ps}=evince
+
+
+alias -g B="| bat --paging=auto - "
+alias -g C="| wc --lines - "
+alias -g G="| grep "
+alias -g L="| less --line-numbers "
+alias -g R="| rg "
+alias -g S="| sed --expression "
+alias -g V="| nvim - "
+
+function ls() {
+	[[ -f ~/.hidden ]] && declare GLOBIGNORE=${GLOBIGNORE}:.*:$(tr '\n' ':' < ~/.hidden) ls "$@"
+}
+

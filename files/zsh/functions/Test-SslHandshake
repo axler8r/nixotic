@@ -1,0 +1,14 @@
+#! /usr/bin/env zsh
+
+# test-sslhandshake: Test SSL handshake for a given site
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <site>" && return 0
+
+# Validate argument
+if [[ $# -lt 1 || -z "$1" ]]; then
+    echo "Error: Missing site argument"
+    return 1
+fi
+
+local _site=$1
+openssl s_client -connect "${_site}":443 <<< "Q"

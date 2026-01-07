@@ -1,0 +1,569 @@
+#!/usr/bin/env python3
+
+# new-function: Generate zsh wrappers, functions, and scripts
+
+"""
+Script: new-function
+Author: axler8r
+Description: Generates zsh wrappers, functions, and scripts
+Version: 2.1
+"""
+
+import argparse
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import NoReturn, Optional
+
+
+class Colors:
+    """ANSI color codes for terminal output"""
+    RED = '\033[0;31m'
+    GREEN = '\033[0;32m'
+    YELLOW = '\033[1;33m'
+    BLUE = '\033[0;34m'
+    NC = '\033[0m'  # No Color
+
+
+class Logger:
+    """Simple logging utility"""
+
+    def __init__(self, verbose: bool = False):
+        self.verbose: bool = verbose
+
+    def info(self, message: str) -> None:
+        print(f"{Colors.BLUE}[INFO]{Colors.NC} {message}", file=sys.stderr)
+
+    def success(self, message: str) -> None:
+        print(f"{Colors.GREEN}[SUCCESS]{Colors.NC} {message}", file=sys.stderr)
+
+    def error(self, message: str) -> None:
+        print(f"{Colors.RED}[ERROR]{Colors.NC} {message}", file=sys.stderr)
+
+    def warn(self, message: str) -> None:
+        print(f"{Colors.YELLOW}[WARN]{Colors.NC} {message}", file=sys.stderr)
+
+    def verbose_log(self, message: str) -> None:
+        if self.verbose:
+            print(f"{Colors.BLUE}[VERBOSE]{Colors.NC} {message}", file=sys.stderr)
+
+
+def error_exit(message: str, exit_code: int = 1) -> NoReturn:
+    """Print error message and exit"""
+    Logger().error(message)
+    sys.exit(exit_code)
+
+
+def validate_name(name: str) -> bool:
+    """Validate that name follows verb-noun convention"""
+    pattern = r'^[a-z]+(-[a-z]+)+$'
+    return bool(re.match(pattern, name))
+
+
+def name_to_function(name: str) -> str:
+    """Convert hyphenated name to underscore format: get-data -> get_data"""
+    return name.replace('-', '_')
+
+
+def generate_wrapper_template(name: str) -> str:
+    """Generate a wrapper template - simple command wrapper (1-15 lines)"""
+    func_name: str = name_to_function(name)
+    return f'''#! /usr/bin/env zsh
+
+# {name}: Brief description
+
+[[ "$1" == "--help" ]] && echo "Usage: ${{0:t}} [args]" && return 0
+
+# Main logic here
+echo "Executing {func_name}"
+'''
+
+
+def generate_function_template(name: str, description: Optional[str] = None) -> str:
+    """Generate a function template - structured zsh function (16-80 lines)"""
+    func_name: str = name_to_function(name)
+    desc: str = description or f"Description of {name}"
+    
+    return f'''#! /usr/bin/env zsh
+
+# {name}: {desc}
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${{0:t}} [opts] [args]
+
+See also:
+    ${{0:t}} --help
+"
+local _help="Description:
+    {desc}
+
+Usage:
+    ${{0:t}} [opts] [args]
+
+Options:
+    --help      Show this help message.
+    [Add other options here]
+
+Examples:
+    ${{0:t}} arg1 arg2
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {{
+    echo "${{_synopsis}}" | tail --lines=+2
+}}
+
+_help() {{
+    echo "${{_help}}" | tail --lines=+2
+}}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        --opt1)     _opt1_flag=true ;;
+        *)          _args=$1        ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+[[ -z $_args ]] && echo "Error: Missing required argument" && return 1
+
+
+# Driver -----------------------------------------------------------------------
+function {func_name}() {{
+    local arg=${{1}}
+    
+    # Add function logic here
+    echo "Executing {func_name} with: ${{arg}}"
+}}
+
+
+{func_name} "${{_args}}"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction {func_name}
+
+'''
+
+
+def generate_script_template(
+        name: str,
+        description: Optional[str] = None,
+        author: Optional[str] = None,
+        version: str = "1.0"
+    ) -> str:
+    """Generate a script template - full-featured automation script (81+ lines)"""
+    func_name: str = name_to_function(name)
+    desc: str = description or f"Comprehensive automation script for {name}"
+    author_name: str = author or "Your Name"
+    current_date: str = datetime.now().strftime('%Y-%m-%d')
+    
+    return f'''#!/usr/bin/env zsh
+
+# Script: {name}
+# Author: {author_name}
+# Description: {desc}
+# Version: {version}
+# Created: {current_date}
+
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
+
+# Script metadata
+readonly SCRIPT_NAME="${{0:t}}"
+readonly SCRIPT_DIR="${{0:A:h}}"
+readonly VERSION="{version}"
+
+# Default values
+typeset -i VERBOSE=0
+typeset -i DRY_RUN=0
+typeset -i FORCE=0
+
+# Color codes for output
+readonly RED="\\033[0;31m"
+readonly GREEN="\\033[0;32m"
+readonly YELLOW="\\033[1;33m"
+readonly BLUE="\\033[0;34m"
+readonly NC="\\033[0m" # No Color
+
+#==============================================================================
+# Functions
+#==============================================================================
+
+show_synopsis() {{
+    cat << EOF
+SYNOPSIS
+    ${{SCRIPT_NAME}} [OPTIONS] [ARGUMENTS]
+
+    {desc}
+EOF
+}}
+
+show_help() {{
+    show_synopsis
+    cat << EOF
+
+DESCRIPTION
+    Detailed description of what this script does and its purpose.
+
+    This script performs automation tasks such as...
+
+OPTIONS
+    -h, --help      Show this help message and exit
+    -v, --verbose   Enable verbose output
+    -V, --version   Show version information
+    -n, --dry-run   Show what would be done without actually doing it
+    -f, --force     Force operation without confirmation prompts
+
+ARGUMENTS
+    arg1            Description of first argument
+    arg2            Description of second argument (optional)
+
+EXAMPLES
+    ${{SCRIPT_NAME}} --verbose file.txt
+    ${{SCRIPT_NAME}} --dry-run --force /path/to/directory
+
+EXIT CODES
+    0    Success
+    1    General error
+    2    Invalid arguments
+
+AUTHOR
+    {author_name}
+
+VERSION
+    {version}
+EOF
+}}
+
+show_version() {{
+    echo "${{SCRIPT_NAME}} version ${{VERSION}}"
+}}
+
+# Logging/output functions
+log_info() {{
+    echo -e "${{BLUE}}[INFO]${{NC}} $*" >&2
+}}
+
+log_warn() {{
+    echo -e "${{YELLOW}}[WARN]${{NC}} $*" >&2
+}}
+
+log_error() {{
+    echo -e "${{RED}}[ERROR]${{NC}} $*" >&2
+}}
+
+log_success() {{
+    echo -e "${{GREEN}}[SUCCESS]${{NC}} $*" >&2
+}}
+
+log_verbose() {{
+    [[ ${{VERBOSE}} -eq 1 ]] && echo -e "${{BLUE}}[VERBOSE]${{NC}} $*" >&2
+}}
+
+# Error handling
+error_exit() {{
+    local exit_code=${{2:-1}}
+    log_error "$1"
+    exit ${{exit_code}}
+}}
+
+# Confirmation prompt (when not using --force)
+confirm() {{
+    if [[ ${{FORCE}} -eq 1 ]]; then
+        return 0
+    fi
+
+    local message="$1"
+    echo -n "${{message}} (y/N): "
+    read -r response
+    case ${{response}} in
+        [yY][eE][sS]|[yY]) return 0 ;;
+        *) return 1 ;;
+    esac
+}}
+
+# Check if required commands exist
+check_dependencies() {{
+    local missing_deps=()
+    
+    local required_commands=(
+        # Add required commands here
+        # Example: "jq" "curl" "git"
+    )
+    
+    for cmd in ${{required_commands[@]}}; do
+        if ! command -v ${{cmd}} &> /dev/null; then
+            missing_deps+=(${{cmd}})
+        fi
+    done
+    
+    if [[ ${{#missing_deps[@]}} -gt 0 ]]; then
+        error_exit "Missing required commands: ${{missing_deps[*]}}"
+    fi
+}}
+
+# Cleanup function (called on EXIT)
+cleanup() {{
+    log_verbose "Cleaning up..."
+    # Add cleanup logic here
+}}
+
+#==============================================================================
+# Main Functions
+#==============================================================================
+
+# Your main logic functions go here
+{func_name}() {{
+    local arg=${{1:-}}
+    
+    log_verbose "Starting {func_name} with argument: ${{arg}}"
+    
+    if [[ ${{DRY_RUN}} -eq 1 ]]; then
+        log_info "DRY RUN: Would execute {func_name}"
+        return 0
+    fi
+    
+    # Add your main logic here
+    log_info "Processing..."
+    
+    # Example logic
+    if [[ -z "${{arg}}" ]]; then
+        error_exit "Missing required argument" 2
+    fi
+    
+    # Do the actual work
+    echo "Executing {func_name} with: ${{arg}}"
+    
+    log_success "Completed successfully"
+}}
+
+#==============================================================================
+# Argument Parsing
+#==============================================================================
+
+parse_arguments() {{
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -V|--version)
+                show_version
+                exit 0
+                ;;
+            -v|--verbose)
+                VERBOSE=1
+                shift
+                ;;
+            -n|--dry-run)
+                DRY_RUN=1
+                shift
+                ;;
+            -f|--force)
+                FORCE=1
+                shift
+                ;;
+            -*)
+                error_exit "Unknown option: $1" 2
+                ;;
+            *)
+                # Positional arguments
+                if [[ -z "${{ARG1:-}}" ]]; then
+                    ARG1="$1"
+                elif [[ -z "${{ARG2:-}}" ]]; then
+                    ARG2="$1"
+                else
+                    error_exit "Too many arguments" 2
+                fi
+                shift
+                ;;
+        esac
+    done
+}}
+
+#==============================================================================
+# Main Script
+#==============================================================================
+
+main() {{
+    # Set up cleanup trap
+    trap cleanup EXIT
+    
+    # Parse command line arguments
+    parse_arguments "$@"
+    
+    # Check dependencies
+    check_dependencies
+    
+    # Validate arguments
+    if [[ -z "${{ARG1:-}}" ]]; then
+        show_synopsis
+        error_exit "Missing required argument" 2
+    fi
+    
+    # Execute main function
+    {func_name} "${{ARG1}}"
+}}
+
+# Only run main if script is executed directly (not sourced)
+if [[ "${{BASH_SOURCE[0]:-}}" == "${{0}}" ]] || [[ "${{ZSH_EVAL_CONTEXT:-}}" == "toplevel" ]]; then
+    main "$@"
+fi
+'''
+
+
+def create_argument_parser() -> argparse.ArgumentParser:
+    """Create and configure argument parser"""
+    parser = argparse.ArgumentParser(
+        prog='new-function',
+        description='Generate zsh wrappers, functions, and scripts',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Template Types:
+  wrapper    1-15 lines   - Simple command wrappers (e.g., clear-dnscache, test-reboot)
+  function   16-80 lines  - Structured functions with options (e.g., get-latestkitty, update-asdf)
+  script     81+ lines    - Full-featured automation scripts (e.g., optimize-gitrepository)
+
+Examples:
+  new-function wrapper get-weather
+  new-function function --description "Process log files" process-logs
+  new-function script --author "axler8r" --output ~/bin deploy-app
+  new-function --dry-run function test-function
+
+Exit codes:
+  0    Success
+  1    General error
+  2    Invalid arguments
+        """
+    )
+    
+    parser.add_argument(
+        'type',
+        choices=['wrapper', 'function', 'script'],
+        help='Type of template to generate'
+    )
+    
+    parser.add_argument(
+        'name',
+        help='Name of the function (must follow verb-noun convention, e.g., get-data)'
+    )
+    
+    parser.add_argument(
+        '-o', '--output',
+        type=Path,
+        help='Output directory (default: stdout)'
+    )
+    
+    parser.add_argument(
+        '-d', '--description',
+        help='Brief description of what the function does'
+    )
+    
+    parser.add_argument(
+        '-a', '--author',
+        help='Author name (for script templates)'
+    )
+    
+    parser.add_argument(
+        '-V', '--version',
+        default='1.0',
+        help='Version number (for script templates, default: 1.0)'
+    )
+    
+    parser.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help='Print template to stdout without creating file'
+    )
+    
+    parser.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help='Overwrite existing file without prompting'
+    )
+    
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    return parser
+
+
+def main() -> None:
+    """Main entry point"""
+    parser: argparse.ArgumentParser = create_argument_parser()
+    args: argparse.Namespace = parser.parse_args()
+    
+    logger = Logger(args.verbose)
+    
+    # Validate function name
+    if not validate_name(args.name):
+        error_exit(
+            f"Invalid name '{args.name}'. Must follow verb-noun convention (e.g., get-data, process-logs)",
+            2
+        )
+    
+    logger.verbose_log(f"Generating {args.type} template for: {args.name}")
+    
+    # Generate appropriate template
+    if args.type == 'wrapper':
+        template: str = generate_wrapper_template(args.name)
+    elif args.type == 'function':
+        template = generate_function_template(args.name, args.description)
+    else:  # script
+        template = generate_script_template(args.name, args.description, args.author, args.version)
+    
+    # Dry run: just print to stdout
+    if args.dry_run:
+        print(template)
+        return
+    
+    # No output specified: print to stdout
+    if not args.output:
+        print(template)
+        return
+    
+    # Write to file
+    output_path = args.output / args.name
+    
+    logger.verbose_log(f"Output path: {output_path}")
+    
+    # Check if file exists
+    if output_path.exists() and not args.force:
+        response: str = input(f"File {output_path} already exists. Overwrite? (y/N): ")
+        if response.lower() not in ['y', 'yes']:
+            logger.warn("Aborted by user")
+            sys.exit(0)
+    
+    # Create output directory if needed
+    try:
+        args.output.mkdir(parents=True, exist_ok=True)
+        logger.verbose_log(f"Ensured output directory exists: {args.output}")
+    except Exception as e:
+        error_exit(f"Failed to create output directory: {e}")
+    
+    # Write template to file
+    try:
+        output_path.write_text(template)
+        output_path.chmod(0o755)  # Make executable
+        logger.success(f"Created {args.type} template: {output_path}")
+    except Exception as e:
+        error_exit(f"Failed to write template: {e}")
+
+
+if __name__ == "__main__":
+    main()

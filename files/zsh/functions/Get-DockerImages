@@ -1,0 +1,64 @@
+#! /usr/bin/env zsh
+
+# get-dockerimage: List all installed Docker images with details
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Get all installed docker images.
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    get-dockerimage
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && exit 0
+
+
+# Driver -----------------------------------------------------------------------
+function get_dockerimage() {
+    local _header="REPOSITORY:TAG:CREATED:ID"
+    local _image=$(docker image list --format="{{.Repository}}:{{.Tag}}:{{.CreatedSince}}:{{.ID}}" --filter="dangling=false" | sort)
+    echo "${_header}\n${_image}" | column -t -s":"
+    printf "\n"
+}
+
+
+get_dockerimage
+
+
+unfunction _synopsis
+unfunction _help
+unfunction get_dockerimage

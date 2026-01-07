@@ -1,0 +1,11 @@
+#! /usr/bin/env zsh
+
+# Get-AsdfInstalledPlugins: List installed asdf plugins with their repository URLs
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} [args]" && return 0
+
+# Main logic here
+asdf plugin list --urls \
+    | grep -v '^$' \
+    | column -t
+

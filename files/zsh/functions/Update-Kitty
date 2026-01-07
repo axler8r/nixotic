@@ -1,0 +1,7 @@
+#! /usr/bin/env zsh
+
+# update-kitty: Update Kitty terminal to latest version
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
