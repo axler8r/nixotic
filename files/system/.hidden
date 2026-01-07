@@ -1,0 +1,6 @@
+.MPHCPF
+.Trash*
+snap
+tags
+tags.lock
+tags.temp

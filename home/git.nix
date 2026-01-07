@@ -100,5 +100,5 @@
   '';
 
   # Tig configuration
-  home.file.".tigrc".source = ../files/tigrc;
+  home.file.".tigrc".source = ../files/git/tigrc;
 }
