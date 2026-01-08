@@ -1,0 +1,21 @@
+[branch]
+	autosetuprebase = never
+[commit]
+	template = ~/.gitcommit
+[core]
+	editor = nvim
+	eol = lf
+	pager = bat
+[gc]
+	autoDetach = false
+[init]
+	defaultBranch = stable
+[merge]
+	tool = nvim
+	guitool = meld
+[mergetool "nvim"]
+	cmd = nvim -d $LOCAL $REMOTE $MERGED -c '$wincmd w' -c 'wincmd J'
+[pull]
+	rebase = false
+[push]
+	default = simple

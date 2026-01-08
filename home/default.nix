@@ -2,14 +2,19 @@
 
 {
   imports = [
-    ./starship.nix
+    ./atuin.nix
     ./bat.nix
-    ./git.nix
     ./dircolors.nix
+    ./direnv.nix
+    ./eza.nix
+    ./files.nix
+    ./git.nix
     ./kitty.nix
+    ./nushell.nix
+    ./ranger.nix
+    ./starship.nix
     ./tmux.nix
     ./zsh.nix
-    ./files.nix
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
@@ -28,10 +33,45 @@
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
-  home.packages = [
-    # # Adds the 'hello' command to your environment. It prints a friendly
-    # # "Hello, world!" when run.
-    # pkgs.hello
+  home.packages = with pkgs; [
+    # Version control & development
+    gh
+    git-lfs
+    gitflow
+    github-copilot-cli
+    tig
+    tokei
+    
+    # Development tools
+    jq
+    nh
+    ruff
+    uv
+    yq
+    
+    # Editors & text processing
+    helix
+    universal-ctags
+    vimPlugins.vim-plug
+    vscode
+    
+    # Productivity CLI tools
+    bfs
+    choose
+    fd
+    fdupes
+    python3Packages.pygments  # Syntax highlighting for ranger
+    ripgrep
+    sd
+    
+    # Nushell plugins
+    nushellPlugins.gstat
+    nushellPlugins.highlight
+    nushellPlugins.polars
+    nushellPlugins.query
+    
+    # Media
+    mpv
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage

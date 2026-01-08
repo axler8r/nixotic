@@ -1,0 +1,46 @@
+# ── Features ──
+autoload -Uz zmv
+autoload -Uz edit-command-line
+zle -N edit-command-line
+
+# ── Key Bindings ──
+bindkey -v
+bindkey -M vicmd E edit-command-line
+
+# ── Additional Options ──
+setopt auto_list
+setopt auto_menu
+setopt bang_hist
+setopt complete_in_word
+setopt correct
+setopt pushd_ignore_dups
+setopt pushd_silent
+setopt pushd_to_home
+setopt short_loops
+unsetopt beep
+
+# ── Environment ──
+export GPG_TTY=$(tty)  # Required for GPG signing
+
+# ── History Hook ──
+# Ignore specific commands in history
+zshaddhistory() {
+    emulate -L zsh
+    setopt extendedglob
+    if [[ $1 == (#b)(alias|bat|btop|cat|cd|fd|find|git|exit|head|history|htop|ipython|jupyter|locate|man|nvtop|pass|pwd|tail|tig|top|which|who)* ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# ── PATH Additions ──
+typeset -aU path
+path=(${HOME}/.local/bin $path)  # User-installed tools
+path+=(${HOME}/.zsh/functions)   # User-defined executable scripts
+
+# ── Source Aliases ──
+# Complex aliases with local variables and functions
+[[ -f ${HOME}/.zshalias ]] && source ${HOME}/.zshalias
+
+# ── Starship Prompt ──
+eval "$(starship init zsh)"

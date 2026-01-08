@@ -88,55 +88,40 @@
     extraGroups = [ "networkmanager" "wheel" "docker" ];
     shell = pkgs.zsh;
     packages = with pkgs; [
-      # browsers
+      # Browsers (kept system-wide for GNOME integration)
       brave
-      chromium
-      # development
-      claude-code
-      code
-      git
-      gitflow
-      git-lfs
-      github-cli
-      github-copilot-cli
-      jq
-      ruff
-      tig
-      tokei
-      uv
-      yq
-      # editors & text processing
-      helix
-      vscode
-      universal-ctags
-      vimPlugins.vim-plug
-      # media && internet
-      mpv
-      # produtivity
-      bat
-      bfs
-      choose
-      eza
-      fd
-      fdupes
-      fzf
-      kitty
-      ripgrep
-      sd
-      stow
-      # shell
-      zoxide
-      zsh-autosuggestions
-      zsh-fast-syntax-highlighting
+      ungoogled-chromium
+      
+      # IDEs (kept system-wide for desktop integration)
+      code  # VS Code
     ];
   };
 
-  # USER SYSTEM SETTINGS
-  environment.shells = with pkgs; [ zsh ];
+  # User required system features ──----------------------------------
+  
+  # Nix settings
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
-  programs.nix-ld.enable = true;
+  nixpkgs.config.allowUnfree = true;  # Allow proprietary software
+  
+  # Automatic garbage collection
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 21d";
+    persistent = true;  # Run on next boot if system was off during scheduled time
+  };
+  
+  # Shell configuration
+  environment.shells = with pkgs; [ zsh ];
   programs.zsh.enable = true;
+  
+  # System-wide fonts (accessible to all GUI applications)
+  fonts.packages = with pkgs; [ cascadia-code fira-code jetbrains-mono ];
+  
+  # System features
+  programs.nix-ld.enable = true;  # Run non-NixOS binaries
+
+  # Virtualisation
   virtualisation.docker.enable = true;
 
   ## END ---- USER SETTINGS ----

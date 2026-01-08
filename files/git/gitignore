@@ -1,0 +1,22 @@
+# Archives
+*.7z
+*.bz2
+*.gz
+*.tar
+*.zip
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+*.o
+*.pyc
+__pycache__/
+node_modules/

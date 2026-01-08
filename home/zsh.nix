@@ -1,10 +1,10 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   programs.zsh = {
     enable = true;
 
-    # History settings
+    # History settings (kept inline as they're well-structured options)
     history = {
       size = 5000;
       save = 2500;
@@ -17,7 +17,7 @@
       share = true;
     };
 
-    # Options from .zshrc
+    # Basic options from .zshrc
     autocd = true;
     autosuggestion = {
       enable = true;
@@ -28,92 +28,40 @@
       highlighters = [ "main" "brackets" ];
     };
 
-    # Completion settings
-    completionInit = ''
-      autoload -Uz compinit
-      compinit
-      zstyle ':completion:*' completer _complete _ignored
-      zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS}
-      zstyle ':completion:*' matcher-list 'm:{[:lower:]}={[:upper:]}' '+r:|[._-]=* r:|=*'
-    '';
-
-    # initExtra for zsh init
-    initExtra = ''
-      # Features
-      autoload -Uz zmv
-      autoload -Uz edit-command-line
-      zle -N edit-command-line
-
-      # Key bindings
-      bindkey -v
-      bindkey -M vicmd E edit-command-line
-
-      # Additional options not covered by Home Manager
-      setopt auto_list
-      setopt auto_menu
-      setopt bang_hist
-      setopt complete_in_word
-      setopt correct
-      setopt pushd_ignore_dups
-      setopt pushd_silent
-      setopt pushd_to_home
-      setopt short_loops
-      unsetopt beep
-
-      # Environment
-      export GPG_TTY=$(tty)
-      if [[ -x $(which nvim 2> /dev/null) ]]; then
-          EDITOR=$(which nvim)
-          VISUAL=''${EDITOR}
-      elif [[ -x $(which vim 2> /dev/null) ]]; then
-          EDITOR=$(which vim)
-          VISUAL=''${EDITOR}
-      fi
-      [[ -x $(which erl 2> /dev/null) ]] && export ERL_AFLAGS="-kernel shell_history enabled"
-
-      # History hook - ignore specific commands
-      zshaddhistory() {
-          emulate -L zsh
-          setopt extendedglob
-          if [[ $1 == (#b)(alias|bat|btop|cat|cd|fd|find|git|exit|head|history|htop|ipython|jupyter|locate|man|nvtop|pass|pwd|tail|tig|top|which|who)* ]]; then
-              return 1
-          fi
-          return 0
+    # Zsh plugins
+    plugins = [
+      {
+        name = "zsh-nix-shell";
+        file = "nix-shell.plugin.zsh";
+        src = pkgs.zsh-nix-shell;
       }
+      {
+        name = "zsh-vi-mode";
+        file = "zsh-vi-mode.plugin.zsh";
+        src = pkgs.zsh-vi-mode;
+      }
+      {
+        name = "zsh-fzf-tab";
+        file = "fzf-tab.plugin.zsh";
+        src = pkgs.zsh-fzf-tab;
+      }
+      {
+        name = "zsh-completions";
+        file = "zsh-completions.plugin.zsh";
+        src = pkgs.zsh-completions;
+      }
+      {
+        name = "zsh-forgit";
+        file = "forgit.plugin.zsh";
+        src = pkgs.zsh-forgit;
+      }
+    ];
 
-      # Python site packages
-      if [[ -x $(which python3 2> /dev/null) ]]; then
-          SITE_PACKAGE_HOME=$(python3 -m site --user-site)
-          export SITE_PACKAGE_HOME
-      fi
-
-      # PATH additions
-      typeset -aU path
-      path=(''${HOME}/.local/bin $path)
-      path+=(''${HOME}/.zsh/functions)
-
-      # FPATH for functions
-      typeset -aU fpath
-      fpath=(''${HOME}/.zsh/functions $fpath)
-      fpath=(''${HOME}/.zsh/completions $fpath)
-
-      # Autoload user functions
-      if [[ -d ''${HOME}/.zsh/functions ]]; then
-        for func in ''${HOME}/.zsh/functions/*; do
-          autoload -Uz ''${func:t}
-        done
-      fi
-
-      # Application integrations
-      [[ -x $(which uv 2> /dev/null) ]] && eval "$(uv generate-shell-completion zsh)"
-      [[ -x $(which uvx 2> /dev/null) ]] && eval "$(uvx --generate-shell-completion zsh)"
-
-      # Source aliases (complex aliases with local variables and functions)
-      [[ -f ''${HOME}/.zshalias ]] && source ''${HOME}/.zshalias
-
-      # Starship prompt (replaces Powerline)
-      eval "$(starship init zsh)"
-    '';
+    # Unified init content (replaces initExtraBeforeCompInit and initExtra)
+    initContent = lib.mkMerge [
+      (lib.mkOrder 550 (builtins.readFile ../files/zsh/completion.zsh))  # Before compinit
+      (builtins.readFile ../files/zsh/zshrc)  # Main config
+    ];
 
     # Environment variables
     sessionVariables = {
@@ -142,4 +90,11 @@
 
   # Copy aliases file (complex, kept as source file)
   home.file.".zshalias".source = ../files/zsh/zshalias;
+
+  # Generate shell completions at build time
+  xdg.dataFile."zsh/site-functions/_uv".text = builtins.readFile (
+    pkgs.runCommand "uv-completion" {} ''
+      ${pkgs.uv}/bin/uv generate-shell-completion zsh > $out
+    ''
+  );
 }
