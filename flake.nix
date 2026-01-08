@@ -16,11 +16,11 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      nixosConfigurations.nix000 = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.prototype = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/nix000/configuration.nix
+          ./hosts/prototype/configuration.nix
 
           home-manager.nixosModules.home-manager
           {
