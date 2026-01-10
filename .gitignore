@@ -1,2 +1,3 @@
-# Machine-specific hardware config (auto-generated, symlinked from /etc/nixos/)
-hosts/*/hardware-configuration.nix
+*.code-workspace
+nhbuild
+tags

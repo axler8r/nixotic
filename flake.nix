@@ -1,5 +1,5 @@
 {
-  description = "Nixotic - NixOS configuration for axl";
+  description = "Nixotic, the Quixotic NixOS configuration";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -13,22 +13,35 @@
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
-      nixosConfigurations.prototype = nixpkgs.lib.nixosSystem {
+      
+      # Common Home Manager configuration
+      homeManagerConfig = {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.axl = import ./home/default.nix;
+      };
+      
+      # Helper to create a NixOS system configuration
+      mkHost = hostPath: nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/prototype/configuration.nix
-
+          hostPath
           home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.axl = import ./home/default.nix;
-          }
+          homeManagerConfig
         ];
+      };
+    in
+    {
+      nixosConfigurations = {
+        # VM for developing NixOS configuration
+        demonstr8r = mkHost ./hosts/demonstr8r/configuration.nix;
+        
+        # Laptop (TODO: configure when ready)
+        # ambul8r = mkHost ./hosts/ambul8r/configuration.nix;
+        
+        # ML workstation (TODO: configure when ready)
+        # infer8r = mkHost ./hosts/infer8r/configuration.nix;
       };
     };
 }

@@ -7,7 +7,7 @@
 {
   imports =
     [ # Include the results of the hardware scan.
-      /etc/nixos/hardware-configuration.nix
+      ./hardware-configuration.nix
     ];
 
   # Bootloader.
@@ -15,7 +15,7 @@
   boot.loader.grub.device = "/dev/sda";
   boot.loader.grub.useOSProber = true;
 
-  networking.hostName = "nix000"; # Define your hostname.
+  networking.hostName = "demonstr8r"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary
@@ -91,9 +91,6 @@
       # Browsers (kept system-wide for GNOME integration)
       brave
       ungoogled-chromium
-      
-      # IDEs (kept system-wide for desktop integration)
-      code  # VS Code
     ];
   };
 
@@ -137,6 +134,7 @@
     neovim
     # system tools
     clamav
+    file
     htop
     lsof
     net-tools
@@ -144,8 +142,6 @@
     plocate
     pv
     socat
-    tmux
-    # TODO: configure tmux plugins (in pkgs.tmuxPlugins)
     tree
     wget
   ];

@@ -1,22 +1,31 @@
 # nixotic
 NixOS Flakes + Home Manager configuration for my personal systems.
 
+## Hosts
+
+| Host | Description | Status |
+|------|-------------|--------|
+| `demonstr8r` | VM for developing NixOS configuration | ✅ Active |
+| `ambul8r` | Laptop | 📋 Placeholder |
+| `infer8r` | ML workstation | 📋 Placeholder |
+
 ## Quick Start
 ```bash
 # Clone
 git clone https://github.com/axler8r/nixotic.git ~/.nixotic
 
 # Rebuild (requires --impure for hardware-configuration.nix)
-sudo nixos-rebuild switch --flake ~/.nixotic#nix000 --impure
+sudo nixos-rebuild switch --flake ~/.nixotic#demonstr8r --impure
 ```
 
 ## Structure
 ```
 .nixotic/
 ├── flake.nix              # Flake inputs and outputs
-├── hosts/nix000/          # Host-specific config
-│   ├── configuration.nix  # System configuration
-│   └── hardware-configuration.nix  # (gitignored)
+├── hosts/                 # Host-specific configurations
+│   ├── demonstr8r/        # Development VM
+│   ├── ambul8r/           # Laptop (placeholder)
+│   └── infer8r/           # ML workstation (placeholder)
 ├── home/                  # Home Manager modules
 │   ├── default.nix        # Main entry point
 │   ├── zsh.nix            # Shell + fzf + zoxide
@@ -39,7 +48,7 @@ sudo nixos-rebuild switch --flake ~/.nixotic#nix000 --impure
 ## Adding a New Host
 1. Create `hosts/<hostname>/configuration.nix`
 2. Copy hardware config: `cp /etc/nixos/hardware-configuration.nix hosts/<hostname>/`
-3. Add to `flake.nix` outputs
+3. Add to `flake.nix` outputs (uncomment or add new entry)
 4. Rebuild: `sudo nixos-rebuild switch --flake ~/.nixotic#<hostname> --impure`
 
 ## Project-Specific Tools

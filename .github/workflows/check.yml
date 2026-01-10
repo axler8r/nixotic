@@ -1,0 +1,31 @@
+name: Validate NixOS Configuration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Check flake
+        run: nix flake check --no-build
+
+      - name: Validate demonstr8r
+        run: nix build .#nixosConfigurations.demonstr8r.config.system.build.toplevel --dry-run
+
+      - name: Validate ambul8r
+        run: nix build .#nixosConfigurations.ambul8r.config.system.build.toplevel --dry-run
+
+      - name: Validate infer8r
+        run: nix build .#nixosConfigurations.infer8r.config.system.build.toplevel --dry-run
