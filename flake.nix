@@ -21,7 +21,6 @@
         home-manager.users.axl = import ./home/default.nix;
       };
       
-      # Helper to create a NixOS system configuration
       mkHost = hostPath: nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
@@ -34,7 +33,6 @@
     in
     {
       nixosConfigurations = {
-        # VM for developing NixOS configuration
         demonstr8r = mkHost ./hosts/demonstr8r/configuration.nix;
         
         # Laptop (TODO: configure when ready)

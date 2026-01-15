@@ -4,7 +4,6 @@
   programs.zsh = {
     enable = true;
 
-    # History settings (kept inline as they're well-structured options)
     history = {
       size = 5000;
       save = 2500;
@@ -17,7 +16,6 @@
       share = true;
     };
 
-    # Basic options from .zshrc
     autocd = true;
     autosuggestion = {
       enable = true;
@@ -28,7 +26,6 @@
       highlighters = [ "main" "brackets" ];
     };
 
-    # Zsh plugins
     plugins = [
       {
         name = "zsh-nix-shell";
@@ -63,35 +60,29 @@
       (builtins.readFile ../files/zsh/zshrc)  # Main config
     ];
 
-    # Environment variables
     sessionVariables = {
       HISTSIZE = "5000";
       SAVEHIST = "2500";
     };
   };
 
-  # fzf integration
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
   };
 
-  # zoxide integration (z command)
   programs.zoxide = {
     enable = true;
     enableZshIntegration = true;
   };
 
-  # Copy functions directory
   home.file.".zsh/functions" = {
     source = ../files/zsh/functions;
     recursive = true;
   };
 
-  # Copy aliases file (complex, kept as source file)
   home.file.".zshalias".source = ../files/zsh/zshalias;
 
-  # Generate shell completions at build time
   xdg.dataFile."zsh/site-functions/_uv".text = builtins.readFile (
     pkgs.runCommand "uv-completion" {} ''
       ${pkgs.uv}/bin/uv generate-shell-completion zsh > $out

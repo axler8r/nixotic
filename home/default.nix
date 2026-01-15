@@ -42,7 +42,6 @@
     tig
     tokei
     
-    # Development tools
     jq
     nh
     ruff
