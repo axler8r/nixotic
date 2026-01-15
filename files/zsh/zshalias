@@ -16,6 +16,7 @@ alias ...=' cd ../../ '
 alias ....=' cd ../../../ '
 alias .....=' cd ../../../../ '
 alias df=' df --human-readable --exclude-type=squashfs --exclude-type=tmpfs --exclude-type=devtmpfs --print-type '
+alias lhx=' hx --config <(echo "theme = \"solarized_light\"") '
 alias lnvim=' nvim -c "set background=light" '
 alias manw='MANWIDTH="" command man '
 alias now=" date +'%Y-%m-%d %H:%M:%S' "

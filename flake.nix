@@ -18,6 +18,7 @@
       homeManagerConfig = {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
+        home-manager.backupCommand = "backup-$(date +%Y%m%d%H%M%S)";
         home-manager.users.axl = import ./home/default.nix;
       };
       

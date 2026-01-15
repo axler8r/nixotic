@@ -7,13 +7,22 @@
     ./dircolors.nix
     ./direnv.nix
     ./eza.nix
+    ./fastfetch.nix
+    ./fd.nix
     ./files.nix
+    ./gh.nix
     ./git.nix
+    ./helix.nix
+    ./htop.nix
+    ./jq.nix
     ./kitty.nix
+    ./nh.nix
     ./nushell.nix
     ./ranger.nix
+    ./ripgrep.nix
     ./starship.nix
     ./tmux.nix
+    ./vscode.nix
     ./zsh.nix
   ];
 
@@ -35,40 +44,35 @@
   # environment.
   home.packages = with pkgs; [
     # Version control & development
-    gh
-    git-lfs
     gitflow
     github-copilot-cli
     tig
-    tokei
-    
-    jq
-    nh
-    ruff
-    uv
-    yq
-    
+
     # Editors & text processing
-    helix
     universal-ctags
     vimPlugins.vim-plug
-    vscode
-    
     # Productivity CLI tools
     bfs
     choose
-    fd
     fdupes
-    python3Packages.pygments  # Syntax highlighting for ranger
-    ripgrep
+    lsof
+    p7zip
+    pv
+    python3Packages.pygments # Syntax highlighting for ranger
     sd
-    
+    socat
+    strace
+    tokei
+    tree
+    wget
+    yq
+
     # Nushell plugins
     nushellPlugins.gstat
     nushellPlugins.highlight
     nushellPlugins.polars
     nushellPlugins.query
-    
+
     # Media
     mpv
   ];
