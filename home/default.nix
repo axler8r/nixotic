@@ -12,6 +12,7 @@
     ./files.nix
     ./gh.nix
     ./git.nix
+    ./gnome.nix
     ./helix.nix
     ./htop.nix
     ./jq.nix
