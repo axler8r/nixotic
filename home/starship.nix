@@ -72,6 +72,17 @@
         symbol = "✘ ";
       };
 
+      # Character prompt - static symbols to avoid conflict with zsh-vi-mode
+      # Both hook into zle-keymap-select, causing FUNCNEST recursion
+      character = {
+        success_symbol = "[➜](bold green)";
+        error_symbol = "[✗](bold red)";
+        vimcmd_symbol = "[➜](bold green)";
+        vimcmd_visual_symbol = "[➜](bold green)";
+        vimcmd_replace_symbol = "[➜](bold green)";
+        vimcmd_replace_one_symbol = "[➜](bold green)";
+      };
+
       # Color palettes
       palettes = {
         material-palenight = {

@@ -3,6 +3,15 @@
 {
   programs.zsh = {
     enable = true;
+    enableCompletion = true;
+
+    completionInit = ''
+      autoload -Uz compinit
+      compinit
+      zstyle ':completion:*' completer _complete _ignored
+      zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS}
+      zstyle ':completion:*' matcher-list 'm:{[:lower:]}={[:upper:]}' '+r:|[._-]=* r:|=*'
+    '';
 
     history = {
       size = 5000;
@@ -29,35 +38,36 @@
     plugins = [
       {
         name = "zsh-nix-shell";
-        file = "nix-shell.plugin.zsh";
+        file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
         src = pkgs.zsh-nix-shell;
       }
       {
         name = "zsh-vi-mode";
-        file = "zsh-vi-mode.plugin.zsh";
+        file = "share/zsh-vi-mode/zsh-vi-mode.plugin.zsh";
         src = pkgs.zsh-vi-mode;
       }
       {
         name = "zsh-fzf-tab";
-        file = "fzf-tab.plugin.zsh";
+        file = "share/fzf-tab/fzf-tab.plugin.zsh";
         src = pkgs.zsh-fzf-tab;
       }
-      {
-        name = "zsh-completions";
-        file = "zsh-completions.plugin.zsh";
-        src = pkgs.zsh-completions;
-      }
+      # zsh-completions adds to fpath, no plugin file needed
       {
         name = "zsh-forgit";
-        file = "forgit.plugin.zsh";
+        file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
         src = pkgs.zsh-forgit;
       }
     ];
 
-    # Unified init content (replaces initExtraBeforeCompInit and initExtra)
+    # Main config loaded via initContent
     initContent = lib.mkMerge [
-      (lib.mkOrder 550 (builtins.readFile ../files/zsh/completion.zsh))  # Before compinit
-      (builtins.readFile ../files/zsh/zshrc)  # Main config
+      (builtins.readFile ../files/zsh/zshrc)
+      # After plugins (900) and fzf (910): load fzf keybindings then rebind Tab to fzf-tab
+      (lib.mkOrder 920 ''
+        source <(${pkgs.fzf}/bin/fzf --zsh)
+        bindkey -M viins '^I' fzf-tab-complete
+        bindkey -M emacs '^I' fzf-tab-complete
+      '')
     ];
 
     sessionVariables = {
@@ -68,7 +78,7 @@
 
   programs.fzf = {
     enable = true;
-    enableZshIntegration = true;
+    enableZshIntegration = false;  # Disabled: conflicts with fzf-tab
   };
 
   programs.zoxide = {
