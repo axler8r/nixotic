@@ -7,7 +7,6 @@
 
   xdg.configFile = {
     "kitty/kitty.conf".source = ../files/kitty/kitty.conf;
-    "kitty/Solarized_Dark.conf".source = ../files/kitty/Solarized_Dark.conf;
-    "kitty/Solarized_Light.conf".source = ../files/kitty/Solarized_Light.conf;
+    "kitty/palenight.conf".source = ../files/kitty/palenight.conf;
   };
 }

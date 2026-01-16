@@ -34,6 +34,7 @@
     layout = "nz";
     variant = "";
   };
+  services.xserver.excludePackages = [ pkgs.xterm ];
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
   services.printing.enable = true;
@@ -45,6 +46,31 @@
     pulse.enable = true;
   };
   # services.xserver.libinput.enable = true; # Enable touchpad support
+
+  # Exclude GNOME bloat
+  environment.gnome.excludePackages = with pkgs; [
+    baobab         # disk usage analyzer
+    cheese         # webcam
+    epiphany       # web browser
+    geary          # email client
+    gnome-calendar
+    gnome-characters
+    gnome-clocks
+    gnome-connections
+    gnome-console
+    gnome-contacts
+    gnome-logs
+    gnome-maps
+    gnome-music
+    gnome-photos
+    gnome-system-monitor
+    gnome-tour
+    gnome-weather
+    simple-scan
+    snapshot       # camera
+    totem          # video player
+    yelp           # help viewer
+  ];
 
   security.rtkit.enable = true;
 
@@ -62,7 +88,6 @@
     packages = with pkgs; [
       # Browsers
       brave
-      ungoogled-chromium
     ];
   };
 
@@ -93,7 +118,7 @@
     options = "--delete-older-than 21d";
     persistent = true;
   };
-  
+
   environment.shells = with pkgs; [ zsh ];
   fonts.packages = with pkgs; [ cascadia-code fira-code jetbrains-mono ];
   programs.nix-ld.enable = true;  # Run non-NixOS binaries
@@ -110,14 +135,10 @@
     clamav
     file
     htop
-    lsof
     net-tools
-    p7zip
     plocate
-    pv
-    socat
-    tree
-    wget
+    # GNOME utilities
+    gnome-tweaks
   ];
 
   services.openssh.enable = true;

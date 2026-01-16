@@ -5,7 +5,7 @@
     enable = true;
 
     settings = {
-      theme = "solarized_dark";
+      # Theme managed by Stylix
 
       editor = {
         line-number = "relative";

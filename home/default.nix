@@ -12,6 +12,7 @@
     ./files.nix
     ./gh.nix
     ./git.nix
+    ./gnome.nix
     ./helix.nix
     ./htop.nix
     ./jq.nix
@@ -21,6 +22,7 @@
     ./ranger.nix
     ./ripgrep.nix
     ./starship.nix
+    ./stylix.nix
     ./tmux.nix
     ./vscode.nix
     ./zsh.nix
