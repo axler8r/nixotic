@@ -22,6 +22,7 @@
     ./ranger.nix
     ./ripgrep.nix
     ./starship.nix
+    ./stylix.nix
     ./tmux.nix
     ./vscode.nix
     ./zsh.nix

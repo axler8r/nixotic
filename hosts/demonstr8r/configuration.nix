@@ -57,13 +57,13 @@
     gnome-characters
     gnome-clocks
     gnome-connections
+    gnome-console
     gnome-contacts
     gnome-logs
     gnome-maps
     gnome-music
     gnome-photos
     gnome-system-monitor
-    gnome-terminal
     gnome-tour
     gnome-weather
     simple-scan
@@ -118,7 +118,7 @@
     options = "--delete-older-than 21d";
     persistent = true;
   };
-  
+
   environment.shells = with pkgs; [ zsh ];
   fonts.packages = with pkgs; [ cascadia-code fira-code jetbrains-mono ];
   programs.nix-ld.enable = true;  # Run non-NixOS binaries

@@ -5,7 +5,7 @@
     enable = true;
 
     config = {
-      theme = "Solarized (dark)";
+      # Theme managed by Stylix (base16-stylix)
       map-syntax = [
         ".ignore:Git Ignore"
         "*.code-workspace:JSON"
