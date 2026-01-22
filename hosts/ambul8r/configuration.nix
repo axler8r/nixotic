@@ -9,6 +9,14 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Hibernation support
+  boot.resumeDevice = "/dev/disk/by-uuid/79350aff-370a-4bf1-badd-c0863589bdf6";
+
+  # ZFS support
+  boot.supportedFilesystems = [ "zfs" ];
+  boot.zfs.forceImportRoot = false;
+  networking.hostId = "001421c4";  # Required for ZFS - from: head -c 8 /etc/machine-id
+
   networking.hostName = "ambul8r";
   networking.networkmanager.enable = true;
   networking.wireless.enable = true;
@@ -124,6 +132,13 @@
   ];
 
   services.openssh.enable = true;
+
+  # ZFS services
+  services.zfs = {
+    autoScrub.enable = true;           # Monthly scrub for data integrity
+    autoScrub.interval = "monthly";
+    trim.enable = true;                # TRIM for SSDs
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
