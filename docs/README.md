@@ -8,6 +8,7 @@ Reference guides for the nixotic NixOS configuration.
 | ---------------------------------------- | ---------------------------------------------- |
 | [gnome.md](gnome.md)                     | GNOME desktop configuration                    |
 | [gnome-decisions.md](gnome-decisions.md) | GNOME configuration rationale                  |
+| [neovim.md](neovim.md)                   | Neovim plugins and keybindings                 |
 | [packages.md](packages.md)               | Where to declare packages (decision flowchart) |
 | [validation.md](validation.md)           | Build, test, and deploy workflow               |
 | [git.md](git.md)                         | Git branching strategy and conventions         |

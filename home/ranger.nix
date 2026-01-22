@@ -5,8 +5,8 @@
     enable = true;
 
     settings = {
-      # Color scheme
-      colorscheme = "solarized";
+      # Color scheme (jungle is a dark theme that works well with Palenight terminals)
+      colorscheme = "jungle";
 
       # Syntax highlighting for file previews
       preview_script = "~/.config/ranger/scope.sh";
@@ -39,7 +39,7 @@
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      # Ranger scope.sh for syntax highlighting with Solarized
+      # Ranger scope.sh for syntax highlighting
 
       set -o noclobber -o noglob -o nounset -o pipefail
       IFS=$'\n'
@@ -48,9 +48,9 @@
       FILE_EXTENSION="''${FILE_PATH##*.}"
       FILE_EXTENSION_LOWER="$(printf "%s" "''${FILE_EXTENSION}" | tr '[:upper:]' '[:lower:]')"
 
-      # Syntax highlight with pygments using solarized-dark style
+      # Syntax highlight with pygments using native style (dark theme compatible)
       highlight_file() {
-          pygmentize -f terminal256 -O style=solarized-dark -g "''${FILE_PATH}" 2>/dev/null && exit 0
+          pygmentize -f terminal256 -O style=native -g "''${FILE_PATH}" 2>/dev/null && exit 0
       }
 
       # Try syntax highlighting

@@ -42,9 +42,7 @@
     {
       nixosConfigurations = {
         demonstr8r = mkHost ./hosts/demonstr8r/configuration.nix;
-        
-        # Laptop (TODO: configure when ready)
-        # ambul8r = mkHost ./hosts/ambul8r/configuration.nix;
+        ambul8r = mkHost ./hosts/ambul8r/configuration.nix;
         
         # ML workstation (TODO: configure when ready)
         # infer8r = mkHost ./hosts/infer8r/configuration.nix;

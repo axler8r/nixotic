@@ -1,90 +1,135 @@
-# Laptop configuration (ambul8r)
-# TODO: Set up when deploying to laptop
-#
-# Quick start:
-# 1. Boot NixOS installer on laptop
-# 2. Copy hardware-configuration.nix: 
-#    cp /etc/nixos/hardware-configuration.nix ~/.nixotic/hosts/ambul8r/
-# 3. Customise this file for laptop-specific needs
-# 4. Rebuild: sudo nixos-rebuild switch --flake ~/.nixotic#ambul8r --impure
-
 { config, pkgs, ... }:
 
 {
-  imports = [
-    # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-  ];
+  imports =
+    [
+      ./hardware-configuration.nix
+    ];
 
-  # Bootloader - adjust for your laptop
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "ambul8r";
   networking.networkmanager.enable = true;
+  networking.wireless.enable = true;
 
-  # Time zone - adjust as needed
   time.timeZone = "Pacific/Auckland";
 
-  # Locale
   i18n.defaultLocale = "en_NZ.UTF-8";
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "en_NZ.UTF-8";
+    LC_IDENTIFICATION = "en_NZ.UTF-8";
+    LC_MEASUREMENT = "en_NZ.UTF-8";
+    LC_MONETARY = "en_NZ.UTF-8";
+    LC_NAME = "en_NZ.UTF-8";
+    LC_NUMERIC = "en_NZ.UTF-8";
+    LC_PAPER = "en_NZ.UTF-8";
+    LC_TELEPHONE = "en_NZ.UTF-8";
+    LC_TIME = "en_NZ.UTF-8";
+  };
 
-  # Desktop environment
   services.xserver.enable = true;
+  services.xserver.xkb = {
+    layout = "nz";
+    variant = "";
+  };
+  services.xserver.excludePackages = [ pkgs.xterm ];
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
-
-  # Sound
+  services.printing.enable = true;
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
+    alsa.support32Bit = true;
     pulse.enable = true;
   };
+  # services.xserver.libinput.enable = true; # Enable touchpad support
 
-  # User account
+  # Exclude GNOME bloat
+  environment.gnome.excludePackages = with pkgs; [
+    cheese         # webcam
+    epiphany       # web browser
+    geary          # email client
+    gnome-console
+    gnome-contacts
+    gnome-tour
+    snapshot       # camera
+    yelp           # help viewer
+  ];
+
+  security.rtkit.enable = true;
+
+  ####################################################################
+  # User configuration
+  ####################################################################
   users.users.axl = {
     isNormalUser = true;
     description = "Axl";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" ];
     shell = pkgs.zsh;
+
+    # User-specific packages that require GNOME integration
+    ##################################################################
     packages = with pkgs; [
+      # Browsers
       brave
-      ungoogled-chromium
     ];
   };
 
-  # Nix settings
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
 
-  # Automatic garbage collection
+  # User required system features
+  ####################################################################
+  nixpkgs.config.allowUnfree = true;
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+
+    # Build performance
+    max-jobs = "auto";
+    cores = 0;
+
+    # Additional binary caches
+    substituters = [
+      "https://cache.nixos.org"
+      "https://nix-community.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   nix.gc = {
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 21d";
+    persistent = true;
   };
 
-  # Shell configuration
   environment.shells = with pkgs; [ zsh ];
-  programs.zsh.enable = true;
-
-  # Fonts
   fonts.packages = with pkgs; [ cascadia-code fira-code jetbrains-mono ];
+  programs.nix-ld.enable = true;  # Run non-NixOS binaries
+  programs.zsh.enable = true;
+  virtualisation.docker.enable = true;
 
-  # System packages
+
+  # Packages avilable to all users
+  ####################################################################
   environment.systemPackages = with pkgs; [
-    neovim
+    # system tools
+    clamav
+    file
     htop
-    wget
+    net-tools
+    plocate
   ];
 
-  # TODO: Add laptop-specific configuration:
-  # - Power management (TLP, powertop)
-  # - Touchpad settings
-  # - Battery optimisation
-  # - Lid switch behaviour
+  services.openssh.enable = true;
 
-  system.stateVersion = "25.11";
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
+  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # this value at the release version of the first install of this system.
+  # Before changing this value read the documentation for this option
+  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+  system.stateVersion = "25.11"; # Did you read the comment?
 }

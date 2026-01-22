@@ -129,16 +129,12 @@
   # Packages avilable to all users
   ####################################################################
   environment.systemPackages = with pkgs; [
-    # editor
-    neovim
     # system tools
     clamav
     file
     htop
     net-tools
     plocate
-    # GNOME utilities
-    gnome-tweaks
   ];
 
   services.openssh.enable = true;

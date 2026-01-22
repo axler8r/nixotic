@@ -1,8 +1,9 @@
 { config, pkgs, lib, ... }:
 
 {
-  # GNOME Shell extensions
+  # GNOME Shell extensions and utilities
   home.packages = with pkgs; [
+    gnome-tweaks
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.caffeine
     gnomeExtensions.tiling-assistant
@@ -13,10 +14,19 @@
     name = "Manage Printing";
     noDisplay = true;
   };
+  xdg.desktopEntries."com.brave.Browser" = {
+    name = "Brave Web Browser";
+    noDisplay = true;
+  };
 
   dconf = {
     enable = true;
     settings = {
+      # Window manager preferences
+      "org/gnome/desktop/wm/preferences" = {
+        button-layout = "close,minimize,maximize:";  # macOS-style left side
+      };
+
       # Dock favorites (left to right)
       "org/gnome/shell" = {
         favorite-apps = [
@@ -74,6 +84,16 @@
         apps = [
           "mpv.desktop"
         ];
+      };
+
+      # Keyboard input settings
+      "org/gnome/desktop/input-sources" = {
+        xkb-options = [ "compose:ralt" "caps:ctrl_modifier" ];
+      };
+
+      # Remap IBus unicode hotkey to Ctrl+Alt+U (frees Ctrl+Shift+U for Kitty)
+      "org/freedesktop/ibus/panel/emoji" = {
+        unicode-hotkey = [ "<Control><Alt>u" ];
       };
     };
   };

@@ -6,7 +6,7 @@
     enableZshIntegration = true;
 
     settings = {
-      palette = "solarized-base64";
+      palette = "material-palenight";
 
       # General prompt format
       # Note: In Nix, $variable must be escaped as \$variable in regular strings,
@@ -85,18 +85,26 @@
 
       # Color palettes
       palettes = {
+        # Material Palenight (base16)
         material-palenight = {
-          primary = "#D0D0D0";
-          secondary = "#292D3F";
-          background = "#282a36";
-          red = "#ff5555";
-          orange = "#ffb86c";
-          yellow = "#f1fa8c";
-          green = "#50fa7b";
-          blue = "#8be9fd";
-          cyan = "#8be9fd";
-          magenta = "#ff79c6";
-          violet = "#bd93f9";
+          # Shades (base00-base07)
+          base00 = "#292D3E";  # Default Background
+          base01 = "#444267";  # Lighter Background (status bars)
+          base02 = "#32374D";  # Selection Background
+          base03 = "#676E95";  # Comments, Invisibles
+          base04 = "#8796B0";  # Dark Foreground (status bars)
+          base05 = "#959DCB";  # Default Foreground
+          base06 = "#959DCB";  # Light Foreground
+          base07 = "#FFFFFF";  # Light Background
+          # Accents (base08-base0F)
+          red = "#F07178";     # base08 - Variables
+          orange = "#F78C6C"; # base09 - Constants
+          yellow = "#FFCB6B"; # base0A - Classes
+          green = "#C3E88D";  # base0B - Strings
+          cyan = "#89DDFF";   # base0C - Support/Regex
+          blue = "#82AAFF";   # base0D - Functions
+          magenta = "#C792EA"; # base0E - Keywords
+          violet = "#C792EA";  # alias for magenta
         };
 
         solarized-base64 = {

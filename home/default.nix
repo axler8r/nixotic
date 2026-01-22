@@ -17,6 +17,7 @@
     ./htop.nix
     ./jq.nix
     ./kitty.nix
+    ./neovim.nix
     ./nh.nix
     ./nushell.nix
     ./ranger.nix
@@ -52,7 +53,6 @@
 
     # Editors & text processing
     universal-ctags
-    vimPlugins.vim-plug
     # Productivity CLI tools
     bfs
     choose
