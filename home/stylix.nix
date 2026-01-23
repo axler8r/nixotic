@@ -3,10 +3,7 @@
 {
   # Disable Stylix for apps where we prefer manual config
   stylix.targets = {
-    # Use custom palenight theme from files/kitty/
-    kitty.enable = false;
-
-    # Keep custom starship Material Palenight palette
+    # Keep custom starship Solarized Light palette
     starship.enable = false;
 
     # Disable Qt theming - let GNOME handle it via qgnomeplatform
@@ -16,11 +13,11 @@
     vscode.enable = false;
   };
 
-  # GTK icon theme - Papirus-Dark for Palenight theme
+  # GTK icon theme - Papirus-Light for Solarized Light theme
   gtk = {
     enable = true;
     iconTheme = {
-      name = "Papirus";
+      name = "Papirus-Light";
       package = pkgs.papirus-icon-theme;
     };
   };

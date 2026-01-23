@@ -3,13 +3,13 @@
 {
   stylix = {
     enable = true;
-    polarity = "dark";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/material-palenight.yaml";
+    polarity = "light";
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/solarized-light.yaml";
 
     # Wallpaper
-    image = ./files/wallpapers/MaterialPaleNight.jpg;
+    image = ./files/wallpapers/Solarized.jpg;
 
-    # Fonts - use Cascadia Code as monospace (already installed system-wide)
+    # Fonts - use Cascadia Code as monospace (includes Nerd Font glyphs since v2404)
     fonts = {
       monospace = {
         package = pkgs.cascadia-code;
@@ -37,8 +37,11 @@
     # Cursor theme
     cursor = {
       package = pkgs.bibata-cursors;
-      name = "Bibata-Modern-Ice";
+      name = "Bibata-Modern-Classic";
       size = 24;
     };
+
+    # Disable Chromium/Brave theming (allows manual theme installation)
+    targets.chromium.enable = false;
   };
 }

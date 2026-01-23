@@ -12,8 +12,8 @@
   # Hibernation support
   boot.resumeDevice = "/dev/disk/by-uuid/79350aff-370a-4bf1-badd-c0863589bdf6";
 
-  # ZFS support
-  boot.supportedFilesystems = [ "zfs" ];
+  # ZFS and NFS support
+  boot.supportedFilesystems = [ "zfs" "nfs" ];
   boot.zfs.forceImportRoot = false;
   networking.hostId = "001421c4";  # Required for ZFS - from: head -c 8 /etc/machine-id
 
@@ -52,6 +52,7 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
+  services.rpcbind.enable = true;
   # services.xserver.libinput.enable = true; # Enable touchpad support
 
   # Exclude GNOME bloat

@@ -6,7 +6,7 @@
     enableZshIntegration = true;
 
     settings = {
-      palette = "material-palenight";
+      palette = "solarized-light";
 
       # General prompt format
       # Note: In Nix, $variable must be escaped as \$variable in regular strings,
@@ -85,26 +85,26 @@
 
       # Color palettes
       palettes = {
-        # Material Palenight (base16)
-        material-palenight = {
+        # Solarized Light (base16)
+        solarized-light = {
           # Shades (base00-base07)
-          base00 = "#292D3E";  # Default Background
-          base01 = "#444267";  # Lighter Background (status bars)
-          base02 = "#32374D";  # Selection Background
-          base03 = "#676E95";  # Comments, Invisibles
-          base04 = "#8796B0";  # Dark Foreground (status bars)
-          base05 = "#959DCB";  # Default Foreground
-          base06 = "#959DCB";  # Light Foreground
-          base07 = "#FFFFFF";  # Light Background
+          base00 = "#fdf6e3";  # Default Background (lightest)
+          base01 = "#eee8d5";  # Lighter Background (status bars)
+          base02 = "#eee8d5";  # Selection Background
+          base03 = "#93a1a1";  # Comments, Invisibles
+          base04 = "#839496";  # Dark Foreground (status bars)
+          base05 = "#657b83";  # Default Foreground
+          base06 = "#586e75";  # Light Foreground
+          base07 = "#002b36";  # Darkest (for contrast)
           # Accents (base08-base0F)
-          red = "#F07178";     # base08 - Variables
-          orange = "#F78C6C"; # base09 - Constants
-          yellow = "#FFCB6B"; # base0A - Classes
-          green = "#C3E88D";  # base0B - Strings
-          cyan = "#89DDFF";   # base0C - Support/Regex
-          blue = "#82AAFF";   # base0D - Functions
-          magenta = "#C792EA"; # base0E - Keywords
-          violet = "#C792EA";  # alias for magenta
+          red = "#dc322f";     # base08 - Variables
+          orange = "#cb4b16"; # base09 - Constants
+          yellow = "#b58900"; # base0A - Classes
+          green = "#859900";  # base0B - Strings
+          cyan = "#2aa198";   # base0C - Support/Regex
+          blue = "#268bd2";   # base0D - Functions
+          magenta = "#d33682"; # base0E - Keywords
+          violet = "#6c71c4";  # alias for violet
         };
 
         solarized-base64 = {

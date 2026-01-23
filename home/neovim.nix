@@ -10,7 +10,7 @@
 
     plugins = with pkgs.vimPlugins; [
       # Colorscheme
-      palenight-vim
+      vim-solarized8
 
       # UI
       {
@@ -19,7 +19,7 @@
         config = ''
           require('lualine').setup {
             options = {
-              theme = 'palenight',
+              theme = 'solarized_light',
               section_separators = { left = "", right = "" },
               component_separators = { left = "", right = "" },
             },
@@ -142,7 +142,7 @@
       vim.opt.autoindent = true
       vim.opt.smartindent = true
       vim.opt.autoread = true
-      vim.opt.background = 'dark'
+      vim.opt.background = 'light'
       vim.opt.colorcolumn = '70,80,110'
       vim.opt.cmdheight = 2
       vim.opt.cursorline = true
@@ -162,7 +162,8 @@
       vim.opt.showtabline = 2
 
       -- Colorscheme
-      vim.cmd('colorscheme palenight')
+      vim.opt.background = 'light'
+      vim.cmd('colorscheme solarized8')
 
       -- Strip trailing whitespace on save
       vim.api.nvim_create_autocmd('BufWritePre', {
@@ -180,5 +181,10 @@
       vim.keymap.set('n', '<leader>sp', ':setlocal spell! spelllang=en<CR>', { silent = true })
       vim.keymap.set('n', '<leader>ts', ':setlocal spell! spelllang=en<CR>', { silent = true })
     '';
+
+    # CLI tools for neovim plugins
+    extraPackages = with pkgs; [
+      tree-sitter  # For nvim-treesitter health check
+    ];
   };
 }

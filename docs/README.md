@@ -12,6 +12,7 @@ Reference guides for the nixotic NixOS configuration.
 | [packages.md](packages.md)               | Where to declare packages (decision flowchart) |
 | [validation.md](validation.md)           | Build, test, and deploy workflow               |
 | [git.md](git.md)                         | Git branching strategy and conventions         |
+| [zfs.md](zfs.md)                         | ZFS pool setup and hibernation (ambul8r)       |
 
 ## Archive
 

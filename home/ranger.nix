@@ -5,8 +5,8 @@
     enable = true;
 
     settings = {
-      # Color scheme (jungle is a dark theme that works well with Palenight terminals)
-      colorscheme = "jungle";
+      # Color scheme (snow is a light theme that works well with Solarized Light terminals)
+      colorscheme = "snow";
 
       # Syntax highlighting for file previews
       preview_script = "~/.config/ranger/scope.sh";
