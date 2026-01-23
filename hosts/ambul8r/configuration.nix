@@ -7,6 +7,7 @@
     ];
 
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.consoleMode = "1";  # 80x50 - readable on 4K 16"
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Hibernation support

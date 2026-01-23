@@ -6,6 +6,8 @@
     celluloid
     dconf-editor
     file-roller
+    firefox
+    ungoogled-chromium
     gnome-nettool
     gnome-podcasts
     gnome-power-manager
@@ -15,7 +17,11 @@
     shortwave
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.caffeine
+    gnomeExtensions.dash-to-dock
+    gnomeExtensions.date-menu-formatter
+    gnomeExtensions.just-perfection
     gnomeExtensions.tiling-assistant
+    gnomeExtensions.vitals
   ];
 
   # Hide unwanted desktop entries
@@ -23,10 +29,7 @@
     name = "Manage Printing";
     noDisplay = true;
   };
-  xdg.desktopEntries."com.brave.Browser" = {
-    name = "Brave Web Browser";
-    noDisplay = true;
-  };
+
 
   dconf = {
     enable = true;
@@ -34,6 +37,17 @@
       # Window manager preferences
       "org/gnome/desktop/wm/preferences" = {
         button-layout = "close,minimize,maximize:";  # macOS-style left side
+      };
+
+      # Screen blank and lock settings
+      "org/gnome/desktop/session" = {
+        idle-delay = 600;  # Blank after 10 minutes (in seconds)
+      };
+      "org/gnome/settings-daemon/plugins/power" = {
+        idle-dim = true;  # Dim screen before blanking
+      };
+      "org/gnome/desktop/screensaver" = {
+        lock-delay = 300;  # Lock 5 min after blank (15 min total)
       };
 
       # Dock favorites (left to right)
@@ -49,8 +63,42 @@
         enabled-extensions = [
           "clipboard-indicator@tudmotu.com"
           "caffeine@patapon.info"
+          "dash-to-dock@micxgx.gmail.com"
+          "date-menu-formatter@marcinjakubowski.github.com"
+          "just-perfection-desktop@just-perfection"
           "tiling-assistant@ubuntu.com"
+          "Vitals@CoreCoding.com"
         ];
+      };
+
+      # Alt+Tab switches apps on current workspace only
+      "org/gnome/shell/app-switcher" = {
+        current-workspace-only = true;
+      };
+
+      # Dash to Dock configuration
+      "org/gnome/shell/extensions/dash-to-dock" = {
+        dock-position = "BOTTOM";
+        autohide = true;
+        intellihide = true;
+        show-trash = false;
+        show-mounts = false;
+      };
+
+      # Just Perfection - move clock to right (next to system menu)
+      "org/gnome/shell/extensions/just-perfection" = {
+        clock-menu-position = 2;  # 0=left, 1=center, 2=right
+        clock-menu-position-offset = 0;  # 0 = closest to system menu
+      };
+
+      # Vitals - system stats on right side of panel
+      "org/gnome/shell/extensions/vitals" = {
+        position-in-panel = 2;  # 0=left, 1=center, 2=right
+      };
+
+      # Date Menu Formatter - ISO8601 format
+      "org/gnome/shell/extensions/date-menu-formatter" = {
+        pattern = "yyyy-MM-dd HH:mm";
       };
 
       # App folder configuration - minimal with few apps
@@ -58,9 +106,21 @@
         folder-children = [
           "CommandLine"
           "Handy"
+          "Internet"
           "Media"
           "System"
           "Utilities"
+        ];
+      };
+
+      # Internet folder
+      "org/gnome/desktop/app-folders/folders/Internet" = {
+        name = "Internet";
+        apps = [
+          "brave-browser.desktop"
+          "com.brave.Browser.desktop"
+          "chromium-browser.desktop"
+          "firefox.desktop"
         ];
       };
 
@@ -126,7 +186,9 @@
           "gnome-nettool.desktop"
           "gparted.desktop"
           "io.missioncenter.MissionCenter.desktop"
+          "nvidia-settings.desktop"
           "org.gnome.baobab.desktop"
+          "org.gnome.Connections.desktop"
           "org.gnome.Console.desktop"
           "org.gnome.DiskUtility.desktop"
           "org.gnome.Logs.desktop"
