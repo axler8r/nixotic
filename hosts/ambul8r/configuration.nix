@@ -15,6 +15,7 @@
   # ZFS and NFS support
   boot.supportedFilesystems = [ "zfs" "nfs" ];
   boot.zfs.forceImportRoot = false;
+  boot.zfs.extraPools = [ "dpool" ];
   networking.hostId = "001421c4";  # Required for ZFS - from: head -c 8 /etc/machine-id
 
   networking.hostName = "ambul8r";
@@ -42,6 +43,7 @@
     variant = "";
   };
   services.xserver.excludePackages = [ pkgs.xterm ];
+  services.xserver.videoDrivers = [ "nvidia" ];
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
   services.printing.enable = true;
@@ -55,12 +57,30 @@
   services.rpcbind.enable = true;
   # services.xserver.libinput.enable = true; # Enable touchpad support
 
+  # NVIDIA GPU support (hybrid graphics with PRIME)
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = true;       # Better battery life
+    powerManagement.finegrained = true;  # Turn off GPU when not in use
+    open = false;                        # Use proprietary driver
+    nvidiaSettings = true;               # NVIDIA Settings app
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+    prime = {
+      offload = {
+        enable = true;
+        enableOffloadCmd = true;  # Adds `nvidia-offload` wrapper
+      };
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:1:0:0";
+    };
+  };
+
   # Exclude GNOME bloat
   environment.gnome.excludePackages = with pkgs; [
     cheese         # webcam
     epiphany       # web browser
     geary          # email client
-    gnome-console
     gnome-contacts
     gnome-tour
     snapshot       # camera
