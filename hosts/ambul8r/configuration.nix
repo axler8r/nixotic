@@ -90,17 +90,11 @@
 
   security.rtkit.enable = true;
 
-  ####################################################################
-  # User configuration
-  ####################################################################
   users.users.axl = {
     isNormalUser = true;
     description = "Axl";
     extraGroups = [ "networkmanager" "wheel" "docker" ];
     shell = pkgs.zsh;
-
-    # User-specific packages that require GNOME integration
-    ##################################################################
     packages = with pkgs; [
       # Browsers
       brave
@@ -108,8 +102,6 @@
   };
 
 
-  # User required system features
-  ####################################################################
   nixpkgs.config.allowUnfree = true;
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
@@ -142,13 +134,15 @@
   virtualisation.docker.enable = true;
 
 
-  # Packages avilable to all users
-  ####################################################################
   environment.systemPackages = with pkgs; [
     # system tools
+    btop
     clamav
     file
     htop
+    iftop
+    iotop
+    nethogs
     net-tools
     plocate
   ];

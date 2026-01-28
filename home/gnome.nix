@@ -3,6 +3,7 @@
 {
   # GNOME Shell extensions and utilities
   home.packages = with pkgs; [
+    apostrophe
     celluloid
     dconf-editor
     file-roller
@@ -14,6 +15,7 @@
     gnome-tweaks
     gparted
     mission-center
+    obsidian
     shortwave
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.caffeine
@@ -55,6 +57,7 @@
         favorite-apps = [
           "org.gnome.Nautilus.desktop"
           "brave-browser.desktop"
+          "obsidian.desktop"
           "code.desktop"
           "kitty.desktop"
         ];
@@ -85,15 +88,18 @@
         show-mounts = false;
       };
 
-      # Just Perfection - move clock to right (next to system menu)
-      "org/gnome/shell/extensions/just-perfection" = {
-        clock-menu-position = 2;  # 0=left, 1=center, 2=right
-        clock-menu-position-offset = 0;  # 0 = closest to system menu
-      };
-
       # Vitals - system stats on right side of panel
       "org/gnome/shell/extensions/vitals" = {
         position-in-panel = 2;  # 0=left, 1=center, 2=right
+        hot-sensors = [
+          "_temperature_average_"
+          "_processor_usage_"
+          "_memory_usage_"
+          "_storage_read_rate_"
+          "_storage_write_rate_"
+          "__network-rx_max__"
+          "__network-tx_max__"
+        ];
       };
 
       # Date Menu Formatter - ISO8601 format
@@ -149,6 +155,7 @@
       "org/gnome/desktop/app-folders/folders/Handy" = {
         name = "Handy";
         apps = [
+          "org.gnome.gitlab.somas.Apostrophe.desktop"
           "org.gnome.Calculator.desktop"
           "org.gnome.Calendar.desktop"
           "org.gnome.Characters.desktop"

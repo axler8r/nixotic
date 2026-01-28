@@ -1,4 +1,6 @@
 bind generic + !git commit --amend
 bind generic I !git add --interactive %(file)
-color cursor white green
+color cursor black cyan
+color title-focus black blue
+color title-blur white default
 set line-graphics = utf-8

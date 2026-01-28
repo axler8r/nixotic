@@ -7,7 +7,7 @@
     base16Scheme = "${pkgs.base16-schemes}/share/themes/solarized-light.yaml";
 
     # Wallpaper
-    image = ./files/wallpapers/Solarized.jpg;
+    image = ./files/wallpapers/Wallpaper00.jpg;
 
     # Fonts - use Cascadia Code as monospace (includes Nerd Font glyphs since v2404)
     fonts = {
