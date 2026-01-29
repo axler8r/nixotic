@@ -1,8 +1,0 @@
-#! /usr/bin/env zsh
-
-# update-neovimplugs: Update all Neovim plugins
-
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
-
-# Install/update plugins and quit
-nvim +'PlugInstall --sync' +'qa'

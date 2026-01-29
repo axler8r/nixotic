@@ -5,8 +5,7 @@
     enable = true;
 
     settings = {
-      # Color scheme (snow is a light theme that works well with Solarized Light terminals)
-      colorscheme = "snow";
+      # Stylix manages colorscheme
 
       # Syntax highlighting for file previews
       preview_script = "~/.config/ranger/scope.sh";
@@ -34,27 +33,20 @@
     };
   };
 
-  # Scope script for syntax-highlighted previews
+  # Scope script for syntax-highlighted previews using bat
   xdg.configFile."ranger/scope.sh" = {
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      # Ranger scope.sh for syntax highlighting
+      # Ranger scope.sh for syntax highlighting via bat
 
       set -o noclobber -o noglob -o nounset -o pipefail
       IFS=$'\n'
 
       FILE_PATH="''${1}"
-      FILE_EXTENSION="''${FILE_PATH##*.}"
-      FILE_EXTENSION_LOWER="$(printf "%s" "''${FILE_EXTENSION}" | tr '[:upper:]' '[:lower:]')"
 
-      # Syntax highlight with pygments using native style (dark theme compatible)
-      highlight_file() {
-          pygmentize -f terminal256 -O style=native -g "''${FILE_PATH}" 2>/dev/null && exit 0
-      }
-
-      # Try syntax highlighting
-      highlight_file
+      # Use bat with base16 theme (no background colors, works on any terminal background)
+      bat --color=always --style=plain --paging=never --theme="base16" "''${FILE_PATH}" 2>/dev/null && exit 0
 
       # Fallback to plain text
       cat "''${FILE_PATH}"

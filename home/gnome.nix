@@ -32,6 +32,12 @@
     noDisplay = true;
   };
 
+  # XDG user directories (GNOME screenshots go to Pictures/Screenshots)
+  xdg.userDirs = {
+    enable = true;
+    pictures = "${config.home.homeDirectory}/Media";
+  };
+
 
   dconf = {
     enable = true;
@@ -189,6 +195,7 @@
       "org/gnome/desktop/app-folders/folders/System" = {
         name = "System";
         apps = [
+          "btop.desktop"
           "ca.desrt.dconf-editor.desktop"
           "gnome-nettool.desktop"
           "gparted.desktop"

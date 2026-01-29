@@ -37,6 +37,9 @@
   # Sound
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
+  security.sudo.extraConfig = ''
+    Defaults timestamp_timeout=15
+  '';
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -78,8 +81,9 @@
 
   # System packages
   environment.systemPackages = with pkgs; [
-    neovim
+    cryptsetup  # LUKS encryption for vault functions
     htop
+    neovim
     wget
   ];
 

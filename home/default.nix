@@ -4,6 +4,7 @@
   imports = [
     ./atuin.nix
     ./bat.nix
+    ./btop.nix
     ./dircolors.nix
     ./direnv.nix
     ./eza.nix
@@ -13,6 +14,7 @@
     ./gh.nix
     ./git.nix
     ./gnome.nix
+    ./gpg.nix
     ./helix.nix
     ./htop.nix
     ./jq.nix
@@ -49,14 +51,19 @@
     # Version control & development
     gitflow
     github-copilot-cli
+    parallel
     tig
 
     # Editors & text processing
     universal-ctags
+
     # Productivity CLI tools
+    attr        # Extended file attributes (getfattr/setfattr)
     bfs
     choose
+    curl
     fdupes
+    jq
     lsof
     p7zip
     pv
@@ -76,6 +83,7 @@
     nushellPlugins.query
 
     # Media
+    ffmpeg
     mpv
   ];
 

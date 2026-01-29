@@ -1,8 +1,0 @@
-#! /usr/bin/env zsh
-
-# get-latestkitty: Display latest kitty version
-
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
-
-echo $(wget -qO- 'https://api.github.com/repos/kovidgoyal/kitty/releases/latest' \
-    | jq -r '. | "\(.tag_name) released on \(.created_at[:10])"')

@@ -9,8 +9,8 @@
     settings = {
       user = {
         name = "AxlER8R";
-        email = "axl@axler8r.io";
-        signingKey = "1B5C4A4F10A770E3";
+        email = "axler8r@pm.me";
+        signingKey = "62125521358F40CD";
       };
 
       branch.autosetuprebase = "never";
@@ -19,6 +19,8 @@
         gpgSign = false;  # Set to true if you want to sign all commits
         template = "~/.gitcommit";
       };
+
+      tag.gpgSign = true;  # Sign tags with GPG key
 
       core = {
         editor = "nvim";

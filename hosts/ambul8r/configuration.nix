@@ -89,6 +89,9 @@
   ];
 
   security.rtkit.enable = true;
+  security.sudo.extraConfig = ''
+    Defaults timestamp_timeout=15
+  '';
 
   users.users.axl = {
     isNormalUser = true;
@@ -136,8 +139,8 @@
 
   environment.systemPackages = with pkgs; [
     # system tools
-    btop
     clamav
+    cryptsetup  # LUKS encryption for vault functions
     file
     htop
     iftop
