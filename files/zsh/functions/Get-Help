@@ -1,0 +1,12 @@
+#!/usr/bin/env zsh
+
+# Get-Help: Display --help output with syntax highlighting
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <command> - Display command help with syntax highlighting" && return 0
+
+if [[ -z "$1" ]]; then
+    echo "Usage: ${0:t} <command>"
+    return 1
+fi
+
+"${@}" --help | bat --plain --language=help

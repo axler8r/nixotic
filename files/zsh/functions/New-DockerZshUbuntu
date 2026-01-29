@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+# New-DockerZshUbuntu: Create a new persistent Ubuntu container for ZSH
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Create persistent Ubuntu container with ZSH" && return 0
+
+source "${0:h}/../lib/docker.zsh"
+
+docker run \
+    --name "zsh-ubuntu" \
+    --mount "type=volume,source=ZSHUbuntu,target=/root" \
+    $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_UP_TO_DATE \
+    ubuntu:latest

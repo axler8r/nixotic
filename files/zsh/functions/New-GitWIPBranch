@@ -1,0 +1,8 @@
+#! /usr/bin/env zsh
+
+# New-GitWIPBranch: Create a new WIP branch with date and random suffix
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Create branch named wip/YYYYMMDD-<random7>" && return 0
+
+git checkout -b "wip/$(date +%Y%m%d)-$(< /dev/urandom tr -dc a-zA-Z0-9 | head -c 7)"
+

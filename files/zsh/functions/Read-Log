@@ -1,0 +1,12 @@
+#!/usr/bin/env zsh
+
+# Read-Log: Follow a log file with syntax highlighting
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <logfile> - Follow log file with syntax highlighting" && return 0
+
+if [[ -z "$1" ]]; then
+    echo "Usage: ${0:t} <logfile>"
+    return 1
+fi
+
+tail --follow "${1}" | bat --file-name "${1}" --paging=never --language=log

@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+
+# Start-DockerTensorflowNotebook: Start TensorFlow Notebook in Docker
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Start TensorFlow Notebook container mounting current directory" && return 0
+
+source "${0:h}/../lib/docker.zsh"
+
+[[ -f /tmp/tensorflownotebook*(.) ]] && rm /tmp/tensorflownotebook*
+
+local __AX_NAME="tensorflownotebook-$(date +%Y%m%d%H%M%S)"
+
+docker run \
+    --name "${__AX_NAME}" \
+    --publish 8888:8888 \
+    --mount type=bind,source="$(pwd)",target="/home/jovyan/work" \
+    $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+    quay.io/jupyter/tensorflow-notebook > "/tmp/${__AX_NAME}.log"

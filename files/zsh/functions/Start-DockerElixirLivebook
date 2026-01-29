@@ -1,0 +1,19 @@
+#!/usr/bin/env zsh
+
+# Start-DockerElixirLivebook: Start Elixir Livebook in Docker
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Start Elixir Livebook container mounting current directory" && return 0
+
+source "${0:h}/../lib/docker.zsh"
+
+[[ -f /tmp/livebook*(.) ]] && rm /tmp/livebook*
+
+local __AX_NAME="livebook-$(date +%Y%m%d%H%M%S)"
+
+docker run \
+    --name "${__AX_NAME}" \
+    --publish 8080:8080 \
+    --publish 8081:8081 \
+    --mount type=bind,source="$(pwd)",target="/data" \
+    $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+    ghcr.io/livebook-dev/livebook:latest > "/tmp/${__AX_NAME}.log"

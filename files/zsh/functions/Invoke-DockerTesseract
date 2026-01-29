@@ -1,0 +1,17 @@
+#!/usr/bin/env zsh
+
+# Invoke-DockerTesseract: Run Tesseract OCR in Docker
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Run Tesseract OCR container mounting current directory" && return 0
+
+source "${0:h}/../lib/docker.zsh"
+
+[[ -f /tmp/tesseract*(.) ]] && rm /tmp/tesseract*
+
+local __AX_NAME="tesseract-$(date +%Y%m%d%H%M%S)"
+
+docker run \
+    --name "${__AX_NAME}" \
+    --mount type=bind,source="$(pwd)",target="/data" \
+    $__AX_DOCKER_ARGS_INTERACTIVE $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+    tesseractshadow/tesseract4re > "/tmp/${__AX_NAME}.log"

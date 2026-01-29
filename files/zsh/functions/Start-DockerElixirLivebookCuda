@@ -1,0 +1,21 @@
+#!/usr/bin/env zsh
+
+# Start-DockerElixirLivebookCuda: Start Elixir Livebook with CUDA support in Docker
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Start Elixir Livebook CUDA container mounting current directory" && return 0
+
+source "${0:h}/../lib/docker.zsh"
+
+local __AX_BASE_NAME="livebook-cuda"
+[[ -f /tmp/${__AX_BASE_NAME}*(.) ]] && rm /tmp/${__AX_BASE_NAME}*
+
+local __AX_NAME="${__AX_BASE_NAME}-$(date +%Y%m%d%H%M%S)"
+
+docker run \
+    --name "${__AX_NAME}" \
+    --gpus all \
+    --publish 8080:8080 \
+    --publish 8081:8081 \
+    --mount type=bind,source="$(pwd)",target="/data" \
+    $__AX_DOCKER_ARGS_BACKGROUND $__AX_DOCKER_ARGS_ONE_TIME $__AX_DOCKER_ARGS_UP_TO_DATE $__AX_DOCKER_ARGS_RUN_AS_ME \
+    ghcr.io/livebook-dev/livebook:0.16.4-cuda12 > "/tmp/${__AX_NAME}.log"
