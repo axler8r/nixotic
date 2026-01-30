@@ -1,29 +1,23 @@
 #! /usr/bin/env zsh
 
-# write-image: Write disk image to target device using dd
+# Write-Image: Write disk image to target device using dd
 
-_source=$1
-_target=${2:-/dev/sda}
-
-_help() {
-    cat <<EOF
-Usage:
-    ${0:t} <source> [target]
+[[ "$1" == "--help" ]] && cat <<EOF && return 0
+Usage: ${0:t} <source> [target]
 
 Burns an image to a target device. The source is the image file (.img or .iso)
 to burn. The target is the device to burn to. The default target is /dev/sda.
 EOF
-}
 
-burn_image() {
-    dd bs=1M if=./${_source}                             \
-    | pv --size=$(stat --format %s ./${_source}) --bytes \
-    | sudo dd conv=fdatasync of=${_target}
-}
+local _source=$1
+local _target=${2:-/dev/sda}
 
 if [[ -z ${_source} ]]; then
-    _help
-    exit 1
+    echo "Error: Missing source image file"
+    echo "Usage: ${0:t} <source> [target]"
+    return 1
 fi
 
-burn_image
+dd bs=1M if=./${_source}                             \
+| pv --size=$(stat --format %s ./${_source}) --bytes \
+| sudo dd conv=fdatasync of=${_target}

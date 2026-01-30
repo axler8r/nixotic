@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-userfunctions: List all user functions
+# Get-UserFunctions: List all user functions
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

@@ -1,0 +1,128 @@
+#! /usr/bin/env zsh
+
+# New-DevEnvironment: Create a direnv + flake-parts development environment
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts] [packages...]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Create a new direnv + Nix Flakes development environment using flake-parts.
+    Generates flake.nix and .envrc, then activates with direnv allow.
+
+Usage:
+    ${0:t} [opts] [packages...]
+
+Options:
+    --help          Show this help message
+    --name NAME     Project name (default: current directory name)
+
+Arguments:
+    packages        Nix packages to include in devShell (e.g., python3 nodejs)
+
+Examples:
+    ${0:t}                              # Minimal flake-parts environment
+    ${0:t} python3 poetry               # Python development environment
+    ${0:t} --name myproject nodejs      # Named project with Node.js
+"
+
+# Defaults
+local _name="${PWD:t}"
+local -a _packages=()
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() { echo "${_synopsis}" | tail --lines=+2 }
+_help() { echo "${_help}" | tail --lines=+2 }
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true; shift ;;
+        --name)     _name="$2"; shift 2 ;;
+        -*)         echo "Error: Unknown option: $1" && return 1 ;;
+        *)          _packages+=("$1"); shift ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function new_dev_environment() {
+    local name="$1"
+    shift
+    local -a packages=("$@")
+
+    # Check for existing files
+    if [[ -f flake.nix ]]; then
+        echo "Error: flake.nix already exists"
+        return 1
+    fi
+
+    # Build packages list for nix
+    local pkg_list=""
+    if [[ ${#packages[@]} -gt 0 ]]; then
+        pkg_list=$(printf "pkgs.%s\n            " "${packages[@]}")
+    fi
+
+    # Create flake.nix
+    cat > flake.nix << EOF
+{
+  description = "${name} development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+  };
+
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+
+      perSystem = { pkgs, ... }: {
+        devShells.default = pkgs.mkShell {
+          packages = [
+            ${pkg_list}
+          ];
+
+          shellHook = ''
+            echo "${name} development environment"
+          '';
+        };
+      };
+    };
+}
+EOF
+
+    echo "Created flake.nix"
+
+    # Create .envrc
+    echo "use flake" > .envrc
+    echo "Created .envrc"
+
+    # Add to .gitignore if it exists
+    if [[ -f .gitignore ]]; then
+        if ! grep -q "^\.direnv$" .gitignore; then
+            echo ".direnv" >> .gitignore
+            echo "Added .direnv to .gitignore"
+        fi
+    fi
+
+    # Activate direnv
+    direnv allow
+    echo "Environment activated"
+}
+
+
+new_dev_environment "$_name" "${_packages[@]}"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis _help new_dev_environment

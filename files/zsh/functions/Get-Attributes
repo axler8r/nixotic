@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# list-attribute: List all extended file system attributes for a file
+# Get-Attributes: List all extended file system attributes for a file
 
 # variables --------------------------------------------------------------------
 local _self="${0}"

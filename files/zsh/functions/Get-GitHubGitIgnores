@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-githubgitignores: Get list of available GitHub gitignore templates
+# Get-GitHubGitIgnores: List available GitHub gitignore templates
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

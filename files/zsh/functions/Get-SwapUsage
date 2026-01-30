@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-swapusage: Display swap memory usage by process
+# Get-SwapUsage: Display swap memory usage by process
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

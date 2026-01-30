@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-defaultbrowser: Display default browser for HTTP/HTTPS
+# Get-DefaultBrowser: Display default browser for HTTP/HTTPS
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

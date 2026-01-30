@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# set-attribute: Set extended file system attribute on a file
+# Set-Attribute: Set extended file system attribute on a file
 
 # variables --------------------------------------------------------------------
 local _self="${0:A}"

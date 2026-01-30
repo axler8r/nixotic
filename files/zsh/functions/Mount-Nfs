@@ -1,0 +1,192 @@
+#! /usr/bin/env zsh
+
+# Mount-Nfs: Mount an NFS export from a remote server
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} --server <host> --path <path> [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Mount an NFS export from a remote server.
+    Requires root privileges (use sudo).
+
+Usage:
+    ${0:t} --server <host> --path <path> [opts]
+
+Options:
+    --help              Show this help message
+    --server, -s        NFS server hostname or IP (required)
+    --path, -p          Remote export path to mount (required)
+    --mount, -m         Local mount point (default: /mnt/nfs)
+    --options, -o       Mount options (default: rw,sync)
+
+Examples:
+    ${0:t} --server 192.168.1.10 --path /exports/data
+    ${0:t} -s nfs.example.com -p /share -m /mnt/myshare
+    ${0:t} -s 10.0.0.5 -p /backup -o ro,noatime
+"
+
+# Defaults
+local _server=""
+local _remote_path=""
+local _mount_point="/mnt/nfs"
+local _options="rw,sync"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)
+            _help_flag=true
+            shift
+            ;;
+        -s|--server)
+            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            _server="$2"
+            shift 2
+            ;;
+        -p|--path)
+            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            _remote_path="$2"
+            shift 2
+            ;;
+        -m|--mount)
+            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            _mount_point="$2"
+            shift 2
+            ;;
+        -o|--options)
+            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            _options="$2"
+            shift 2
+            ;;
+        -*)
+            _error "Unknown option: $1" && return 1
+            ;;
+        *)
+            _error "Unexpected argument: $1" && return 1
+            ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+[[ -z "$_server" ]] && _error "Server is required. Use --server <host>." && _synopsis && return 1
+[[ -z "$_remote_path" ]] && _error "Remote path is required. Use --path <path>." && _synopsis && return 1
+
+
+# Driver -----------------------------------------------------------------------
+function mount_nfs() {
+    local server="$1"
+    local remote_path="$2"
+    local mount_point="$3"
+    local options="$4"
+
+    # Check root privileges
+    __ax_require_root || return 2
+
+    # Check dependencies
+    __ax_check_deps mount || return 3
+
+    # Validate server reachability
+    if ! ping -c 1 -W 3 "$server" &>/dev/null; then
+        __ax_warn "Server '$server' does not respond to ping (may still be reachable via NFS)."
+    fi
+
+    # Validate export exists
+    if command -v showmount &>/dev/null; then
+        local exports
+        if exports=$(showmount -e "$server" 2>&1); then
+            if ! echo "$exports" | grep -q "^$remote_path "; then
+                __ax_warn "Export '$remote_path' not found in server's export list. Attempting mount anyway..."
+            fi
+        else
+            __ax_warn "Could not verify exports on '$server': $exports"
+        fi
+    fi
+
+    # Prepare mount point
+    if [[ ! -d "$mount_point" ]]; then
+        __ax_info "Creating mount point '$mount_point'..."
+        if ! mkdir -p "$mount_point" 2>&1; then
+            __ax_error "Failed to create mount point '$mount_point'."
+            return 4
+        fi
+    fi
+
+    if mountpoint -q "$mount_point" 2>/dev/null; then
+        __ax_error "Mount point '$mount_point' is already mounted."
+        return 5
+    fi
+
+    if [[ -n "$(ls -A "$mount_point" 2>/dev/null)" ]]; then
+        __ax_warn "Mount point '$mount_point' is not empty."
+    fi
+
+    # Mount NFS
+    local nfs_source="${server}:${remote_path}"
+
+    __ax_info "Mounting '$nfs_source' to '$mount_point' with options '$options'..."
+
+    local mount_output
+    if ! mount_output=$(mount -t nfs -o "$options" "$nfs_source" "$mount_point" 2>&1); then
+        case "$mount_output" in
+            *"Connection refused"*)
+                __ax_error "Connection refused. NFS server may not be running on '$server'." ;;
+            *"No route to host"*|*"Host is unreachable"*)
+                __ax_error "Cannot reach host '$server'. Check network connectivity." ;;
+            *"Name or service not known"*|*"not known"*)
+                __ax_error "Cannot resolve hostname '$server'." ;;
+            *"Permission denied"*|*"access denied"*)
+                __ax_error "Permission denied. Check NFS export permissions on '$server'." ;;
+            *"timed out"*|*"Timed out"*)
+                __ax_error "Connection to '$server' timed out." ;;
+            *"No such file or directory"*)
+                __ax_error "Remote path '$remote_path' does not exist on '$server'." ;;
+            *"not permitted"*)
+                __ax_error "Operation not permitted. Run with sudo or check permissions." ;;
+            *"already mounted"*)
+                __ax_error "Filesystem is already mounted." ;;
+            *"bad option"*|*"unknown option"*)
+                __ax_error "Invalid mount option specified: $mount_output" ;;
+            *)
+                __ax_error "Failed to mount NFS share: $mount_output" ;;
+        esac
+        return 1
+    fi
+
+    if mountpoint -q "$mount_point" 2>/dev/null; then
+        __ax_info "Successfully mounted '$nfs_source' to '$mount_point'."
+        print "\nMount details:"
+        mount | grep "$mount_point"
+    else
+        __ax_error "Mount command succeeded but mount point is not active."
+        return 1
+    fi
+}
+
+
+mount_nfs "${_server}" "${_remote_path}" "${_mount_point}" "${_options}"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis _help mount_nfs

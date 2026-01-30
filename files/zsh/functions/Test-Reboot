@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# test-reboot: Check if system reboot is required
+# Test-Reboot: Check if system reboot is required
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

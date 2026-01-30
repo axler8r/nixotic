@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-dockerdanglingimage: List all dangling Docker images
+# Get-DanglingDockerImages: List all dangling Docker images
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -44,7 +44,7 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && exit 0
+[[ -n $_help_flag ]] && _help && return 0
 
 
 # Driver -----------------------------------------------------------------------

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#! /usr/bin/env zsh
 
 # Get-Help: Display --help output with syntax highlighting
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#! /usr/bin/env zsh
 
 # Start-DockerJupyterNotebook: Start Jupyter Notebook in Docker
 

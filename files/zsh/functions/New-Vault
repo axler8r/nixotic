@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# new-vault: Create a new LUKS encrypted vault
+# New-Vault: Create a new LUKS encrypted vault
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

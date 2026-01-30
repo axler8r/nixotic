@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-attribute: Get extended file system attribute value
+# Get-Attribute: Get extended file system attribute value
 
 # variables --------------------------------------------------------------------
 local _self="${0}"

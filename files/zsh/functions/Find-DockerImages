@@ -1,10 +1,12 @@
 #! /usr/bin/env zsh
 
-# find-dockerimage: Search for Docker images by name pattern
+# Find-DockerImages: Search for Docker images by name pattern
 
-if [ $# -lt 1 ]; then
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <search-term> - Search Docker Hub for images" && return 0
+
+if [[ $# -lt 1 ]]; then
   echo "Usage: ${0:t} <search-term>"
-  exit 1
+  return 1
 fi
 
 # Join all arguments into a single search term

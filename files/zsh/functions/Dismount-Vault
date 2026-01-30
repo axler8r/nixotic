@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# dismount-vault: Unmount and close a LUKS encrypted vault
+# Dismount-Vault: Unmount and close a LUKS encrypted vault
 
 # Help
 if [[ "$1" == "--help" ]]; then

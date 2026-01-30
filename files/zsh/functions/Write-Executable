@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# write-executable: Write the input to a script and make the script executable
+# Write-Executable: Write the input to a script and make the script executable
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

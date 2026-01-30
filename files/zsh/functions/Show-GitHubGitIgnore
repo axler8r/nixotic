@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# show-githubgitignore: Show GitHub gitignore template for a specific language
+# Show-GitHubGitIgnore: Show GitHub gitignore template for a specific language
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} [language]" && return 0
 

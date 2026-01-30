@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# mount-vault: Mount a LUKS encrypted vault
+# Mount-Vault: Mount a LUKS encrypted vault
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

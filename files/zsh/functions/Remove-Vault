@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# remove-vault: Delete a LUKS encrypted vault file
+# Remove-Vault: Delete a LUKS encrypted vault file
 
 # Help
 if [[ "$1" == "--help" ]]; then

@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-verb: Display PowerShell-style approved verbs for function naming
+# Get-Verb: Display PowerShell-style approved verbs for function naming
 
 # Variables --------------------------------------------------------------------
 local _self="${0:A}"
@@ -178,10 +178,10 @@ local _command="${1}"
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_synopsis_flag ]]    && _synopsis        && exit 0
-[[ -n $_help_flag ]]        && _help            && exit 0
-[[ -n $_describe_flag ]]    && _describe        && exit 0
-_group && exit 0
+[[ -n $_synopsis_flag ]]    && _synopsis        && return 0
+[[ -n $_help_flag ]]        && _help            && return 0
+[[ -n $_describe_flag ]]    && _describe        && return 0
+_group && return 0
 
 
 # Unset ------------------------------------------------------------------------

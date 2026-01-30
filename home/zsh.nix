@@ -91,6 +91,11 @@
     recursive = true;
   };
 
+  home.file.".zsh/lib" = {
+    source = ../files/zsh/lib;
+    recursive = true;
+  };
+
   home.file.".zshalias".source = ../files/zsh/zshalias;
 
   xdg.dataFile."zsh/site-functions/_uv".text = builtins.readFile (

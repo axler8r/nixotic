@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-videoformat: Display video codec format
+# Get-VideoFormat: Display video codec format
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <file>" && return 0
 

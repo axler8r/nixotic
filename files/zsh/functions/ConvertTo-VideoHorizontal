@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# format-videohorizontal: Flip video horizontally with hardware acceleration
+# ConvertTo-VideoHorizontal: Flip video horizontally with hardware acceleration
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:

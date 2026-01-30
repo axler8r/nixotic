@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-systeminformation: Display system information using fastfetch
+# Get-SystemInformation: Display system information using fastfetch
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

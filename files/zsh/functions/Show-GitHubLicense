@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# show-githublicense: Show GitHub license template for a specific license
+# Show-GitHubLicense: Show GitHub license template for a specific license
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} [license-key]" && return 0
 

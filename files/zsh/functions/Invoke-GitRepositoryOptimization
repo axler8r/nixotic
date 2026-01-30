@@ -1,6 +1,8 @@
 #! /usr/bin/env zsh
 
-# optimize-gitrepository: Optimize git repository by running gc and prune
+# Invoke-GitRepositoryOptimization: Optimize git repositories by running gc and prune
+
+[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <dir>... - Optimize git repositories" && return 0
 
 local _dirs=("$@")
 local _git_dirs=()

@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-githublicenses: List all available GitHub licenses
+# Get-GitHubLicenses: List all available GitHub licenses
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

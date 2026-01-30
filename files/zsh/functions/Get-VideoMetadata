@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# get-videometadata: Extract and display video file metadata
+# Get-VideoMetadata: Extract and display video file metadata
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <video-file>" && return 0
 

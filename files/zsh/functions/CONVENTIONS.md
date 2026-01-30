@@ -69,17 +69,43 @@ alias start-dockerjupyternotebook=' Start-DockerJupyterNotebook '
 
 ## Shared Libraries
 
-Reusable configuration lives in `lib/`:
+Reusable configuration and helpers live in `lib/`:
 
 ```
 files/zsh/
 ├── lib/
-│   └── docker.zsh    # Docker arg arrays
+│   ├── docker.zsh      # Docker argument arrays
+│   ├── output.zsh      # Colored output helpers (__ax_error, __ax_warn, __ax_info, etc.)
+│   └── validation.zsh  # Input validation (__ax_check_deps, __ax_require_file, etc.)
 └── functions/
-    └── Start-Docker* # Source lib/docker.zsh
+    └── Start-Docker*   # Source lib/docker.zsh
 ```
 
 Functions source libraries with:
 ```zsh
-source "${0:h}/../lib/docker.zsh"
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 ```
+
+### Output Helpers (lib/output.zsh)
+
+| Helper           | Purpose                                    |
+| ---------------- | ------------------------------------------ |
+| `__ax_error`     | Red error message to stderr                |
+| `__ax_warn`      | Yellow warning message to stderr           |
+| `__ax_info`      | Green info message                         |
+| `__ax_success`   | Green success message                      |
+| `__ax_verbose`   | Blue debug message (if `_verbose_flag` set)|
+| `__ax_confirm`   | Interactive y/N prompt                     |
+
+### Validation Helpers (lib/validation.zsh)
+
+| Helper                 | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `__ax_check_deps`      | Check if commands exist              |
+| `__ax_require_file`    | Require file exists                  |
+| `__ax_require_dir`     | Require directory exists             |
+| `__ax_require_arg`     | Require argument not empty           |
+| `__ax_require_root`    | Require running as root              |
+| `__ax_require_extension` | Require file has extension         |
+

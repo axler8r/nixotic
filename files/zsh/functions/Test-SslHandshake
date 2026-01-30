@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# test-sslhandshake: Test SSL handshake for a given site
+# Test-SslHandshake: Test SSL handshake for a given site
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <site>" && return 0
 

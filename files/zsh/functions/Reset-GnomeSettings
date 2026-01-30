@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# reset-gnome: Restart GNOME Shell
+# Reset-GnomeSettings: Restart GNOME Shell
 
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 

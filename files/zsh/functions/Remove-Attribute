@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# remove-attribute: Remove extended file system attribute from a file
+# Remove-Attribute: Remove extended file system attribute from a file
 
 # variables --------------------------------------------------------------------
 local _self="${0}"

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#! /usr/bin/env zsh
 
 # New-DockerZshUbuntu: Create a new persistent Ubuntu container for ZSH
 

@@ -98,13 +98,13 @@
       "org/gnome/shell/extensions/vitals" = {
         position-in-panel = 2;  # 0=left, 1=center, 2=right
         hot-sensors = [
-          "_temperature_average_"
           "_processor_usage_"
           "_memory_usage_"
           "_storage_read_rate_"
           "_storage_write_rate_"
           "__network-rx_max__"
           "__network-tx_max__"
+          "__temperature_avg__"
         ];
       };
 
