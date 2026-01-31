@@ -47,6 +47,18 @@
   services.xserver.videoDrivers = [ "nvidia" ];
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
+
+  # Prevent GDM from suspending the system while showing the login screen
+  # This fixes the double-suspend issue after waking from sleep
+  programs.dconf.profiles.gdm.databases = [{
+    settings = {
+      "org/gnome/settings-daemon/plugins/power" = {
+        sleep-inactive-ac-type = "nothing";
+        sleep-inactive-battery-type = "nothing";
+      };
+    };
+  }];
+
   services.printing.enable = true;
   services.pulseaudio.enable = false;
   services.pipewire = {
