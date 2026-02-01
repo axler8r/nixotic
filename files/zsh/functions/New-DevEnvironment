@@ -11,27 +11,45 @@ See also:
 "
 local _help="Description:
     Create a new direnv + Nix Flakes development environment using flake-parts.
-    Generates flake.nix and .envrc, then activates with direnv allow.
+    Nix provides the runtime and essential tooling. Use language-native tools
+    (uv, cargo, mix, dotnet, maven) to manage project dependencies.
 
 Usage:
     ${0:t} [opts] [packages...]
 
 Options:
-    --help          Show this help message
-    --name NAME     Project name (default: current directory name)
+    --help              Show this help message
+    --name NAME         Project name (default: current directory name)
+    --lang LANG         Language template: python, dotnet, rust, elixir, java, julia
+    --tool TOOL...      System tools to include (e.g., sysdig, strace, socat)
+    --ml                Include CUDA toolkit and cuDNN for ML workloads
 
 Arguments:
-    packages        Nix packages to include in devShell (e.g., python3 nodejs)
+    packages            Additional Nix packages
+
+Language Templates:
+    python              python3, uv, ruff         → use uv for deps
+    rust                cargo, rustc, rust-analyzer, clippy, rustfmt
+    elixir              elixir, erlang, elixir-ls → use mix for deps
+    dotnet              dotnet-sdk                → use dotnet for deps
+    java                jdk, maven, gradle        → use maven/gradle for deps
+    julia               julia                     → use Pkg for deps
 
 Examples:
-    ${0:t}                              # Minimal flake-parts environment
-    ${0:t} python3 poetry               # Python development environment
-    ${0:t} --name myproject nodejs      # Named project with Node.js
+    ${0:t} --lang python                # Python with uv, then: uv init && uv add click
+    ${0:t} --lang python --ml           # Python + CUDA for ML
+    ${0:t} --lang julia --ml            # Julia + CUDA for ML
+    ${0:t} --lang rust                  # Rust, then: cargo init
+    ${0:t} --lang elixir                # Elixir, then: mix new myapp
+    ${0:t} --lang java                  # Java with Maven/Gradle
+    ${0:t} --lang python --tool sysdig  # Python + system tool
 "
 
 # Defaults
 local _name="${PWD:t}"
-local -a _packages=()
+local _lang=""
+local _ml=false
+local -a _tools=()
 
 
 # Functions --------------------------------------------------------------------
@@ -40,12 +58,19 @@ _help() { echo "${_help}" | tail --lines=+2 }
 
 
 # Options ----------------------------------------------------------------------
+local _current_flag=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true; shift ;;
-        --name)     _name="$2"; shift 2 ;;
+        --help)     _help_flag=true; _current_flag=""; shift ;;
+        --name)     _name="$2"; _current_flag=""; shift 2 ;;
+        --lang)     _lang="$2"; _current_flag=""; shift 2 ;;
+        --tool)     _current_flag="tool"; shift ;;
+        --ml)       _ml=true; _current_flag=""; shift ;;
         -*)         echo "Error: Unknown option: $1" && return 1 ;;
-        *)          _packages+=("$1"); shift ;;
+        *)
+            [[ "$_current_flag" == "tool" ]] && _tools+=("$1")
+            shift
+            ;;
     esac
 done
 
@@ -57,8 +82,10 @@ done
 # Driver -----------------------------------------------------------------------
 function new_dev_environment() {
     local name="$1"
-    shift
-    local -a packages=("$@")
+    local lang="$2"
+    local ml="$3"
+    shift 3
+    local -a tools=("$@")
 
     # Check for existing files
     if [[ -f flake.nix ]]; then
@@ -66,14 +93,110 @@ function new_dev_environment() {
         return 1
     fi
 
-    # Build packages list for nix
-    local pkg_list=""
-    if [[ ${#packages[@]} -gt 0 ]]; then
-        pkg_list=$(printf "pkgs.%s\n            " "${packages[@]}")
+    # Warn if --ml used without NVIDIA GPU
+    if [[ "$ml" == "true" ]] && [[ ! -e /dev/nvidiactl ]] && ! command -v nvidia-smi &>/dev/null; then
+        echo "Warning: No NVIDIA GPU detected, --ml packages may not work on this machine"
+    fi
+
+    # Validate language if specified
+    if [[ -n "$lang" ]] && [[ ! "$lang" =~ ^(python|dotnet|rust|elixir|java|julia)$ ]]; then
+        echo "Error: Unknown language: $lang (supported: python, dotnet, rust, elixir, java, julia)"
+        return 1
+    fi
+
+    # Build language-specific package block
+    local lang_packages=""
+    case "$lang" in
+        python)
+            lang_packages="pkgs.python3
+            pkgs.uv
+            pkgs.ruff"
+            ;;
+        dotnet)
+            lang_packages="pkgs.dotnet-sdk"
+            ;;
+        rust)
+            lang_packages="pkgs.cargo
+            pkgs.rustc
+            pkgs.rust-analyzer
+            pkgs.clippy
+            pkgs.rustfmt"
+            ;;
+        elixir)
+            lang_packages="pkgs.elixir
+            pkgs.erlang
+            pkgs.elixir-ls"
+            ;;
+        java)
+            lang_packages="pkgs.jdk
+            pkgs.maven
+            pkgs.gradle"
+            ;;
+        julia)
+            lang_packages="pkgs.julia"
+            ;;
+    esac
+
+    # Build ML packages if requested
+    local ml_packages=""
+    if [[ "$ml" == "true" ]]; then
+        ml_packages="pkgs.cudaPackages.cudatoolkit
+            pkgs.cudaPackages.cudnn"
+    fi
+
+    # Build tools list
+    local tools_packages=""
+    if [[ ${#tools[@]} -gt 0 ]]; then
+        tools_packages=$(printf "pkgs.%s\n            " "${tools[@]}")
+    fi
+
+    # Combine all packages
+    local all_packages=""
+    local -a parts=()
+    [[ -n "$lang_packages" ]] && parts+=("$lang_packages")
+    [[ -n "$ml_packages" ]] && parts+=("$ml_packages")
+    [[ -n "$tools_packages" ]] && parts+=("$tools_packages")
+    if [[ ${#parts[@]} -gt 0 ]]; then
+        all_packages=$(printf "%s\n            " "${parts[@]}")
     fi
 
     # Create flake.nix
-    cat > flake.nix << EOF
+    if [[ "$ml" == "true" ]]; then
+        cat > flake.nix << EOF
+{
+  description = "${name} development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+  };
+
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+
+      perSystem = { system, ... }:
+        let
+          pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        in {
+          devShells.default = pkgs.mkShell {
+            packages = [
+              ${all_packages}
+            ];
+
+            shellHook = ''
+              echo "${name} development environment"
+            '';
+          };
+        };
+    };
+}
+EOF
+    else
+        cat > flake.nix << EOF
 {
   description = "${name} development environment";
 
@@ -89,7 +212,7 @@ function new_dev_environment() {
       perSystem = { pkgs, ... }: {
         devShells.default = pkgs.mkShell {
           packages = [
-            ${pkg_list}
+            ${all_packages}
           ];
 
           shellHook = ''
@@ -100,6 +223,7 @@ function new_dev_environment() {
     };
 }
 EOF
+    fi
 
     echo "Created flake.nix"
 
@@ -121,7 +245,7 @@ EOF
 }
 
 
-new_dev_environment "$_name" "${_packages[@]}"
+new_dev_environment "$_name" "$_lang" "$_ml" "${_tools[@]}"
 
 
 # Cleanup ----------------------------------------------------------------------

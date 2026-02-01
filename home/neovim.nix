@@ -134,7 +134,7 @@
       copilot-vim
     ];
 
-    extraLuaConfig = ''
+    initLua = ''
       -- Leader key
       vim.g.mapleader = ','
 
