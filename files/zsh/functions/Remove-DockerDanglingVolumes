@@ -1,0 +1,71 @@
+#! /usr/bin/env zsh
+
+# Remove-DockerDanglingVolumes: Remove all dangling Docker volumes
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Remove all dangling Docker volumes (volumes not attached to any container).
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    remove-dockerdanglingvolumes
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function remove_dockerdanglingvolumes() {
+    local _volumes=$(docker volume list --quiet --filter="dangling=true")
+
+    if [[ -z "${_volumes}" ]]; then
+        echo "No dangling volumes to remove."
+        return 0
+    fi
+
+    echo "${_volumes}" | while read -r _vol; do
+        echo "Removing volume: ${_vol}"
+        docker volume rm "${_vol}"
+    done
+}
+
+
+remove_dockerdanglingvolumes
+
+
+unfunction _synopsis
+unfunction _help
+unfunction remove_dockerdanglingvolumes

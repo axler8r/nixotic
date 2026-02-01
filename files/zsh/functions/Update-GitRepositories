@@ -1,0 +1,75 @@
+#! /usr/bin/env zsh
+
+# Update-GitRepositories: Pull and update all git repositories in current directory
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Update all git repositories in the current directory by running git pull
+    and git submodule update in each subdirectory that is a git repository.
+    Requires GNU parallel.
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    cd ~/Projects && update-gitrepositories
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function update_gitrepositories() {
+    if ! command -v parallel > /dev/null; then
+        echo "Error: GNU parallel is required but not installed."
+        return 1
+    fi
+
+    local _dirs=(*(/:e:'[[ -d $REPLY/.git ]]':))
+
+    if [[ ${#_dirs[@]} -eq 0 ]]; then
+        echo "No git repositories found in current directory."
+        return 0
+    fi
+
+    parallel 'cd {} && pwd && git pull && git submodule update && echo' ::: "${_dirs[@]}"
+}
+
+
+update_gitrepositories
+
+
+unfunction _synopsis
+unfunction _help
+unfunction update_gitrepositories

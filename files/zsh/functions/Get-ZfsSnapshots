@@ -1,0 +1,73 @@
+#! /usr/bin/env zsh
+
+# Get-ZfsSnapshots: List all ZFS snapshots sorted by creation date
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [dataset]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    List all ZFS snapshots sorted by creation date (newest first).
+    Optionally filter by dataset name.
+
+Usage:
+    ${0:t} [dataset]
+
+Options:
+    --help      Show this help message.
+
+Arguments:
+    dataset     Optional dataset name to filter snapshots.
+
+Examples:
+    get-zfssnapshots
+    get-zfssnapshots dpool/data
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+local _dataset=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _dataset=$1     ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function get_zfssnapshots() {
+    local _target="${1:--r}"
+
+    if [[ "${_target}" == "-r" ]]; then
+        zfs list -r -t snapshot -S creation -o name,used,referenced,creation
+    else
+        zfs list -r -t snapshot -S creation -o name,used,referenced,creation "${_target}"
+    fi
+}
+
+
+get_zfssnapshots "${_dataset}"
+
+
+unfunction _synopsis
+unfunction _help
+unfunction get_zfssnapshots

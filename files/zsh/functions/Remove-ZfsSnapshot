@@ -1,0 +1,72 @@
+#! /usr/bin/env zsh
+
+# Remove-ZfsSnapshot: Remove a ZFS snapshot using zsysctl
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} <snapshot-name>
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Remove a ZFS snapshot using zsysctl state remove.
+    Requires the snapshot name as an argument.
+
+Usage:
+    ${0:t} <snapshot-name>
+
+Options:
+    --help      Show this help message.
+
+Arguments:
+    snapshot    The name of the snapshot to remove.
+
+Examples:
+    remove-zfssnapshot autozsys_abc123
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+local _snapshot=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _snapshot=$1    ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+if [[ -z "${_snapshot}" ]]; then
+    _synopsis
+    return 1
+fi
+
+
+# Driver -----------------------------------------------------------------------
+function remove_zfssnapshot() {
+    zsysctl state remove "${1}" --system
+    printf "\n"
+}
+
+
+remove_zfssnapshot "${_snapshot}"
+
+
+unfunction _synopsis
+unfunction _help
+unfunction remove_zfssnapshot

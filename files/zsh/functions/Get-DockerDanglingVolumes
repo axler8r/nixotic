@@ -1,0 +1,61 @@
+#! /usr/bin/env zsh
+
+# Get-DockerDanglingVolumes: List all dangling Docker volumes
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t}
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Get all dangling Docker volumes (volumes not attached to any container).
+
+Usage:
+    ${0:t}
+
+Options:
+    --help      Show this help message.
+
+Examples:
+    get-dockerdanglingvolumes
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        *)          _arg=$1         ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+
+# Driver -----------------------------------------------------------------------
+function get_dockerdanglingvolumes() {
+    docker volume list --filter="dangling=true"
+}
+
+
+get_dockerdanglingvolumes
+
+
+unfunction _synopsis
+unfunction _help
+unfunction get_dockerdanglingvolumes
