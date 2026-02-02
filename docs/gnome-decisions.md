@@ -1,83 +1,81 @@
 # GNOME Configuration Decisions
 
-Design decisions made when configuring GNOME for this NixOS setup.
+Design decisions for the GNOME desktop configuration.
 
-**Date:** January 2026  
-**Context:** Migration from Ubuntu to NixOS for a programmer/architect workstation
+**Updated:** February 2026
 
 ## Philosophy
 
 **Less is better.** Start minimal and add only what's needed. The goal is a
-*clean, distraction-free environment focused on:
+clean, distraction-free environment focused on:
 - VS Code (primary IDE)
 - Neovim (secondary editor)
 - Kitty + tmux (terminal)
 - Brave (browser)
-- Obsidian (knowledge management) — *pending fix*
+- Obsidian (knowledge management)
 
 ## Dock Favorites
 
 | App              | Rationale                            |
 | ---------------- | ------------------------------------ |
 | Files (Nautilus) | Need a file manager                  |
-| Brave            | Main browser — fast, privacy-focused |
+| Brave            | Main browser - fast, privacy-focused |
+| Obsidian         | Knowledge management                 |
 | VS Code          | Primary IDE                          |
 | Kitty            | Primary terminal                     |
 
-**Removed from dock:**
-- Slack, Signal → use web/phone versions
-- Chromium → one browser is enough
-- Cider → niche, proprietary
-
 ## Excluded GNOME Apps
 
-All removed because alternatives exist or they're unused:
+Removed via `environment.gnome.excludePackages` in host configuration:
 
-| Category  | Removed                                                     | Reason                                          |
-| --------- | ----------------------------------------------------------- | ----------------------------------------------- |
-| Terminals | gnome-terminal, xterm                                       | Have Kitty                                      |
-| Browsers  | epiphany                                                    | Have Brave                                      |
-| Email     | geary                                                       | Use web email                                   |
-| Media     | totem, gnome-music, gnome-photos, cheese, snapshot          | Have mpv for video; don't need photo management |
-| PIM       | gnome-calendar, gnome-clocks, gnome-weather, gnome-contacts | Use phone/web                                   |
-| Utilities | baobab, gnome-connections, simple-scan, gnome-logs          | Rarely needed                                   |
-| Help      | yelp, gnome-tour                                            | Not needed                                      |
-| Monitors  | gnome-system-monitor                                        | htop is enough                                  |
+| App            | Reason             |
+| -------------- | ------------------ |
+| cheese         | Have phone camera  |
+| epiphany       | Have Brave/Firefox |
+| geary          | Use web email      |
+| gnome-contacts | Use phone          |
+| gnome-tour     | Not needed         |
+| snapshot       | Have phone camera  |
+| xterm          | Have Kitty         |
+| yelp           | Not needed         |
 
-## Kept GNOME Apps
+## Installed Apps
 
-| App         | Rationale                                       |
-| ----------- | ----------------------------------------------- |
-| Calculator  | Quick math without terminal                     |
-| Evince      | PDF viewer — essential                          |
-| File Roller | Archive extraction — will need this             |
-| Loupe       | Quick image preview — lighter than alternatives |
-| Seahorse    | GPG key management — sign commits               |
-| Settings    | Core GNOME functionality                        |
-| Tweaks      | GNOME customization                             |
+Installed via `home.packages` in [home/gnome.nix](../home/gnome.nix):
+
+| Category  | Apps                                           |
+| --------- | ---------------------------------------------- |
+| Browsers  | Firefox, Chromium (ungoogled)                  |
+| Editors   | Apostrophe (Markdown)                          |
+| Media     | Celluloid (video), Shortwave (radio), Podcasts |
+| System    | Mission Center, GParted, dconf-editor          |
+| Utilities | File Roller, GNOME Tweaks, Power Manager       |
+| Knowledge | Obsidian                                       |
 
 ## Extensions
 
 | Extension           | Rationale                                     |
 | ------------------- | --------------------------------------------- |
-| Clipboard Indicator | Essential for programmers — clipboard history |
+| Clipboard Indicator | Essential for programmers - clipboard history |
 | Caffeine            | Prevent sleep during builds/presentations     |
+| Dash to Dock        | Bottom dock with auto-hide                    |
+| Date Menu Formatter | ISO8601 date format (yyyy-MM-dd HH:mm)        |
+| Just Perfection     | UI customization                              |
 | Tiling Assistant    | Window management productivity                |
-
-**Not included:**
-- Vitals → htop is enough for system monitoring
-- DING (desktop icons) → desktop clutter
-- Date formatters, timers → minor tweaks, not worth the complexity
+| Vitals              | CPU, memory, temp in panel                    |
 
 ## App Folders
 
-Simplified to 3 folders (down from 7):
+Organized into 6 folders:
 
-| Folder             | Contents                  | Rationale                   |
-| ------------------ | ------------------------- | --------------------------- |
-| Command Line Tools | helix, htop, nvim, ranger | Group CLI apps together     |
-| Utilities          | Calculator, Evince, etc.  | Infrequently used GUI tools |
-| Media              | mpv                       | Single media app            |
+| Folder       | Contents                                          |
+| ------------ | ------------------------------------------------- |
+| Internet     | Brave, Chromium, Firefox                          |
+| Command Line | Helix, htop, nvim, ranger                         |
+| Utilities    | Seahorse, Tweaks, Settings                        |
+| Handy        | Calculator, Calendar, Characters, Papers, etc.    |
+| Media        | Celluloid, Loupe, mpv, Music, Podcasts, Shortwave |
+| System       | btop, dconf-editor, GParted, Mission Center, etc. |
 
 ## Hidden Apps
 
@@ -85,9 +83,18 @@ Simplified to 3 folders (down from 7):
 | ---------------------- | ----------------------------------------- |
 | Manage Printing (CUPS) | Ugly icon; can access via `localhost:631` |
 
-## Future Considerations
+## Keyboard Customizations
 
-- **Obsidian**: Currently broken (Electron/Wayland issue). Revisit later.
-- **nvtop**: Add when configuring `infer8r` (ML workstation with GPU)
-- **NVIDIA Settings**: Add for `infer8r`
-- **Styling**: Color scheme, themes, fonts — deferred to future session
+| Setting             | Value         | Rationale                    |
+| ------------------- | ------------- | ---------------------------- |
+| Compose key         | Right Alt     | Type special characters      |
+| Caps Lock           | Ctrl modifier | Ergonomic Ctrl access        |
+| IBus Unicode hotkey | Ctrl+Alt+U    | Frees Ctrl+Shift+U for Kitty |
+| Window buttons      | Left side     | macOS-style close/min/max    |
+
+## Screen Lock
+
+| Setting     | Value                            |
+| ----------- | -------------------------------- |
+| Blank after | 10 minutes                       |
+| Lock after  | 5 min after blank (15 min total) |

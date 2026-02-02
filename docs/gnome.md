@@ -18,7 +18,7 @@ How GNOME desktop is configured in this NixOS setup.
 ## Key Files
 
 - [home/gnome.nix](../home/gnome.nix) — User-level GNOME configuration (dconf, extensions, folders)
-- [hosts/demonstr8r/configuration.nix](../hosts/demonstr8r/configuration.nix) — System-level GNOME setup
+- `hosts/*/configuration.nix` — System-level GNOME setup
 
 ## Discovering dconf Keys
 

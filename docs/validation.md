@@ -28,10 +28,10 @@ For routine configuration changes:
 nix flake check --no-build
 
 # 2. Dry build with package diff
-nh os build . --dry -d always
+nh os build --dry
 
 # 3. Apply configuration
-nh os switch .
+nh os switch
 ```
 
 ## Extended Workflow
@@ -60,7 +60,7 @@ nix flake check --no-build
 ### 3. Dry Build
 
 ```bash
-nh os build . --dry -d always
+nh os build --dry
 ```
 
 **Catches:** Missing dependencies, shows derivations to be built
@@ -80,7 +80,7 @@ cat /nix/store/<hash>-<name>
 ### 5. Apply
 
 ```bash
-nh os switch .
+nh os switch
 ```
 
 ## Quick Reference
@@ -88,10 +88,10 @@ nh os switch .
 | Step    | Command                          | When to Use        |
 | ------- | -------------------------------- | ------------------ |
 | Check   | `nix flake check --no-build`     | Always             |
-| Plan    | `nh os build . --dry -d always`  | Before applying    |
+| Plan    | `nh os build --dry`              | Before applying    |
 | Parse   | `nix eval --impure --expr '...'` | Debugging syntax   |
 | Inspect | `nix-store --realise` + `cat`    | Verifying escaping |
-| Apply   | `nh os switch .`                 | Deploying changes  |
+| Apply   | `nh os switch`                   | Deploying changes  |
 
 ## When to Use Each Workflow
 

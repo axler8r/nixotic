@@ -33,9 +33,9 @@ flowchart TD
 **Use for:** System-wide tools, root access, all users
 
 Examples:
-- System utilities: `htop`, `wget`, `file`, `lsof`
-- System administration: `clamav`, `plocate`
-- Core editors: `neovim` (if needed for root)
+- System utilities: `file`, `htop`, `iftop`, `iotop`, `net-tools`
+- System administration: `clamav`, `cryptsetup`, `plocate`
+- Network tools: `nethogs`
 
 ### 2. `users.users.<name>.packages`
 
@@ -43,20 +43,23 @@ Examples:
 **Use for:** User-specific packages needing system integration
 
 Examples:
-- GUI applications with D-Bus/GNOME integration
-- Browsers: `brave`, `ungoogled-chromium`
-- Apps requiring system services
+- Browsers: `brave`
+- Apps requiring system services or D-Bus integration
 
 ### 3. `home.packages`
 
-**Location:** `home/default.nix`  
+**Location:** `home/default.nix` or `home/gnome.nix` (GUI apps)  
 **Use for:** Most user CLI tools and development packages
 
-Examples:
-- Version control: `gh`, `tig`
-- Development: `helix`, `tokei`
-- CLI utilities: `fd`, `ripgrep`, `fdupes`, `bfs`
-- Media: `mpv`
+Examples in `home/default.nix`:
+- Version control: `tig`, `gitflow`
+- CLI tools: `curl`, `wget`, `tokei`, `fdupes`, `bfs`
+- Media: `ffmpeg`, `mpv`
+
+Examples in `home/gnome.nix`:
+- Browsers: `firefox`, `ungoogled-chromium`
+- GUI apps: `obsidian`, `celluloid`, `gparted`
+- GNOME extensions
 
 ### 4. `programs.<name>.enable`
 
@@ -67,8 +70,10 @@ Examples:
 - Shell: `programs.zsh` → `home/zsh.nix`
 - Terminal: `programs.kitty` → `home/kitty.nix`
 - Version control: `programs.git` → `home/git.nix`
-- File browser: `programs.ranger` → `home/ranger.nix`
+- Editor: `programs.helix` → `home/helix.nix`
+- Editor: `programs.neovim` → `home/neovim.nix`
 - Prompt: `programs.starship` → `home/starship.nix`
+- File browser: `programs.ranger` → `home/ranger.nix`
 
 ## Checking for Home Manager Modules
 

@@ -27,7 +27,7 @@ git checkout -b refactor/zsh-aliases
 Make changes, then apply:
 
 ```bash
-nh os switch .
+nh os switch
 ```
 
 > **Tip:** If the build fails or breaks the system, rollback to the previous
