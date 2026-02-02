@@ -188,7 +188,7 @@ function new_dev_environment() {
             ];
 
             shellHook = ''
-              echo "${name} development environment"
+              export name="${name}"
             '';
           };
         };
@@ -216,7 +216,7 @@ EOF
           ];
 
           shellHook = ''
-            echo "${name} development environment"
+            export name="${name}"
           '';
         };
       };
