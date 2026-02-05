@@ -56,14 +56,17 @@ function update_gitrepositories() {
         return 1
     fi
 
-    local _dirs=(*(/:e:'[[ -d $REPLY/.git ]]':))
+    local _dirs=()
+    for dir in */; do
+        [[ -d "${dir}.git" ]] && _dirs+=("$PWD/${dir%/}")
+    done
 
     if [[ ${#_dirs[@]} -eq 0 ]]; then
         echo "No git repositories found in current directory."
         return 0
     fi
 
-    parallel 'cd {} && pwd && git pull && git submodule update && echo' ::: "${_dirs[@]}"
+    parallel 'echo {} && git -C {} pull && git -C {} submodule update' ::: "${_dirs[@]}"
 }
 
 

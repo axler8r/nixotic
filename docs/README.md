@@ -2,17 +2,33 @@
 
 Reference guides for the nixotic NixOS configuration.
 
-## Guides
+## Editors
 
-| Document                                 | Description                                    |
-| ---------------------------------------- | ---------------------------------------------- |
-| [gnome.md](gnome.md)                     | GNOME desktop configuration                    |
-| [gnome-decisions.md](gnome-decisions.md) | GNOME configuration rationale                  |
-| [neovim.md](neovim.md)                   | Neovim plugins and keybindings                 |
-| [packages.md](packages.md)               | Where to declare packages (decision flowchart) |
-| [validation.md](validation.md)           | Build, test, and deploy workflow               |
-| [git.md](git.md)                         | Git branching strategy and conventions         |
-| [zfs.md](zfs.md)                         | ZFS pool setup and hibernation (ambul8r)       |
+| Document                                 | Description                               |
+| ---------------------------------------- | ----------------------------------------- |
+| [neovim.md](neovim.md)                   | Neovim plugins and keybindings            |
+| [editor-learning.md](editor-learning.md) | Neovim/Helix tutorials and learning guide |
+
+## Desktop
+
+| Document                                 | Description                   |
+| ---------------------------------------- | ----------------------------- |
+| [gnome.md](gnome.md)                     | GNOME desktop configuration   |
+| [gnome-decisions.md](gnome-decisions.md) | GNOME configuration rationale |
+
+## System
+
+| Document                       | Description                              |
+| ------------------------------ | ---------------------------------------- |
+| [packages.md](packages.md)     | Where to declare packages (flowchart)    |
+| [zfs.md](zfs.md)               | ZFS pool setup and hibernation (ambul8r) |
+
+## Workflow
+
+| Document                       | Description                        |
+| ------------------------------ | ---------------------------------- |
+| [git.md](git.md)               | Git branching strategy             |
+| [validation.md](validation.md) | Build, test, and deploy workflow   |
 
 ## Archive
 

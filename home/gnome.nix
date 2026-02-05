@@ -32,11 +32,31 @@
     noDisplay = true;
   };
 
-  # XDG user directories (GNOME screenshots go to Pictures/Screenshots)
+  # XDG user directories
   xdg.userDirs = {
     enable = true;
-    pictures = "${config.home.homeDirectory}/Media";
+    createDirectories = true;
+    desktop = null;
+    documents = "${config.home.homeDirectory}/Documents";
+    download = "${config.home.homeDirectory}/Downloads";
+    music = "${config.home.homeDirectory}/Media/Music";
+    pictures = "${config.home.homeDirectory}/Media/Pictures";
+    publicShare = null;
+    templates = null;
+    videos = "${config.home.homeDirectory}/Media/Videos";
   };
+
+  # Custom folder icons
+  home.activation.setFolderIcons = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    [[ -d $HOME/Documents/Books ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Books metadata::custom-icon-name folder-pink-books
+    [[ -d $HOME/Documents/Obsidian ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Obsidian metadata::custom-icon-name folder-indigo-obsidian
+    [[ -d $HOME/Downloads ]] && ${pkgs.glib}/bin/gio set $HOME/Downloads metadata::custom-icon-name folder-green-download
+    [[ -d $HOME/Projects ]] && ${pkgs.glib}/bin/gio set $HOME/Projects metadata::custom-icon-name folder-orange-development
+    [[ -d $HOME/Projects/AxlER8R ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/AxlER8R metadata::custom-icon-name folder-green-meocloud
+    [[ -d $HOME/Projects/GitHub ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/GitHub metadata::custom-icon-name folder-grey-github
+    [[ -d $HOME/Projects/Sandbox ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/Sandbox metadata::custom-icon-name folder-yellow-recent
+    [[ -d $HOME/Vaults ]] && ${pkgs.glib}/bin/gio set $HOME/Vaults metadata::custom-icon-name folder-red-locked
+  '';
 
 
   dconf = {
@@ -108,9 +128,9 @@
         ];
       };
 
-      # Date Menu Formatter - ISO8601 format
+      # Date Menu Formatter
       "org/gnome/shell/extensions/date-menu-formatter" = {
-        pattern = "yyyy-MM-dd HH:mm";
+        pattern = "'It is' HH:mm 'on' EEEE, MMMM d, yyyy";
       };
 
       # App folder configuration - minimal with few apps
@@ -224,6 +244,42 @@
       "org/gnome/Console" = {
         use-system-font = true;
         theme = "auto";  # Follows light/dark preference
+      };
+
+      # Custom keybindings
+      "org/gnome/settings-daemon/plugins/media-keys" = {
+        custom-keybindings = [
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/"
+        ];
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
+        name = "Files";
+        command = "nautilus";
+        binding = "<Super>f";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" = {
+        name = "VS Code";
+        command = "code";
+        binding = "<Super>c";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2" = {
+        name = "Kitty";
+        command = "kitty";
+        binding = "<Super>k";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3" = {
+        name = "Obsidian";
+        command = "obsidian";
+        binding = "<Super>o";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4" = {
+        name = "Brave";
+        command = "brave";
+        binding = "<Super>b";
       };
     };
   };
