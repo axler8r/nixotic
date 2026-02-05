@@ -2,6 +2,8 @@
 
 # Get-DanglingDockerImages: List all dangling Docker images
 
+source "${0:h}/../lib/output.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t}
@@ -34,9 +36,12 @@ _help() {
 
 
 # Options ----------------------------------------------------------------------
+local _raw_flag=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
+        --raw)      _raw_flag="--raw" ;;
         *)          _arg=$1         ;;
     esac
     shift
@@ -49,10 +54,11 @@ done
 
 # Driver -----------------------------------------------------------------------
 function get_dockerdanglingimage() {
-    local _header="REPOSITORY|TAG|CREATED|SIZE|ID"
+    local _header="Repository|Tag|Created|Size|ID"
     local _image=$(docker image list --format="{{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.Size}}|{{.ID}}" --filter="dangling=true" | sort)
-    echo "${_header}\n${_image}" | column --table --separator="|"
-    printf "\n"
+    echo ""
+    echo -e "${_header}\n${_image}" | __ax_table $_raw_flag
+    echo ""
 }
 
 

@@ -1,0 +1,183 @@
+#! /usr/bin/env zsh
+
+# Measure-Words: Count words across text files in a directory tree
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts] [directory]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Count words across all text files in a directory tree.
+    Uses fd to discover files (respects .gitignore) and wc for counting.
+    Results are displayed as a table with per-extension breakdown.
+
+Usage:
+    ${0:t} [opts] [directory]
+
+Options:
+    -e ext      Only count files with this extension (repeatable)
+    -n count    Show top N extensions (default: 15)
+    --all       Include hidden files and ignored files
+    --help      Show this help message
+
+Arguments:
+    directory   Target directory (default: current directory)
+
+Examples:
+    ${0:t}                          # Count words in current directory
+    ${0:t} ~/projects/docs          # Count in specific directory
+    ${0:t} -e md -e txt             # Only markdown and text files
+    ${0:t} -n 5                     # Show top 5 extensions
+    ${0:t} --all                    # Include hidden/ignored files
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+local -a _extensions
+local _top_n=15
+local _all_flag=""
+local _raw_flag=""
+local _directory=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        --all)      _all_flag=true ;;
+        --raw)      _raw_flag="--raw" ;;
+        -e)         shift; _extensions+=("$1") ;;
+        -n)         shift; _top_n="$1" ;;
+        -*)         __ax_error "Unknown option: $1" && _synopsis && return 1 ;;
+        *)          _directory="$1" ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+_directory="${_directory:-.}"
+__ax_require_dir "$_directory" || return 1
+__ax_check_deps fd wc || return 2
+
+
+# Driver -----------------------------------------------------------------------
+function measure_words() {
+    local dir="$1"
+    local top_n="$2"
+    local all_flag="$3"
+    shift 3
+    local -a extensions=("$@")
+
+    # Build fd arguments
+    local -a fd_args=(--type f)
+    [[ -n "$all_flag" ]] && fd_args+=(--hidden --no-ignore)
+
+    if [[ ${#extensions[@]} -gt 0 ]]; then
+        for ext in "${extensions[@]}"; do
+            fd_args+=(--extension "$ext")
+        done
+    fi
+
+    # Get file list
+    local -a files
+    files=("${(@f)$(fd "${fd_args[@]}" . "$dir" 2>/dev/null)}")
+
+    if [[ ${#files[@]} -eq 0 || -z "${files[1]}" ]]; then
+        __ax_warn "No text files found in '$dir'"
+        return 0
+    fi
+
+    # Count words per extension
+    local -A ext_words ext_files
+    local total_words=0
+    local total_files=0
+    local mime ext words
+
+    for file in "${files[@]}"; do
+        [[ -z "$file" ]] && continue
+
+        # Skip binary files using MIME type detection
+        mime=$(file --brief --mime-type "$file" 2>/dev/null)
+        [[ "$mime" != text/* && "$mime" != application/json && "$mime" != application/xml ]] && continue
+
+        ext="${file:e}"
+        [[ -z "$ext" ]] && ext="(no ext)"
+
+        words=$(wc -w < "$file" 2>/dev/null) || continue
+        words="${words// /}"
+
+        ext_words[$ext]=$(( ${ext_words[$ext]:-0} + words ))
+        ext_files[$ext]=$(( ${ext_files[$ext]:-0} + 1 ))
+        total_words=$(( total_words + words ))
+        total_files=$(( total_files + 1 ))
+    done
+
+    if [[ $total_words -eq 0 ]]; then
+        __ax_warn "No words found in '$dir'"
+        return 0
+    fi
+
+    # Sort extensions by word count descending
+    local -a ext_list
+    for ext in ${(k)ext_words}; do
+        ext_list+=("${ext_words[$ext]}:$ext")
+    done
+    ext_list=(${(On)ext_list})
+
+    # Calculate column widths for right-alignment (minimum = header text width)
+    local S="|"
+    local fmt_total; fmt_total=$(printf "%'d" "$total_words")
+    local w_files=${#total_files} w_words=${#fmt_total} w_pct=4
+    (( w_files < 5 )) && w_files=5    # "Files" = 5 chars
+    (( w_words < 5 )) && w_words=5    # "Words" = 5 chars
+    (( w_pct  < 5 )) && w_pct=5       # "Share" = 5 chars
+
+    # Build table data with pipe separator (commas in numbers conflict with CSV)
+    local csv fmt_val files_count pct
+    csv="Extension${S}${(l:${w_words}:: :):-Words}${S}${(l:${w_files}:: :):-Files}${S}${(l:${w_pct}:: :):-Share}"
+
+    local shown=0
+    for entry in "${ext_list[@]}"; do
+        [[ $shown -ge $top_n ]] && break
+        ext="${entry#*:}"
+        words="${entry%%:*}"
+        files_count="${ext_files[$ext]}"
+        pct=$(( words * 100 / total_words ))
+        fmt_val=$(printf "%'d" "$words")
+        csv+="\n.${ext}${S}${(l:${w_words}:: :)fmt_val}${S}${(l:${w_files}:: :)files_count}${S}${(l:${w_pct}:: :):-${pct}%}"
+        shown=$(( shown + 1 ))
+    done
+
+    csv+="\nTotal${S}${(l:${w_words}:: :)fmt_total}${S}${(l:${w_files}:: :)total_files}${S}${(l:${w_pct}:: :):-100%}"
+
+    # Render table
+    echo ""
+    echo -e "$csv" | __ax_table $_raw_flag
+    echo ""
+}
+
+
+measure_words "$_directory" "$_top_n" "$_all_flag" "${_extensions[@]}"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction measure_words

@@ -2,19 +2,31 @@
 
 # Find-DockerImages: Search for Docker images by name pattern
 
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <search-term> - Search Docker Hub for images" && return 0
+source "${0:h}/../lib/output.zsh"
 
-if [[ $# -lt 1 ]]; then
-  echo "Usage: ${0:t} <search-term>"
+local _raw_flag=""
+local -a _args
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help) echo "Usage: ${0:t} [--raw] <search-term> - Search Docker Hub for images" && return 0 ;;
+        --raw)  _raw_flag="--raw" ;;
+        *)      _args+=("$1") ;;
+    esac
+    shift
+done
+
+if [[ ${#_args[@]} -lt 1 ]]; then
+  echo "Usage: ${0:t} [--raw] <search-term>"
   return 1
 fi
 
 # Join all arguments into a single search term
-search_term="$*"
+local search_term="${_args[*]}"
 echo "Searching for Docker images matching: '$search_term'"
 
-docker search "${search_term}" --format '{{.Name}} {{.StarCount}}' \
-| awk -F'/' '{print $1, $2, $3}' \
-| sort -k1,1 -k3,3nr \
-| awk '{printf "%s/%s %s\n", $1, $2, $3}' \
-| column -t
+local _data
+_data=$(docker search "${search_term}" --format '{{.Name}}|{{.StarCount}}' | sort -t'|' -k2 -nr)
+
+echo ""
+echo -e "Name|Stars\n${_data}" | __ax_table $_raw_flag
+echo ""

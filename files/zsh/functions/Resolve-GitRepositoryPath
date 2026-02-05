@@ -2,6 +2,8 @@
 
 # Resolve-GitRepositoryPath: Resolve and display git repository path information
 
+source "${0:h}/../lib/output.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t}
@@ -34,9 +36,12 @@ _help() {
 
 
 # Options ----------------------------------------------------------------------
+local _raw_flag=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
+        --raw)      _raw_flag="--raw" ;;
         *)          _arg=$1         ;;
     esac
     shift
@@ -51,7 +56,8 @@ done
 function resolve_gitpathrepository() {
     if command -v git > /dev/null 2>&1
     then
-        foreach __AX_DIRECTORY in *(/)
+        local _data
+        _data=$(foreach __AX_DIRECTORY in *(/) 
         do
             pushd $__AX_DIRECTORY
             if git rev-parse --git-dir > /dev/null 2>&1; then
@@ -62,8 +68,11 @@ function resolve_gitpathrepository() {
         done \
         | sed --expression="s/origin//" \
         | sed --expression="s/ (fetch)//" \
-        | paste --delimiters=" " - - \
-        | column --table
+        | paste --delimiters="|" - -)
+
+        echo ""
+        echo -e "Remote|Path\n${_data}" | __ax_table $_raw_flag
+        echo ""
     else
         echo "git is not installed."
     fi

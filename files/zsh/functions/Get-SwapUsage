@@ -2,6 +2,8 @@
 
 # Get-SwapUsage: Display swap memory usage by process
 
+source "${0:h}/../lib/output.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} [opts]
@@ -36,9 +38,12 @@ _help() {
 
 
 # Options ----------------------------------------------------------------------
+local _raw_flag=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
+        --raw)      _raw_flag="--raw" ;;
         *)          echo "Unknown option: $1" && return 1 ;;
     esac
     shift
@@ -51,16 +56,33 @@ done
 
 # Driver -----------------------------------------------------------------------
 function get_swap_usage() {
+    local _rows=""
+    local swap name pid
+
     foreach dir in /proc/*/; do
         pid=$(basename $dir)
         if [[ $pid =~ ^[0-9]+$ ]]; then
             swap=$(grep VmSwap $dir/status 2>/dev/null | awk '{print $2}')
             if [[ -n $swap && $swap -gt 0 ]]; then
                 name=$(grep "^Name:" $dir/status 2>/dev/null | awk '{print $2}')
-                printf "%'10.fkB | %8s | %s\n" "$swap" "$pid" "$name"
+                local fmt_swap=$(printf "%'d KB" "$swap")
+                _rows+="\n${fmt_swap}|${pid}|${name}"
             fi
         fi
-    done | sort --key=1 --numeric-sort --reverse
+    done
+
+    if [[ -z "$_rows" ]]; then
+        __ax_info "No processes currently using swap."
+        return 0
+    fi
+
+    # Sort by swap usage descending (numeric on first field)
+    local _sorted
+    _sorted=$(echo -e "$_rows" | tail -n +2 | sort -t'|' -k1 -rn)
+
+    echo ""
+    echo -e "Swap|PID|Process\n${_sorted}" | __ax_table $_raw_flag
+    echo ""
 }
 
 

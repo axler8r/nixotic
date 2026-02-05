@@ -24,3 +24,23 @@ __ax_confirm() {
     read -r response
     [[ "${response}" =~ ^[yY]([eE][sS])?$ ]]
 }
+
+# Table output helper
+# Reads pipe-delimited rows from stdin (first row = header).
+# Pretty mode (default): gum table with rounded border.
+# Raw mode (--raw flag): plain column-aligned output.
+# Auto-fallback: uses raw mode if gum is not available.
+#
+# Usage:
+#   echo -e "Name|Size\nfoo.txt|1.2 KB" | __ax_table
+#   echo -e "Name|Size\nfoo.txt|1.2 KB" | __ax_table --raw
+__ax_table() {
+    local raw=false
+    [[ "$1" == "--raw" ]] && raw=true
+
+    if [[ "$raw" == true ]] || ! command -v gum &>/dev/null; then
+        column -t -s"|"
+    else
+        gum table --separator "|" --border rounded --print
+    fi
+}

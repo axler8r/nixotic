@@ -62,7 +62,10 @@
     bfs
     choose
     curl
+    dust        # Intuitive disk usage
+    duf         # Better df alternative
     fdupes
+    gum         # Pretty terminal output (tables, prompts, spinners)
     jq
     lsof
     p7zip

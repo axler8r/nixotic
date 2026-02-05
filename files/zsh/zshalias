@@ -60,6 +60,7 @@ if [[ -x $(command -v zfs) ]] {
 }
 
 # Tools guaranteed by Home Manager
+alias duf=' duf --hide special '
 alias gh=' gh '
 alias tokei=' tokei --exclude .github --exclude .git --sort code '
 alias tree=' tree --dirsfirst '

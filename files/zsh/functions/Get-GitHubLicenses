@@ -2,9 +2,20 @@
 
 # Get-GitHubLicenses: List all available GitHub licenses
 
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+source "${0:h}/../lib/output.zsh"
 
-curl -s https://api.github.com/licenses \
-    | jq -r '.[] | "\(.key)\t\(.name)"' \
-    | awk 'BEGIN{print "Key\tDescription"; print "------------\t---------------------------------------"} {printf "%s\t%s\n", $1, substr($0, index($0,$2))}' \
-    | column -t -s $'\t'
+local _raw_flag=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help) echo "Usage: ${0:t} [--raw]" && return 0 ;;
+        --raw)  _raw_flag="--raw" ;;
+    esac
+    shift
+done
+
+local _data
+_data=$(curl -s https://api.github.com/licenses | jq -r '.[] | "\(.key)|\(.name)"')
+
+echo ""
+echo -e "Key|Name\n${_data}" | __ax_table $_raw_flag
+echo ""

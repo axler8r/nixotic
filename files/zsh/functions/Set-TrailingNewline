@@ -1,0 +1,194 @@
+#! /usr/bin/env zsh
+
+# Set-TrailingNewline: Ensure text files end with exactly one newline
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts] [directory]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Ensure all text files in a directory tree end with exactly one newline.
+    Strips trailing blank lines and adds a final newline if missing.
+    Uses fd to discover files (respects .gitignore) and file(1) for
+    binary detection.
+
+Usage:
+    ${0:t} [opts] [directory]
+
+Options:
+    --check     Report files that need fixing without modifying them.
+                Exits with code 1 if any files need fixing.
+    --verbose   List each file as it is processed.
+    -e ext      Only process files with this extension (repeatable).
+    --all       Include hidden files and ignored files.
+    --help      Show this help message.
+
+Arguments:
+    directory   Target directory (default: current directory)
+
+Examples:
+    ${0:t}                          # Fix all files in current directory
+    ${0:t} --check                  # Report only, don't modify
+    ${0:t} --check --verbose        # Report with file list
+    ${0:t} -e nix -e md             # Only fix .nix and .md files
+    ${0:t} ~/projects               # Fix files in specific directory
+"
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+local -a _extensions
+local _all_flag=""
+local _check_flag=""
+local _directory=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true ;;
+        --check)    _check_flag=true ;;
+        --verbose)  _verbose_flag=true ;;
+        --all)      _all_flag=true ;;
+        -e)         shift; _extensions+=("$1") ;;
+        -*)         __ax_error "Unknown option: $1" && _synopsis && return 1 ;;
+        *)          _directory="$1" ;;
+    esac
+    shift
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+_directory="${_directory:-.}"
+__ax_require_dir "$_directory" || return 1
+__ax_check_deps fd || return 2
+
+
+# Driver -----------------------------------------------------------------------
+function set_trailing_newline() {
+    local dir="$1"
+    local check_flag="$2"
+    local all_flag="$3"
+    shift 3
+    local -a extensions=("$@")
+
+    # Build fd arguments
+    local -a fd_args=(--type f)
+    [[ -n "$all_flag" ]] && fd_args+=(--hidden --no-ignore)
+
+    if [[ ${#extensions[@]} -gt 0 ]]; then
+        for ext in "${extensions[@]}"; do
+            fd_args+=(--extension "$ext")
+        done
+    fi
+
+    # Get file list
+    local -a files
+    files=("${(@f)$(fd "${fd_args[@]}" . "$dir" 2>/dev/null)}")
+
+    if [[ ${#files[@]} -eq 0 || -z "${files[1]}" ]]; then
+        __ax_info "No files found in '$dir'"
+        return 0
+    fi
+
+    local needs_fix=0
+    local fixed=0
+    local skipped=0
+    local already_ok=0
+    local mime needs_work last_byte last_two content
+
+    for file in "${files[@]}"; do
+        [[ -z "$file" ]] && continue
+
+        # Skip binary files
+        mime=$(file --brief --mime-type "$file" 2>/dev/null)
+        [[ "$mime" != text/* && "$mime" != application/json && "$mime" != application/xml ]] && {
+            skipped=$(( skipped + 1 ))
+            continue
+        }
+
+        # Skip empty files
+        [[ ! -s "$file" ]] && {
+            skipped=$(( skipped + 1 ))
+            continue
+        }
+
+        # Check if file needs fixing:
+        # 1. File doesn't end with a newline
+        # 2. File ends with multiple newlines (trailing blank lines)
+        needs_work=false
+        last_byte=$(tail -c 1 "$file" | od -An -tx1 | tr -d ' \n')
+
+        if [[ "$last_byte" != "0a" ]]; then
+            # No trailing newline
+            needs_work=true
+        else
+            # Check for multiple trailing newlines
+            last_two=$(tail -c 2 "$file" | od -An -tx1 | tr -d ' \n')
+            [[ "$last_two" == "0a0a" ]] && needs_work=true
+        fi
+
+        if [[ "$needs_work" == true ]]; then
+            needs_fix=$(( needs_fix + 1 ))
+
+            if [[ -n "$check_flag" ]]; then
+                __ax_verbose "$file"
+            else
+                # Strip trailing blank lines and ensure exactly one newline
+                # 1. Remove all trailing newlines
+                # 2. Append exactly one
+                content=$(cat "$file") || continue
+                printf '%s\n' "$content" > "$file"
+                fixed=$(( fixed + 1 ))
+                __ax_verbose "Fixed: $file"
+            fi
+        else
+            already_ok=$(( already_ok + 1 ))
+            __ax_verbose "OK: $file"
+        fi
+    done
+
+    # Summary
+    if [[ -n "$check_flag" ]]; then
+        if [[ $needs_fix -gt 0 ]]; then
+            __ax_warn "$needs_fix file(s) need fixing ($already_ok OK, $skipped skipped)"
+            return 1
+        else
+            __ax_success "All $already_ok file(s) have correct trailing newlines ($skipped skipped)"
+            return 0
+        fi
+    else
+        if [[ $fixed -gt 0 ]]; then
+            __ax_success "Fixed $fixed file(s) ($already_ok already OK, $skipped skipped)"
+        else
+            __ax_success "All $already_ok file(s) already have correct trailing newlines ($skipped skipped)"
+        fi
+    fi
+}
+
+
+set_trailing_newline "$_directory" "$_check_flag" "$_all_flag" "${_extensions[@]}"
+local _rc=$?
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction set_trailing_newline
+
+return $_rc

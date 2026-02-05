@@ -46,10 +46,12 @@ _help() {
 
 # Options ----------------------------------------------------------------------
 local _server="localhost"
+local _raw_flag=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
+        --raw)      _raw_flag="--raw" ;;
         -*)         _error "Unknown option: $1" && return 1 ;;
         *)          _server="$1" ;;
     esac
@@ -93,9 +95,15 @@ function get_nfs_exports() {
         return 0
     fi
 
-    print "\n$exports"
+    # Skip the first header line from showmount, reformat as pipe-delimited
+    local _data
+    _data=$(echo "$exports" | tail -n +2 | sed 's/[[:space:]]\+/|/')
 
-    local count=$(($(echo "$exports" | wc -l) - 1))
+    echo ""
+    echo -e "Export|Clients\n${_data}" | __ax_table $_raw_flag
+    echo ""
+
+    local count=$(echo "$_data" | wc -l)
     if (( count > 0 )); then
         __ax_info "\nFound $count export(s) on '$server'."
     fi

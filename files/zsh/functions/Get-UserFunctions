@@ -2,6 +2,8 @@
 
 # Get-UserFunctions: List all user functions
 
+source "${0:h}/../lib/output.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} [opts]
@@ -107,7 +109,7 @@ _list_function_files() {
                 description="(no description)"
             fi
             
-            local formatted_line=$(printf "%-33s %s%s" "$func_file" "$description" "$is_symlink")
+            local formatted_line="${func_file}|${description}${is_symlink}"
             
             if _is_powershell_style "$func_file"; then
                 powershell_funcs+=("$formatted_line")
@@ -120,24 +122,26 @@ _list_function_files() {
     # Output based on filter
     case "$filter" in
         powershell)
-            printf '%s\n' "${powershell_funcs[@]}" | sort
+            echo ""
+            echo -e "Function|Description\n$(printf '%s\n' "${powershell_funcs[@]}" | sort)" | __ax_table $_raw_flag
+            echo ""
             ;;
         linux)
-            printf '%s\n' "${linux_funcs[@]}" | sort
+            echo ""
+            echo -e "Function|Description\n$(printf '%s\n' "${linux_funcs[@]}" | sort)" | __ax_table $_raw_flag
+            echo ""
             ;;
         all)
             if [[ ${#powershell_funcs[@]} -gt 0 ]]; then
                 echo ""
                 echo "PowerShell-Style Functions:"
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                printf '%s\n' "${powershell_funcs[@]}" | sort
+                echo -e "Function|Description\n$(printf '%s\n' "${powershell_funcs[@]}" | sort)" | __ax_table $_raw_flag
             fi
             
             if [[ ${#linux_funcs[@]} -gt 0 ]]; then
                 echo ""
                 echo "Linux-Style Functions:"
-                echo "━━━━━━━━━━━━━━━━━━━━━━"
-                printf '%s\n' "${linux_funcs[@]}" | sort
+                echo -e "Function|Description\n$(printf '%s\n' "${linux_funcs[@]}" | sort)" | __ax_table $_raw_flag
             fi
             ;;
     esac
@@ -145,12 +149,14 @@ _list_function_files() {
 
 # Options ----------------------------------------------------------------------
 local _filter="all"
+local _raw_flag=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) _help && return 0 ;;
         --powershell) _filter="powershell" ;;
         --linux) _filter="linux" ;;
+        --raw) _raw_flag="--raw" ;;
         *) echo "Error: Unknown option: $1" >&2 && return 1 ;;
     esac
     shift
