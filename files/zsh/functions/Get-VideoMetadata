@@ -2,7 +2,14 @@
 
 # Get-VideoMetadata: Extract and display video file metadata
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <video-file>" && return 0
 
-videofile=${1}
-ffprobe -v quiet -show_format -print_format json ${videofile} | yq --prettyPrint
+__ax_require_arg "$1" "video file" || return 1
+__ax_require_file "$1" || return 1
+__ax_check_deps ffprobe yq || return 2
+
+local videofile="${1}"
+ffprobe -v quiet -show_format -print_format json "${videofile}" | yq --prettyPrint

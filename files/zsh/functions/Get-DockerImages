@@ -3,6 +3,7 @@
 # Get-DockerImages: List all installed Docker images with details
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -50,6 +51,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps docker || return 2
 
 
 # Driver -----------------------------------------------------------------------

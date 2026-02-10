@@ -3,6 +3,7 @@
 # Resolve-GitRepositoryPath: Resolve and display git repository path information
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -50,6 +51,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps git || return 2
 
 
 # Driver -----------------------------------------------------------------------
@@ -74,7 +76,7 @@ function resolve_gitpathrepository() {
         echo -e "Remote|Path\n${_data}" | __ax_table $_raw_flag
         echo ""
     else
-        echo "git is not installed."
+        __ax_error "git is not installed."
     fi
 }
 

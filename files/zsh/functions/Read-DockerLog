@@ -2,6 +2,9 @@
 
 # Read-DockerLog: Read and follow Docker container logs
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} [opts] <CONTAINER_NAME>
@@ -45,6 +48,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_require_arg "$_arg" "container name" || { _synopsis; return 1; }
+__ax_check_deps docker || return 2
 
 
 # Driver -----------------------------------------------------------------------
@@ -53,7 +58,7 @@ function read_dockerlog() {
 }
 
 
-read_dockerlog
+read_dockerlog "${_arg}"
 
 
 unfunction _synopsis

@@ -2,7 +2,12 @@
 
 # Get-GitHubGitIgnores: List available GitHub gitignore templates
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+__ax_check_deps curl jq awk less || return 2
 
 curl -s -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \

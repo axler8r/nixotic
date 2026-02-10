@@ -2,7 +2,12 @@
 
 # Show-GitHubLicense: Show GitHub license template for a specific license
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} [license-key]" && return 0
+
+__ax_check_deps curl jq || return 2
 
 LICENSE=${1:-mit}
 curl -s -H "Accept: application/vnd.github+json" \

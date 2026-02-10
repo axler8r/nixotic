@@ -2,6 +2,9 @@
 
 # Write-Image: Write disk image to target device using dd
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && cat <<EOF && return 0
 Usage: ${0:t} <source> [target]
 
@@ -13,11 +16,14 @@ local _source=$1
 local _target=${2:-/dev/sda}
 
 if [[ -z ${_source} ]]; then
-    echo "Error: Missing source image file"
+    __ax_error "Missing source image file"
     echo "Usage: ${0:t} <source> [target]"
     return 1
 fi
 
-dd bs=1M if=./${_source}                             \
-| pv --size=$(stat --format %s ./${_source}) --bytes \
+__ax_require_file "${_source}" || return 1
+__ax_check_deps dd pv stat || return 2
+
+dd bs=1M if="${_source}"                             \
+| pv --size=$(stat --format %s "${_source}") --bytes \
 | sudo dd conv=fdatasync of=${_target}

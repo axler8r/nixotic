@@ -2,6 +2,9 @@
 
 # Update-GitRepositories: Pull and update all git repositories in current directory
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t}
@@ -47,15 +50,11 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps git parallel || return 2
 
 
 # Driver -----------------------------------------------------------------------
 function update_gitrepositories() {
-    if ! command -v parallel > /dev/null; then
-        echo "Error: GNU parallel is required but not installed."
-        return 1
-    fi
-
     local _dirs=()
     for dir in */; do
         [[ -d "${dir}.git" ]] && _dirs+=("$PWD/${dir%/}")

@@ -2,13 +2,14 @@
 
 # Test-SslHandshake: Test SSL handshake for a given site
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <site>" && return 0
 
 # Validate argument
-if [[ $# -lt 1 || -z "$1" ]]; then
-    echo "Error: Missing site argument"
-    return 1
-fi
+__ax_require_arg "$1" "site" || return 1
+__ax_check_deps openssl || return 2
 
 local _site=$1
 openssl s_client -connect "${_site}":443 <<< "Q"

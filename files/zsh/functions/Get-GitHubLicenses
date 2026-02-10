@@ -3,6 +3,7 @@
 # Get-GitHubLicenses: List all available GitHub licenses
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 local _raw_flag=""
 while [[ $# -gt 0 ]]; do
@@ -14,6 +15,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 local _data
+__ax_check_deps curl jq || return 2
 _data=$(curl -s https://api.github.com/licenses | jq -r '.[] | "\(.key)|\(.name)"')
 
 echo ""

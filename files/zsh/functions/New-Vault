@@ -2,6 +2,9 @@
 
 # New-Vault: Create a new LUKS encrypted vault
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} <vault-name> [opts]
@@ -61,7 +64,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z $_vault_name ]] && echo "Error: Vault name required" && _synopsis && return 1
+__ax_require_arg "$_vault_name" "vault name" || { _synopsis; return 1; }
+__ax_check_deps fallocate cryptsetup mkdir rm || return 2
 
 
 # Driver -----------------------------------------------------------------------
@@ -82,7 +86,7 @@ function new_vault() {
     
     # Check if vault already exists
     if [[ -f "${vault_file}" ]]; then
-        echo "Error: Vault already exists: ${vault_file}"
+        __ax_error "Vault already exists: ${vault_file}"
         return 1
     fi
     

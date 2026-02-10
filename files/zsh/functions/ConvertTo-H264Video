@@ -2,22 +2,16 @@
 
 # ConvertTo-H264Video: Convert video file from AV1 to H.264
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <input_file> - Convert video to H.264" && return 0
 
 local _input="$1"
 local _output=$(date +%Y%m%d%H%M%S).mp4
 
-if [[ -z "$_input" ]]; then
-  echo "Usage: ${0:t} <input_file>"
-  return 1
-fi
-if [[ ! -f "$_input" ]]; then
-  echo "Error: File not found: $_input"
-  return 1
-fi
-if ! command -v ffmpeg &>/dev/null; then
-  echo "Error: ffmpeg is not installed"
-  return 1
-fi
+__ax_require_arg "$_input" "input file" || { echo "Usage: ${0:t} <input_file>"; return 1; }
+__ax_require_file "$_input" || return 1
+__ax_check_deps ffmpeg || return 2
 
 ffmpeg -i "${_input}" -c:v libx264 -c:a copy "${_output}" -y

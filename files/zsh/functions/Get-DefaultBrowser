@@ -2,7 +2,12 @@
 
 # Get-DefaultBrowser: Display default browser for HTTP/HTTPS
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+__ax_check_deps xdg-mime || return 2
 
 echo "HTTP:  " $(xdg-mime query default x-scheme-handler/http)
 echo "HTTPS: " $(xdg-mime query default x-scheme-handler/https)

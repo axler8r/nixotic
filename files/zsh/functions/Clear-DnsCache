@@ -2,6 +2,11 @@
 
 # Clear-DnsCache: Clear the DNS cache
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+__ax_check_deps resolvectl || return 2
 
 sudo resolvectl flush-caches

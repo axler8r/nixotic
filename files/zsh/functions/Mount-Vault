@@ -2,6 +2,9 @@
 
 # Mount-Vault: Mount a LUKS encrypted vault
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} <vault-file> [mount-point]
@@ -63,7 +66,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z $_vault_file ]] && echo "Error: Vault file required" && _synopsis && return 1
+__ax_require_arg "$_vault_file" "vault file" || { _synopsis; return 1; }
+__ax_check_deps cryptsetup mount umount chown mkdir || return 2
 
 
 # Driver -----------------------------------------------------------------------
@@ -86,7 +90,7 @@ function mount_vault() {
     
     # Check if vault file exists
     if [[ ! -f "${vault_file}" ]]; then
-        echo "Error: Vault file not found: ${vault_file}"
+        __ax_error "Vault file not found: ${vault_file}"
         return 1
     fi
     
@@ -99,7 +103,7 @@ function mount_vault() {
     
     # Check if already mounted
     if mount | grep --quiet "/dev/mapper/${mapper_name}"; then
-        echo "Error: Vault already mounted"
+        __ax_error "Vault already mounted"
         mount | grep "/dev/mapper/${mapper_name}"
         return 1
     fi

@@ -2,6 +2,9 @@
 
 # ConvertTo-VideoHorizontal: Flip video horizontally with hardware acceleration
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} <input> <output>
@@ -66,7 +69,7 @@ while [[ $# -gt 0 ]]; do
             elif [[ -z $_output ]]; then
                 _output=$1
             else
-                echo "Error: Too many arguments" >&2
+                __ax_error "Too many arguments"
                 _synopsis
                 return 1
             fi
@@ -78,8 +81,9 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z $_input ]] && echo "Error: Missing input file" && _synopsis && return 1
-[[ -z $_output ]] && echo "Error: Missing output file" && _synopsis && return 1
+__ax_require_arg "$_input" "input file" || { _synopsis; return 1; }
+__ax_require_arg "$_output" "output file" || { _synopsis; return 1; }
+__ax_check_deps ffmpeg || return 2
 
 
 # Driver -----------------------------------------------------------------------
@@ -89,7 +93,7 @@ function format_videohorizontal() {
     
     # Check if input file exists
     if [[ ! -f "$input" ]]; then
-        echo "Error: Input file '$input' does not exist" >&2
+        __ax_error "Input file '$input' does not exist"
         return 1
     fi
     

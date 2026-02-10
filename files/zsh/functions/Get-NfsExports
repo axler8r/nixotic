@@ -52,7 +52,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
         --raw)      _raw_flag="--raw" ;;
-        -*)         _error "Unknown option: $1" && return 1 ;;
+        -*)         __ax_error "Unknown option: $1"; _synopsis; return 1 ;;
         *)          _server="$1" ;;
     esac
     shift

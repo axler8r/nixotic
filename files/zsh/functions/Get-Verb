@@ -2,6 +2,9 @@
 
 # Get-Verb: Display PowerShell-style approved verbs for function naming
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _self="${0:A}"
 local _synopsis="
@@ -173,14 +176,47 @@ _describe() {
 
 
 # Options ----------------------------------------------------------------------
-zparseopts -D -E {h,-help}=_help_flag {d,-describe}=_describe_flag
-local _command="${1}"
+local _command=""
+local _help_flag=""
+local _describe_flag=""
+local _group_flag=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)     _help_flag=true ;;
+        -d|--describe) _describe_flag=true ;;
+        --group)       _group_flag=true ;;
+        --)            shift; break ;;
+        -*)            __ax_error "Unknown option: $1"; return 1 ;;
+        *)
+            if [[ -z "${_command}" ]]; then
+                _command="$1"
+            else
+                __ax_error "Too many arguments"
+                _help
+                return 1
+            fi
+            ;;
+    esac
+    shift
+done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_synopsis_flag ]]    && _synopsis        && return 0
 [[ -n $_help_flag ]]        && _help            && return 0
-[[ -n $_describe_flag ]]    && _describe        && return 0
+__ax_check_deps awk grep || return 2
+
+if [[ -n $_describe_flag ]]; then
+    __ax_require_arg "$_command" "verb" || { _help; return 1; }
+    _describe
+    return 0
+fi
+
+if [[ -n $_group_flag ]]; then
+    _group
+    return 0
+fi
+
 _group && return 0
 
 

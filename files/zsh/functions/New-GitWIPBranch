@@ -2,7 +2,12 @@
 
 # New-GitWIPBranch: Create a new WIP branch with date and random suffix
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Create branch named wip/YYYYMMDD-<random7>" && return 0
+
+__ax_check_deps git || return 2
 
 git checkout -b "wip/$(date +%Y%m%d)-$(< /dev/urandom tr -dc a-zA-Z0-9 | head -c 7)"
 

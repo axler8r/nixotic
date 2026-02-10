@@ -3,6 +3,7 @@
 # Find-DockerImages: Search for Docker images by name pattern
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 local _raw_flag=""
 local -a _args
@@ -16,12 +17,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ${#_args[@]} -lt 1 ]]; then
+  __ax_error "Missing search term"
   echo "Usage: ${0:t} [--raw] <search-term>"
   return 1
 fi
 
 # Join all arguments into a single search term
 local search_term="${_args[*]}"
+__ax_check_deps docker || return 2
 echo "Searching for Docker images matching: '$search_term'"
 
 local _data

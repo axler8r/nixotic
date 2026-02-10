@@ -2,6 +2,9 @@
 
 # Dismount-Vault: Unmount and close a LUKS encrypted vault
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Help
 if [[ "$1" == "--help" ]]; then
     cat << EOF
@@ -23,7 +26,7 @@ fi
 
 # Validate argument
 if [[ -z "$1" ]]; then
-    echo "Error: Mount point or vault name required"
+    __ax_error "Mount point or vault name required"
     echo "Usage: ${0:t} <mount-point-or-vault-name>"
     return 1
 fi
@@ -43,15 +46,17 @@ elif [[ "${target}" != /* ]]; then
     mapper_name="${target}"
     mount_point=$(mount | grep "/dev/mapper/${mapper_name} " | awk '{print $3}')
 else
-    echo "Error: Invalid mount point or vault not mounted: ${target}"
+    __ax_error "Invalid mount point or vault not mounted: ${target}"
     return 1
 fi
 
 # Verify mapper exists
 if [[ ! -e "/dev/mapper/${mapper_name}" ]]; then
-    echo "Error: Vault mapper not found: ${mapper_name}"
+    __ax_error "Vault mapper not found: ${mapper_name}"
     return 1
 fi
+
+__ax_check_deps mount umount cryptsetup || return 2
 
 echo "Unmounting: ${mount_point}"
 sudo umount "${mount_point}" || return 1

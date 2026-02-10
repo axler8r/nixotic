@@ -2,12 +2,14 @@
 
 # Get-VideoFormat: Display video codec format
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <file>" && return 0
 
-if [[ $# -lt 1 ]]; then
-  echo "Error: Missing video file argument"
-  return 1
-fi
+__ax_require_arg "$1" "video file" || return 1
+__ax_require_file "$1" || return 1
+__ax_check_deps ffprobe || return 2
 
 local _file="$1"
-ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 ${_file} 2>/dev/null
+ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${_file}" 2>/dev/null

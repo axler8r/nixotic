@@ -2,6 +2,9 @@
 
 # Get-ZfsSnapshots: List all ZFS snapshots sorted by creation date
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} [dataset]
@@ -51,6 +54,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps zfs || return 2
 
 
 # Driver -----------------------------------------------------------------------

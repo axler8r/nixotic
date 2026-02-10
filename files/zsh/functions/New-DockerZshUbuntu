@@ -2,7 +2,12 @@
 
 # New-DockerZshUbuntu: Create a new persistent Ubuntu container for ZSH
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Create persistent Ubuntu container with ZSH" && return 0
+
+__ax_check_deps docker || return 2
 
 source "${0:h}/../lib/docker.zsh"
 

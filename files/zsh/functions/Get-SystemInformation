@@ -2,11 +2,11 @@
 
 # Get-SystemInformation: Display system information using fastfetch
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 
-if ! command -v fastfetch &> /dev/null; then
-    echo "fastfetch could not be found"
-    return 1
-fi
+__ax_check_deps fastfetch || return 2
 
 fastfetch

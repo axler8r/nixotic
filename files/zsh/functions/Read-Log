@@ -2,11 +2,13 @@
 
 # Read-Log: Follow a log file with syntax highlighting
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <logfile> - Follow log file with syntax highlighting" && return 0
 
-if [[ -z "$1" ]]; then
-    echo "Usage: ${0:t} <logfile>"
-    return 1
-fi
+__ax_require_arg "$1" "log file" || return 1
+__ax_require_file "$1" || return 1
+__ax_check_deps bat tail || return 2
 
 tail --follow "${1}" | bat --file-name "${1}" --paging=never --language=log

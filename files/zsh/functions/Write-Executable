@@ -2,6 +2,9 @@
 
 # Write-Executable: Write the input to a script and make the script executable
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} <filename>
@@ -47,7 +50,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z $_arg ]] && echo "Error: Missing required argument (filename)" && return 1
+__ax_require_arg "$_arg" "filename" || return 1
+__ax_check_deps chmod || return 2
 
 
 # Driver -----------------------------------------------------------------------

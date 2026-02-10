@@ -2,6 +2,9 @@
 
 # Test-Reboot: Check if system reboot is required
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
 
 [[ -f /var/run/reboot-required ]] && echo "Reboot required!" || echo "No reboot required."

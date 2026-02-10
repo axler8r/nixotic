@@ -2,6 +2,9 @@
 
 # Remove-ZfsSnapshot: Remove a ZFS snapshot using zsysctl
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} <snapshot-name>
@@ -50,11 +53,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-
-if [[ -z "${_snapshot}" ]]; then
-    _synopsis
-    return 1
-fi
+__ax_require_arg "${_snapshot}" "snapshot name" || { _synopsis; return 1; }
+__ax_check_deps zsysctl || return 2
 
 
 # Driver -----------------------------------------------------------------------

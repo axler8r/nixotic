@@ -68,7 +68,7 @@ while [[ $# -gt 0 ]]; do
         --lang)     _lang="$2"; shift 2 ;;
         --tool)     _tools+=("$2"); shift 2 ;;
         --ml)       _ml=true; shift ;;
-        -*)         echo "Error: Unknown option: $1" && return 1 ;;
+        -*)         __ax_error "Unknown option: $1" && return 1 ;;
         *)          _packages+=("$1"); shift ;;
     esac
 done
@@ -104,7 +104,7 @@ function new_dev_environment() {
 
     # Check for existing files
     if [[ -f flake.nix ]]; then
-        echo "Error: flake.nix already exists"
+        __ax_error "flake.nix already exists"
         return 1
     fi
 
@@ -115,7 +115,7 @@ function new_dev_environment() {
 
     # Validate language if specified
     if [[ -n "$lang" ]] && [[ ! "$lang" =~ ^(python|dotnet|rust|elixir|java|julia)$ ]]; then
-        echo "Error: Unknown language: $lang (supported: python, dotnet, rust, elixir, java, julia)"
+        __ax_error "Unknown language: $lang (supported: python, dotnet, rust, elixir, java, julia)"
         return 1
     fi
 
@@ -156,6 +156,9 @@ function new_dev_environment() {
     local ml_packages=""
     if [[ "$ml" == "true" ]]; then
         ml_packages="pkgs.cudaPackages.cudatoolkit
+
+        source "${0:h}/../lib/output.zsh"
+        source "${0:h}/../lib/validation.zsh"
             pkgs.cudaPackages.cudnn"
     fi
 
@@ -234,6 +237,7 @@ EOF
       perSystem = { pkgs, ... }: {
         devShells.default = pkgs.mkShell {
           packages = [
+        __ax_check_deps direnv nix || return 2
             ${all_packages}
           ];
 

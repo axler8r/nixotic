@@ -2,7 +2,12 @@
 
 # Start-DockerElixirLivebookCuda: Start Elixir Livebook with CUDA support in Docker
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} - Start Elixir Livebook CUDA container mounting current directory" && return 0
+
+__ax_check_deps docker || return 2
 
 source "${0:h}/../lib/docker.zsh"
 

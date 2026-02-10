@@ -2,11 +2,13 @@
 
 # Get-Help: Display --help output with syntax highlighting
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <command> - Display command help with syntax highlighting" && return 0
 
-if [[ -z "$1" ]]; then
-    echo "Usage: ${0:t} <command>"
-    return 1
-fi
+__ax_require_arg "$1" "command" || { echo "Usage: ${0:t} <command>"; return 1; }
+__ax_check_deps bat || return 2
+command -v "$1" &>/dev/null || { __ax_error "Command not found: $1"; return 1; }
 
 "${@}" --help | bat --plain --language=help

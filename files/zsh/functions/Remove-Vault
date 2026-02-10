@@ -2,6 +2,9 @@
 
 # Remove-Vault: Delete a LUKS encrypted vault file
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Help
 if [[ "$1" == "--help" ]]; then
     cat << EOF
@@ -39,10 +42,12 @@ done
 
 # Validate argument
 if [[ -z "${vault_input}" ]]; then
-    echo "Error: Vault name required"
+    __ax_error "Vault name required"
     echo "Usage: ${0:t} <vault-name> [--force]"
     return 1
 fi
+
+__ax_check_deps rm || return 2
 
 # Detect if input is a path (contains /) or a vault name
 local vault_file=""
@@ -60,7 +65,7 @@ fi
 
 # Check if vault file exists
 if [[ ! -f "${vault_file}" ]]; then
-    echo "Error: Vault file not found: ${vault_file}"
+    __ax_error "Vault file not found: ${vault_file}"
     return 1
 fi
 
@@ -69,21 +74,15 @@ local mapper_name="${vault_name}"
 
 # Check if vault is currently mounted
 if [[ -e "/dev/mapper/${mapper_name}" ]]; then
-    echo "Error: Vault is currently mounted. Dismount first with:"
+    __ax_error "Vault is currently mounted. Dismount first with:"
     echo "  dismount-vault ${vault_name}"
     return 1
 fi
 
 # Confirm deletion
 if [[ "${force_flag}" != true ]]; then
-    echo "WARNING: This will permanently delete the vault file:"
-    echo "  ${vault_file}"
-    echo -n "Are you sure? (yes/no): "
-    read -r response
-    if [[ "${response}" != "yes" ]]; then
-        echo "Aborted"
-        return 0
-    fi
+    __ax_warn "This will permanently delete the vault file: ${vault_file}"
+    __ax_confirm "Are you sure?" || { echo "Aborted"; return 0; }
 fi
 
 # Delete vault file

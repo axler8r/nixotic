@@ -2,6 +2,11 @@
 
 # Reset-GnomeSettings: Restart GNOME Shell
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+
+__ax_check_deps gnome-shell || return 2
 
 gnome-shell --replace && disown

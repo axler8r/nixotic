@@ -59,30 +59,50 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -s|--server)
-            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            if [[ -z "${2:-}" ]]; then
+                __ax_error "Option '$1' requires an argument."
+                _synopsis
+                return 1
+            fi
             _server="$2"
             shift 2
             ;;
         -p|--path)
-            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            if [[ -z "${2:-}" ]]; then
+                __ax_error "Option '$1' requires an argument."
+                _synopsis
+                return 1
+            fi
             _remote_path="$2"
             shift 2
             ;;
         -m|--mount)
-            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            if [[ -z "${2:-}" ]]; then
+                __ax_error "Option '$1' requires an argument."
+                _synopsis
+                return 1
+            fi
             _mount_point="$2"
             shift 2
             ;;
         -o|--options)
-            [[ -z "${2:-}" ]] && _error "Option '$1' requires an argument." && return 1
+            if [[ -z "${2:-}" ]]; then
+                __ax_error "Option '$1' requires an argument."
+                _synopsis
+                return 1
+            fi
             _options="$2"
             shift 2
             ;;
         -*)
-            _error "Unknown option: $1" && return 1
+            __ax_error "Unknown option: $1"
+            _synopsis
+            return 1
             ;;
         *)
-            _error "Unexpected argument: $1" && return 1
+            __ax_error "Unexpected argument: $1"
+            _synopsis
+            return 1
             ;;
     esac
 done
@@ -90,8 +110,8 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z "$_server" ]] && _error "Server is required. Use --server <host>." && _synopsis && return 1
-[[ -z "$_remote_path" ]] && _error "Remote path is required. Use --path <path>." && _synopsis && return 1
+__ax_require_arg "$_server" "server" || { _synopsis; return 1; }
+__ax_require_arg "$_remote_path" "remote path" || { _synopsis; return 1; }
 
 
 # Driver -----------------------------------------------------------------------

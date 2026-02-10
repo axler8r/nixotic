@@ -3,6 +3,7 @@
 # Get-SwapUsage: Display swap memory usage by process
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -44,7 +45,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help)     _help_flag=true ;;
         --raw)      _raw_flag="--raw" ;;
-        *)          echo "Unknown option: $1" && return 1 ;;
+        *)          __ax_error "Unknown option: $1" && return 1 ;;
     esac
     shift
 done
@@ -52,6 +53,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps awk grep file sort || return 2
 
 
 # Driver -----------------------------------------------------------------------

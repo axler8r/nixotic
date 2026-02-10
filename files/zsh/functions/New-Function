@@ -103,6 +103,9 @@ def generate_wrapper_template(name: str) -> str:
 
 # {pascal_name}: Brief description
 
+source "${{0:h}}/../lib/output.zsh"
+source "${{0:h}}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${{0:t}} [args]" && return 0
 
 # Main logic here
@@ -119,6 +122,9 @@ def generate_function_template(name: str, description: Optional[str] = None) -> 
     return f'''#! /usr/bin/env zsh
 
 # {pascal_name}: {desc}
+
+source "${{0:h}}/../lib/output.zsh"
+source "${{0:h}}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -165,7 +171,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-[[ -z $_args ]] && echo "Error: Missing required argument" && return 1
+__ax_require_arg "$_args" "argument" || return 1
 
 
 # Driver -----------------------------------------------------------------------

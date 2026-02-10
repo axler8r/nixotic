@@ -2,7 +2,12 @@
 
 # Show-GitHubGitIgnore: Show GitHub gitignore template for a specific language
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} [language]" && return 0
+
+__ax_check_deps curl jq || return 2
 
 LANGUAGE=${1:-Python}
 curl -s -H "Accept: application/vnd.github+json" \

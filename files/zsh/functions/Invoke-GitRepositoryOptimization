@@ -2,7 +2,13 @@
 
 # Invoke-GitRepositoryOptimization: Optimize git repositories by running gc and prune
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 [[ "$1" == "--help" ]] && echo "Usage: ${0:t} <dir>... - Optimize git repositories" && return 0
+
+__ax_require_arg "$1" "directory" || { echo "Usage: ${0:t} <dir>..."; return 1; }
+__ax_check_deps git parallel || return 2
 
 local _dirs=("$@")
 local _git_dirs=()

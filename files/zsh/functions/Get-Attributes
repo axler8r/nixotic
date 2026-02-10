@@ -2,6 +2,9 @@
 
 # Get-Attributes: List all extended file system attributes for a file
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # variables --------------------------------------------------------------------
 local _self="${0}"
 local _help="
@@ -34,33 +37,40 @@ function _show_version() {
 
 
 # option parsing ---------------------------------------------------------------
-zparseopts -D -E {h,-help}=_show_help {v,-version}=_show_version
-local _path=${1}
+local _path=""
+local _help_flag=""
+local _version_flag=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)    _help_flag=true ;;
+        -v|--version) _version_flag=true ;;
+        --)           shift; break ;;
+        -*)           __ax_error "Unknown option: $1"; return 1 ;;
+        *)
+            if [[ -z "${_path}" ]]; then
+                _path="$1"
+            else
+                __ax_error "Too many arguments"
+                echo "${_help}"
+                return 1
+            fi
+            ;;
+    esac
+    shift
+done
 
 
 # option actions ---------------------------------------------------------------
-[[ -n "${_show_help}" ]]    && echo "${_help}"      && return 0
-[[ -n "${_show_version}" ]] && echo "${_version}"   && return 0
+[[ -n "${_help_flag}" ]]    && echo "${_help}"    && return 0
+[[ -n "${_version_flag}" ]] && echo "${_version}" && return 0
 
 
 # checks -----------------------------------------------------------------------
-[[ -z "${_path}" ]] && {
-    echo "Error: Missing argument."
-    echo "${_help}"
-    return 1
-}
-[[ ! -e "${_path}" ]] && {
-    echo "Error: Path does not exist."
-    return 1
-}
-[[ ! -w "${_path}" ]] && {
-    echo "Error: Path is not writable."
-    return 1
-}
-[[ ! -d "${_path}" && ! -f "${_path}" ]] && {
-    echo "Error: Path is not a file or directory."
-    return 1
-}
+__ax_require_arg "${_path}" "path" || { echo "${_help}"; return 1; }
+__ax_check_deps getfattr || return 2
+[[ ! -e "${_path}" ]] && { __ax_error "Path does not exist."; return 1; }
+[[ ! -d "${_path}" && ! -f "${_path}" ]] && { __ax_error "Path is not a file or directory."; return 1; }
 
 
 # main -------------------------------------------------------------------------
