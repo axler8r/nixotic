@@ -21,11 +21,11 @@ Options:
     --help              Show this help message
     --name NAME         Project name (default: current directory name)
     --lang LANG         Language template: python, dotnet, rust, elixir, java, julia
-    --tool TOOL...      System tools to include (e.g., sysdig, strace, socat)
+    --tool TOOL         System tool to include (repeatable)
     --ml                Include CUDA toolkit and cuDNN for ML workloads
 
 Arguments:
-    packages            Additional Nix packages
+    packages            Additional Nix packages (bare names, e.g. uv ruff)
 
 Language Templates:
     python              python3, uv, ruff         → use uv for deps
@@ -36,13 +36,15 @@ Language Templates:
     julia               julia                     → use Pkg for deps
 
 Examples:
-    ${0:t} --lang python                # Python with uv, then: uv init && uv add click
-    ${0:t} --lang python --ml           # Python + CUDA for ML
-    ${0:t} --lang julia --ml            # Julia + CUDA for ML
-    ${0:t} --lang rust                  # Rust, then: cargo init
-    ${0:t} --lang elixir                # Elixir, then: mix new myapp
-    ${0:t} --lang java                  # Java with Maven/Gradle
-    ${0:t} --lang python --tool sysdig  # Python + system tool
+    ${0:t} --lang python                        # Python with uv, then: uv init && uv add click
+    ${0:t} --lang python --ml                   # Python + CUDA for ML
+    ${0:t} --lang julia --ml                    # Julia + CUDA for ML
+    ${0:t} --lang rust                          # Rust, then: cargo init
+    ${0:t} --lang elixir                        # Elixir, then: mix new myapp
+    ${0:t} --lang java                          # Java with Maven/Gradle
+    ${0:t} --lang python --tool sysdig          # Python + system tool
+    ${0:t} --tool uv --tool ruff                # Tool-only env (no language template)
+    ${0:t} uv ruff                              # Same, using positional args
 "
 
 # Defaults
@@ -50,6 +52,7 @@ local _name="${PWD:t}"
 local _lang=""
 local _ml=false
 local -a _tools=()
+local -a _packages=()
 
 
 # Functions --------------------------------------------------------------------
@@ -58,25 +61,26 @@ _help() { echo "${_help}" | tail --lines=+2 }
 
 
 # Options ----------------------------------------------------------------------
-local _current_flag=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true; _current_flag=""; shift ;;
-        --name)     _name="$2"; _current_flag=""; shift 2 ;;
-        --lang)     _lang="$2"; _current_flag=""; shift 2 ;;
-        --tool)     _current_flag="tool"; shift ;;
-        --ml)       _ml=true; _current_flag=""; shift ;;
+        --help)     _help_flag=true; shift ;;
+        --name)     _name="$2"; shift 2 ;;
+        --lang)     _lang="$2"; shift 2 ;;
+        --tool)     _tools+=("$2"); shift 2 ;;
+        --ml)       _ml=true; shift ;;
         -*)         echo "Error: Unknown option: $1" && return 1 ;;
-        *)
-            [[ "$_current_flag" == "tool" ]] && _tools+=("$1")
-            shift
-            ;;
+        *)          _packages+=("$1"); shift ;;
     esac
 done
 
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+
+if [[ -z "$_lang" ]] && [[ ${#_tools[@]} -eq 0 ]] && [[ ${#_packages[@]} -eq 0 ]] && [[ "$_ml" != "true" ]]; then
+    _synopsis
+    return 1
+fi
 
 
 # Driver -----------------------------------------------------------------------
@@ -85,7 +89,18 @@ function new_dev_environment() {
     local lang="$2"
     local ml="$3"
     shift 3
-    local -a tools=("$@")
+    local -a tools=()
+    local -a packages=()
+    local _sep=false
+    for arg in "$@"; do
+        if [[ "$arg" == "--" ]]; then
+            _sep=true
+        elif [[ "$_sep" == true ]]; then
+            packages+=("$arg")
+        else
+            tools+=("$arg")
+        fi
+    done
 
     # Check for existing files
     if [[ -f flake.nix ]]; then
@@ -150,12 +165,19 @@ function new_dev_environment() {
         tools_packages=$(printf "pkgs.%s\n            " "${tools[@]}")
     fi
 
+    # Build extra packages list
+    local extra_packages=""
+    if [[ ${#packages[@]} -gt 0 ]]; then
+        extra_packages=$(printf "pkgs.%s\n            " "${packages[@]}")
+    fi
+
     # Combine all packages
     local all_packages=""
     local -a parts=()
     [[ -n "$lang_packages" ]] && parts+=("$lang_packages")
     [[ -n "$ml_packages" ]] && parts+=("$ml_packages")
     [[ -n "$tools_packages" ]] && parts+=("$tools_packages")
+    [[ -n "$extra_packages" ]] && parts+=("$extra_packages")
     if [[ ${#parts[@]} -gt 0 ]]; then
         all_packages=$(printf "%s\n            " "${parts[@]}")
     fi
@@ -245,8 +267,8 @@ EOF
 }
 
 
-new_dev_environment "$_name" "$_lang" "$_ml" "${_tools[@]}"
+new_dev_environment "$_name" "$_lang" "$_ml" "${_tools[@]}" -- "${_packages[@]}"
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis _help new_dev_environment
+unfunction _synopsis _help new_dev_environment 2>/dev/null

@@ -8,6 +8,7 @@
     dconf-editor
     file-roller
     firefox
+    gnome-terminal
     ungoogled-chromium
     gnome-nettool
     gnome-podcasts
@@ -223,7 +224,7 @@
           "nvidia-settings.desktop"
           "org.gnome.baobab.desktop"
           "org.gnome.Connections.desktop"
-          "org.gnome.Console.desktop"
+          "org.gnome.Terminal.desktop"
           "org.gnome.DiskUtility.desktop"
           "org.gnome.Logs.desktop"
           "org.gnome.PowerStats.desktop"
@@ -240,10 +241,9 @@
         unicode-hotkey = [ "<Control><Alt>u" ];
       };
 
-      # GNOME Console - use Stylix theme colors
-      "org/gnome/Console" = {
-        use-system-font = true;
-        theme = "auto";  # Follows light/dark preference
+      # GNOME Terminal - use Stylix theme colors
+      "org/gnome/terminal/legacy" = {
+        theme-variant = "system";
       };
 
       # Custom keybindings

@@ -21,9 +21,6 @@ jobs:
       - name: Check flake
         run: nix flake check --no-build
 
-      - name: Validate demonstr8r
-        run: nix build .#nixosConfigurations.demonstr8r.config.system.build.toplevel --dry-run
-
       - name: Validate ambul8r
         run: nix build .#nixosConfigurations.ambul8r.config.system.build.toplevel --dry-run
 

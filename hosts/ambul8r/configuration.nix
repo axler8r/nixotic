@@ -94,6 +94,7 @@
     cheese         # webcam
     epiphany       # web browser
     geary          # email client
+    gnome-console  # replaced by gnome-terminal
     gnome-contacts
     gnome-tour
     snapshot       # camera
