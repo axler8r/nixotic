@@ -2,44 +2,24 @@
 
 Modern Lua-based Neovim configuration managed via Home Manager.
 
-## Migration from vim-plug
-
-The previous vim-plug setup (from `.duplic8r`) has been migrated to declarative
-Nix-managed plugins using `programs.neovim.plugins`. All plugins are now
-installed via nixpkgs.
-
-### Key Changes
-
-| Old (vim-plug)         | New (Nix + Lua)         |
-| ---------------------- | ----------------------- |
-| `init.vim` (Vimscript) | `extraLuaConfig` (Lua)  |
-| lightline.vim          | lualine.nvim            |
-| nerdtree               | nvim-tree.lua           |
-| fzf.vim                | telescope.nvim          |
-| vim-gitgutter          | gitsigns.nvim           |
-| tagbar                 | symbols-outline.nvim    |
-| vim-rainbow            | rainbow-delimiters.nvim |
-| vim-solarized8         | palenight-vim           |
-| Manual syntax          | nvim-treesitter         |
-
 ## Plugin Reference
 
 ### UI
 
-| Plugin                | Description                                                         |
-| --------------------- | ------------------------------------------------------------------- |
-| **lualine.nvim**      | Modern statusline with Palenight theme. Tabline shows open buffers. |
-| **nvim-tree.lua**     | File explorer sidebar with git status indicators.                   |
-| **nvim-web-devicons** | Filetype icons for nvim-tree and lualine.                           |
-| **palenight-vim**     | Material Palenight colorscheme.                                     |
+| Plugin                | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| **lualine.nvim**      | Modern statusline with Solarized Light theme. Tabline shows buffers. |
+| **nvim-tree.lua**     | File explorer sidebar with git status indicators.                    |
+| **nvim-web-devicons** | Filetype icons for nvim-tree and lualine.                            |
+| **vim-solarized8**    | Solarized colorscheme (using light variant).                         |
 
 ### Search & Navigation
 
-| Plugin                   | Description                                       |
-| ------------------------ | ------------------------------------------------- |
-| **telescope.nvim**       | Fuzzy finder for files, grep, buffers, help.      |
-| **symbols-outline.nvim** | LSP-powered symbols sidebar (functions, classes). |
-| **nvim-treesitter**      | Modern syntax highlighting and code parsing.      |
+| Plugin              | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| **telescope.nvim**  | Fuzzy finder for files, grep, buffers, help.      |
+| **outline.nvim**    | LSP-powered symbols sidebar (functions, classes). |
+| **nvim-treesitter** | Modern syntax highlighting and code parsing.      |
 
 ### Git Integration
 
@@ -73,6 +53,30 @@ installed via nixpkgs.
 | --------------- | --------------------------- |
 | **copilot.vim** | GitHub Copilot suggestions. |
 
+### LSP & Completion
+
+| Plugin             | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| **nvim-lspconfig** | LSP client configuration for language servers.    |
+| **nvim-cmp**       | Completion engine with LSP, buffer, path sources. |
+| **cmp-nvim-lsp**   | LSP source for nvim-cmp.                          |
+| **cmp-buffer**     | Buffer words source for nvim-cmp.                 |
+| **cmp-path**       | File path source for nvim-cmp.                    |
+| **luasnip**        | Snippet engine for nvim-cmp.                      |
+| **fidget.nvim**    | LSP progress indicator in corner.                 |
+| **trouble.nvim**   | Pretty diagnostics list.                          |
+
+### Configured Language Servers
+
+| Server              | Language  |
+| ------------------- | --------- |
+| pyright             | Python    |
+| rust-analyzer       | Rust      |
+| elixir-ls           | Elixir    |
+| csharp-ls           | C# / .NET |
+| jdt-language-server | Java      |
+| nil                 | Nix       |
+
 ## Keybindings
 
 ### Leader Key
@@ -90,6 +94,23 @@ The leader key is `,` (comma).
 | `,g`  | Live grep (search in files)  |
 | `,b`  | List buffers                 |
 | `,h`  | Search help tags             |
+
+### LSP
+
+| Key   | Action                    |
+| ----- | ------------------------- |
+| `gd`  | Go to definition          |
+| `gD`  | Go to declaration         |
+| `gi`  | Go to implementation      |
+| `gr`  | Find references           |
+| `K`   | Hover documentation       |
+| `,rn` | Rename symbol             |
+| `,ca` | Code action               |
+| `,e`  | Show diagnostic float     |
+| `[d`  | Previous diagnostic       |
+| `]d`  | Next diagnostic           |
+| `,xx` | Toggle diagnostics list   |
+| `,xd` | Toggle buffer diagnostics |
 
 ### Editing
 
@@ -123,7 +144,8 @@ The configuration is in [home/neovim.nix](../home/neovim.nix):
 | Color column  | 70, 80, 110 |
 | Scroll offset | 13 lines    |
 | Line numbers  | Relative    |
-| Colorscheme   | Palenight   |
+| Colorscheme   | Solarized8  |
+| Background    | Light       |
 
 ## Auto Commands
 

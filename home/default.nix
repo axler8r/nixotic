@@ -50,9 +50,13 @@
   home.packages = with pkgs; [
     # Version control & development
     gitflow
-    github-copilot-cli
     parallel
     tig
+
+    # AI coding assistants
+    claude-code
+    codex
+    github-copilot-cli
 
     # Editors & text processing
     universal-ctags

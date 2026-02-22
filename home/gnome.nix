@@ -3,9 +3,9 @@
 {
   # GNOME Shell extensions and utilities
   home.packages = with pkgs; [
-    apostrophe
     celluloid
     dconf-editor
+    eyedropper
     file-roller
     firefox
     gnome-terminal
@@ -15,9 +15,19 @@
     gnome-power-manager
     gnome-tweaks
     gparted
+    blender
+    bustle
+    commit
+    forge-sparks
+    freecad
+    gimp
+    gnome-builder
+    gnome-secrets
     mission-center
     obsidian
+    raider
     shortwave
+    sysprof
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.caffeine
     gnomeExtensions.dash-to-dock
@@ -30,6 +40,14 @@
   # Hide unwanted desktop entries
   xdg.desktopEntries.cups = {
     name = "Manage Printing";
+    noDisplay = true;
+  };
+  xdg.desktopEntries."org.gnome.Calendar" = {
+    name = "Calendar";
+    noDisplay = true;
+  };
+  xdg.desktopEntries."org.gnome.Maps" = {
+    name = "Maps";
     noDisplay = true;
   };
 
@@ -49,12 +67,14 @@
 
   # Custom folder icons
   home.activation.setFolderIcons = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    [[ -d $HOME/.nixotic ]] && ${pkgs.glib}/bin/gio set $HOME/.nixotic metadata::custom-icon-name folder-darkcyan-important
     [[ -d $HOME/Documents/Books ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Books metadata::custom-icon-name folder-pink-books
     [[ -d $HOME/Documents/Obsidian ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Obsidian metadata::custom-icon-name folder-indigo-obsidian
     [[ -d $HOME/Downloads ]] && ${pkgs.glib}/bin/gio set $HOME/Downloads metadata::custom-icon-name folder-green-download
     [[ -d $HOME/Projects ]] && ${pkgs.glib}/bin/gio set $HOME/Projects metadata::custom-icon-name folder-orange-development
     [[ -d $HOME/Projects/AxlER8R ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/AxlER8R metadata::custom-icon-name folder-green-meocloud
     [[ -d $HOME/Projects/GitHub ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/GitHub metadata::custom-icon-name folder-grey-github
+    [[ -d $HOME/Projects/GitLab ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/GitLab metadata::custom-icon-name folder-deeporange-gitlabb
     [[ -d $HOME/Projects/Sandbox ]] && ${pkgs.glib}/bin/gio set $HOME/Projects/Sandbox metadata::custom-icon-name folder-yellow-recent
     [[ -d $HOME/Vaults ]] && ${pkgs.glib}/bin/gio set $HOME/Vaults metadata::custom-icon-name folder-red-locked
   '';
@@ -137,18 +157,40 @@
       # App folder configuration - minimal with few apps
       "org/gnome/desktop/app-folders" = {
         folder-children = [
-          "CommandLine"
-          "Handy"
-          "Internet"
-          "Media"
-          "System"
-          "Utilities"
+          "Assist"
+          "Browse"
+          "Command"
+          "Create"
+          "Develop"
+          "Entertain"
+          "Manage"
+          "Monitor"
         ];
       };
 
-      # Internet folder
-      "org/gnome/desktop/app-folders/folders/Internet" = {
-        name = "Internet";
+      # Create folder
+      "org/gnome/desktop/app-folders/folders/Create" = {
+        name = "Create";
+        apps = [
+          "blender.desktop"
+          "gimp.desktop"
+          "org.freecad.FreeCAD.desktop"
+        ];
+      };
+
+      # Develop folder
+      "org/gnome/desktop/app-folders/folders/Develop" = {
+        name = "Develop";
+        apps = [
+          "com.mardojai.ForgeSparks.desktop"
+          "org.gnome.Builder.desktop"
+          "re.sonny.Commit.desktop"
+        ];
+      };
+
+      # Browse folder
+      "org/gnome/desktop/app-folders/folders/Browse" = {
+        name = "Browse";
         apps = [
           "brave-browser.desktop"
           "com.brave.Browser.desktop"
@@ -157,9 +199,9 @@
         ];
       };
 
-      # Command Line Tools folder
-      "org/gnome/desktop/app-folders/folders/CommandLine" = {
-        name = "Command Line Tools";
+      # Command folder
+      "org/gnome/desktop/app-folders/folders/Command" = {
+        name = "Command";
         apps = [
           "Helix.desktop"
           "htop.desktop"
@@ -168,39 +210,32 @@
         ];
       };
 
-      # Utilities folder
-      "org/gnome/desktop/app-folders/folders/Utilities" = {
-        name = "Utilities";
+      # Assist folder
+      "org/gnome/desktop/app-folders/folders/Assist" = {
+        name = "Assist";
         apps = [
-          "org.gnome.seahorse.Application.desktop"
-          "org.gnome.tweaks.desktop"
-          "org.gnome.Settings.desktop"
-        ];
-      };
-
-      # Handy folder
-      "org/gnome/desktop/app-folders/folders/Handy" = {
-        name = "Handy";
-        apps = [
-          "org.gnome.gitlab.somas.Apostrophe.desktop"
+          "com.github.ADBeveridge.Raider.desktop"
+          "com.github.finefindus.eyedropper.desktop"
           "org.gnome.Calculator.desktop"
-          "org.gnome.Calendar.desktop"
           "org.gnome.Characters.desktop"
-          "org.gnome.FileRoller.desktop"
-          "org.gnome.Papers.desktop"
           "org.gnome.clocks.desktop"
           "org.gnome.Extensions.desktop"
+          "org.gnome.FileRoller.desktop"
           "org.gnome.font-viewer.desktop"
-          "org.gnome.Maps.desktop"
+          "org.gnome.Papers.desktop"
+          "org.gnome.seahorse.Application.desktop"
+          "org.gnome.Settings.desktop"
           "org.gnome.SimpleScan.desktop"
           "org.gnome.TextEditor.desktop"
+          "org.gnome.tweaks.desktop"
           "org.gnome.Weather.desktop"
+          "org.gnome.World.Secrets.desktop"
         ];
       };
 
-      # Media folder
-      "org/gnome/desktop/app-folders/folders/Media" = {
-        name = "Media";
+      # Entertain folder
+      "org/gnome/desktop/app-folders/folders/Entertain" = {
+        name = "Entertain";
         apps = [
           "de.haeckerfelix.Shortwave.desktop"
           "io.github.celluloid_player.Celluloid.desktop"
@@ -212,23 +247,32 @@
           "mpv.desktop"
         ];
       };
-      # System folder
-      "org/gnome/desktop/app-folders/folders/System" = {
-        name = "System";
+      # Monitor folder
+      "org/gnome/desktop/app-folders/folders/Monitor" = {
+        name = "Monitor";
         apps = [
           "btop.desktop"
-          "ca.desrt.dconf-editor.desktop"
           "gnome-nettool.desktop"
-          "gparted.desktop"
           "io.missioncenter.MissionCenter.desktop"
+          "org.freedesktop.Bustle.desktop"
+          "org.gnome.Logs.desktop"
+          "org.gnome.Sysprof.desktop"
+          "org.gnome.SystemMonitor.desktop"
+        ];
+      };
+
+      # Manage folder
+      "org/gnome/desktop/app-folders/folders/Manage" = {
+        name = "Manage";
+        apps = [
+          "ca.desrt.dconf-editor.desktop"
+          "gparted.desktop"
           "nvidia-settings.desktop"
           "org.gnome.baobab.desktop"
           "org.gnome.Connections.desktop"
           "org.gnome.Terminal.desktop"
           "org.gnome.DiskUtility.desktop"
-          "org.gnome.Logs.desktop"
           "org.gnome.PowerStats.desktop"
-          "org.gnome.SystemMonitor.desktop"
         ];
       };
       # Keyboard input settings

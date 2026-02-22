@@ -2,6 +2,9 @@
 
 # New-DevEnvironment: Create a direnv + flake-parts development environment
 
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
     ${0:t} [opts] [packages...]
@@ -76,6 +79,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps direnv nix || return 2
 
 if [[ -z "$_lang" ]] && [[ ${#_tools[@]} -eq 0 ]] && [[ ${#_packages[@]} -eq 0 ]] && [[ "$_ml" != "true" ]]; then
     _synopsis
@@ -156,9 +160,6 @@ function new_dev_environment() {
     local ml_packages=""
     if [[ "$ml" == "true" ]]; then
         ml_packages="pkgs.cudaPackages.cudatoolkit
-
-        source "${0:h}/../lib/output.zsh"
-        source "${0:h}/../lib/validation.zsh"
             pkgs.cudaPackages.cudnn"
     fi
 
@@ -237,7 +238,6 @@ EOF
       perSystem = { pkgs, ... }: {
         devShells.default = pkgs.mkShell {
           packages = [
-        __ax_check_deps direnv nix || return 2
             ${all_packages}
           ];
 

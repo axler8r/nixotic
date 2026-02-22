@@ -11,7 +11,7 @@
       # General prompt format
       # Note: In Nix, $variable must be escaped as \$variable in regular strings,
       # or ''$ in multi-line '' strings. We use regular strings with \$ here.
-      format = "󰅂 \$nix_shell\$directory\$git_branch\$git_status\$git_metrics \$status\n󰅁 ";
+      format = "󰅂 \$nix_shell\$python\$rust\$elixir\$dotnet\$java\$julia\$directory\$git_branch\$git_status\$git_metrics \$status\n󰅁 ";
 
       # Nix shell (direnv + flake devShells)
       nix_shell = {
@@ -20,6 +20,33 @@
         style = "cyan";
         impure_msg = "(impure)";
         pure_msg = "pure";
+      };
+
+      # Language environments
+      python = {
+        format = "[\\(Python \$version\\)](blue) ";
+        version_format = "\${major}.\${minor}.\${patch}";
+        detect_extensions = [];
+      };
+
+      rust = {
+        format = "[\\(Rust \$version\\)](orange) ";
+      };
+
+      elixir = {
+        format = "[\\(Elixir \$version\\)](magenta) ";
+      };
+
+      dotnet = {
+        format = "[\\(.NET \$version\\)](cyan) ";
+      };
+
+      java = {
+        format = "[\\(Java \$version\\)](violet) ";
+      };
+
+      julia = {
+        format = "[\\(Julia \$version\\)](red) ";
       };
 
       # Directory

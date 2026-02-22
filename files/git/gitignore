@@ -6,10 +6,15 @@
 *.zip
 
 # Editors
+*.code-workspace
+*.swo
+*.swp
+*.tmp
 .idea/
 .vscode/
-*.swp
-*.swo
+
+# AI
+copilot-instructions.md
 
 # OS
 .DS_Store
@@ -20,3 +25,4 @@ Thumbs.db
 *.pyc
 __pycache__/
 node_modules/
+

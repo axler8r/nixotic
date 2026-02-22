@@ -24,10 +24,6 @@
       url_color = "#268bd2";
       url_style = "straight";
 
-      # Fix base16 Solarized Light mapping: color0 (ANSI black) defaults to
-      # background (#fdf6e3), making "black" text invisible. Override to base03.
-      color0 = "#839496";
-
       # Selection
       copy_on_select = "yes";
       strip_trailing_spaces = "smart";
