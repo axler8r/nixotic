@@ -88,6 +88,7 @@
       nvidiaBusId = "PCI:1:0:0";
     };
   };
+  hardware.nvidia-container-toolkit.enable = true;
 
   # Exclude GNOME bloat
   environment.gnome.excludePackages = with pkgs; [
@@ -153,6 +154,7 @@
   environment.systemPackages = with pkgs; [
     # system tools
     clamav
+    cudaPackages.cudatoolkit
     cryptsetup  # LUKS encryption for vault functions
     file
     htop

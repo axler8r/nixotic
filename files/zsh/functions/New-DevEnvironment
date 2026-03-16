@@ -25,7 +25,7 @@ Options:
     --name NAME         Project name (default: current directory name)
     --lang LANG         Language template: python, dotnet, rust, elixir, java, julia
     --tool TOOL         System tool to include (repeatable)
-    --ml                Include CUDA toolkit and cuDNN for ML workloads
+    --ml                Include ML CUDA userspace libs (expects system NVIDIA/CUDA)
 
 Arguments:
     packages            Additional Nix packages (bare names, e.g. uv ruff)
@@ -112,9 +112,9 @@ function new_dev_environment() {
         return 1
     fi
 
-    # Warn if --ml used without NVIDIA GPU
+    # Warn if --ml used without NVIDIA runtime
     if [[ "$ml" == "true" ]] && [[ ! -e /dev/nvidiactl ]] && ! command -v nvidia-smi &>/dev/null; then
-        echo "Warning: No NVIDIA GPU detected, --ml packages may not work on this machine"
+        echo "Warning: NVIDIA runtime not detected; enable system-level NVIDIA/CUDA support for reliable ML workloads"
     fi
 
     # Validate language if specified
@@ -159,8 +159,7 @@ function new_dev_environment() {
     # Build ML packages if requested
     local ml_packages=""
     if [[ "$ml" == "true" ]]; then
-        ml_packages="pkgs.cudaPackages.cudatoolkit
-            pkgs.cudaPackages.cudnn"
+        ml_packages="pkgs.cudaPackages.cudnn"
     fi
 
     # Build tools list
@@ -215,6 +214,10 @@ function new_dev_environment() {
 
             shellHook = ''
               export name="${name}"
+              export CUDA_PATH="\${pkgs.cudaPackages.cudatoolkit}"
+              export CUDA_HOME="\${pkgs.cudaPackages.cudatoolkit}"
+              export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver-32/lib:\${pkgs.lib.makeLibraryPath [ pkgs.cudaPackages.cudnn pkgs.stdenv.cc.cc.lib ]}:$LD_LIBRARY_PATH"
+              export NIX_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
             '';
           };
         };
