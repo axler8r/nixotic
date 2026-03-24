@@ -20,5 +20,6 @@
       name = "Papirus-Light";
       package = pkgs.papirus-icon-theme;
     };
+    gtk4.theme = null;
   };
 }

@@ -151,9 +151,13 @@
   virtualisation.docker.enable = true;
 
 
+  services.clamav = {
+    daemon.enable = true;
+    updater.enable = true;
+  };
+
   environment.systemPackages = with pkgs; [
     # system tools
-    clamav
     cudaPackages.cudatoolkit
     cryptsetup  # LUKS encryption for vault functions
     file

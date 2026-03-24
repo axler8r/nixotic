@@ -55,6 +55,7 @@
   xdg.userDirs = {
     enable = true;
     createDirectories = true;
+    setSessionVariables = false;
     desktop = null;
     documents = "${config.home.homeDirectory}/Documents";
     download = "${config.home.homeDirectory}/Downloads";
@@ -129,6 +130,7 @@
       # Dash to Dock configuration
       "org/gnome/shell/extensions/dash-to-dock" = {
         dock-position = "BOTTOM";
+        dock-fixed = false;
         autohide = true;
         intellihide = true;
         show-trash = false;
