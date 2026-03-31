@@ -80,11 +80,11 @@
         config = ''
           require('gitsigns').setup {
             signs = {
-              add          = { text = '│' },
-              change       = { text = '│' },
+              add          = { text = '+' },
+              change       = { text = '~' },
               delete       = { text = '_' },
               topdelete    = { text = '‾' },
-              changedelete = { text = '~' },
+              changedelete = { text = '±' },
             },
           }
         '';
@@ -241,6 +241,42 @@
         '';
       }
 
+      # Formatting
+      {
+        plugin = conform-nvim;
+        type = "lua";
+        config = ''
+          require('conform').setup {
+            formatters_by_ft = {
+              markdown = { 'prettier' },
+              python   = { 'ruff_format' },
+              cs       = { 'csharpier' },
+            },
+            format_on_save = {
+              timeout_ms = 500,
+              lsp_format = 'fallback',
+            },
+          }
+        '';
+      }
+
+      # Linting
+      {
+        plugin = nvim-lint;
+        type = "lua";
+        config = ''
+          require('lint').linters_by_ft = {
+            markdown = { 'markdownlint' },
+            python   = { 'ruff' },
+          }
+          vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost', 'InsertLeave' }, {
+            callback = function()
+              require('lint').try_lint()
+            end,
+          })
+        '';
+      }
+
       # AI
       copilot-vim
     ];
@@ -276,6 +312,75 @@
       vim.opt.background = 'light'
       vim.cmd('colorscheme solarized8')
 
+      -- Enforce Nixotic syntax role palette regardless of colorscheme defaults.
+      local role_hl = {
+        Comment = { fg = '#839496', italic = true },
+        SpecialComment = { fg = '#839496', italic = true },
+        Operator = { fg = '#839496' },
+        Delimiter = { fg = '#839496' },
+
+        Keyword = { fg = '#859900', bold = true },
+        Conditional = { fg = '#859900', bold = true },
+        Repeat = { fg = '#859900', bold = true },
+        Statement = { fg = '#859900', bold = true },
+        StorageClass = { fg = '#859900', bold = true },
+
+        Identifier = { fg = '#268bd2' },
+        Constant = { fg = '#268bd2' },
+        Special = { fg = '#268bd2' },
+        Number = { fg = '#2aa198' },
+        Boolean = { fg = '#2aa198' },
+        Float = { fg = '#2aa198' },
+        String = { fg = '#2aa198' },
+
+        Type = { fg = '#b58900' },
+        Structure = { fg = '#b58900' },
+        Typedef = { fg = '#b58900' },
+        Constructor = { fg = '#b58900' },
+
+        Function = { fg = '#cb4b16', italic = true },
+
+        Include = { fg = '#d33682' },
+        Macro = { fg = '#d33682' },
+        PreProc = { fg = '#d33682' },
+        Define = { fg = '#d33682' },
+
+        DiagnosticError = { fg = '#dc322f' },
+        DiagnosticWarn = { fg = '#cb4b16' },
+        DiagnosticInfo = { fg = '#2aa198' },
+
+        ['@comment'] = { fg = '#839496', italic = true },
+        ['@comment.documentation'] = { fg = '#839496', italic = true },
+        ['@keyword'] = { fg = '#859900', bold = true },
+        ['@keyword.import'] = { fg = '#d33682' },
+        ['@keyword.directive'] = { fg = '#d33682' },
+        ['@keyword.directive.define'] = { fg = '#d33682' },
+        ['@variable'] = { fg = '#268bd2' },
+        ['@variable.member'] = { fg = '#268bd2' },
+        ['@variable.builtin'] = { fg = '#268bd2' },
+        ['@constant'] = { fg = '#268bd2' },
+        ['@constant.builtin'] = { fg = '#268bd2' },
+        ['@number'] = { fg = '#2aa198' },
+        ['@boolean'] = { fg = '#2aa198' },
+        ['@string'] = { fg = '#2aa198' },
+        ['@string.regexp'] = { fg = '#6c71c4' },
+        ['@type'] = { fg = '#b58900' },
+        ['@type.builtin'] = { fg = '#b58900' },
+        ['@constructor'] = { fg = '#b58900' },
+        ['@function'] = { fg = '#cb4b16', italic = true },
+        ['@function.method'] = { fg = '#cb4b16', italic = true },
+        ['@function.builtin'] = { fg = '#cb4b16', italic = true },
+        ['@attribute'] = { fg = '#d33682' },
+        ['@module'] = { fg = '#d33682' },
+        ['@module.builtin'] = { fg = '#d33682' },
+        ['@operator'] = { fg = '#839496' },
+        ['@punctuation'] = { fg = '#839496' },
+      }
+
+      for group, opts in pairs(role_hl) do
+        vim.api.nvim_set_hl(0, group, opts)
+      end
+
       -- Strip trailing whitespace on save
       vim.api.nvim_create_autocmd('BufWritePre', {
         pattern = '*',
@@ -295,15 +400,25 @@
 
     # CLI tools for neovim plugins
     extraPackages = with pkgs; [
-      tree-sitter  # For nvim-treesitter health check
+      tree-sitter # For nvim-treesitter health check
 
       # LSP servers
-      pyright              # Python
-      rust-analyzer        # Rust
-      elixir-ls            # Elixir
-      csharp-ls            # C# / .NET
-      jdt-language-server  # Java
-      nil                  # Nix
+      pyright # Python
+      rust-analyzer # Rust
+      elixir-ls # Elixir
+      csharp-ls # C# / .NET
+      jdt-language-server # Java
+      nil # Nix
+
+      # Markdown
+      markdownlint-cli2
+      nodePackages.prettier
+
+      # Python
+      ruff
+
+      # C#
+      csharpier
     ];
   };
 }

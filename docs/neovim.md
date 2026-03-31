@@ -134,7 +134,7 @@ The leader key is `,` (comma).
 The configuration is in [home/neovim.nix](../home/neovim.nix):
 
 - `plugins` — Declarative plugin list with per-plugin Lua config
-- `extraLuaConfig` — Global settings, keybindings, autocmds
+- `initLua` — Global settings, keybindings, autocmds
 
 ## Editor Settings
 
@@ -146,6 +146,10 @@ The configuration is in [home/neovim.nix](../home/neovim.nix):
 | Line numbers  | Relative    |
 | Colorscheme   | Solarized8  |
 | Background    | Light       |
+
+Solarized8 is used because it aligns with the Solarized colour preferences
+documented in [theme.md](theme.md). Note that Neovim manages its own theme
+independently of Stylix and is configured directly in [home/neovim.nix](../home/neovim.nix).
 
 ## Auto Commands
 

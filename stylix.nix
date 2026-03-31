@@ -1,10 +1,33 @@
 { config, pkgs, ... }:
 
+let
+  solarizedLightScheme = pkgs.writeText "solarized-light-nixotic.yaml" ''
+    scheme: "Solarized Light (Nixotic)"
+    author: "axl"
+    base00: "fdf6e3"
+    base01: "eee8d5"
+    base02: "93a1a1"
+    base03: "839496"
+    base04: "657b83"
+    base05: "839496"
+    base06: "073642"
+    base07: "002b36"
+    base08: "268bd2"
+    base09: "2aa198"
+    base0A: "b58900"
+    base0B: "2aa198"
+    base0C: "6c71c4"
+    base0D: "cb4b16"
+    base0E: "859900"
+    base0F: "d33682"
+  '';
+in
+
 {
   stylix = {
     enable = true;
     polarity = "light";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/solarized-light.yaml";
+    base16Scheme = "${solarizedLightScheme}";
 
     # Wallpaper
     image = ./files/wallpapers/Wallpaper00.jpg;

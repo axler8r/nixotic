@@ -1,11 +1,67 @@
 { config, pkgs, ... }:
 
 {
+  xdg.configFile."helix/themes/nixotic_solarized_light.toml".text = ''
+    inherits = "solarized_light"
+
+    "comment" = { fg = "base0", modifiers = ["italic"] }
+    "comment.block.documentation" = { fg = "base0", modifiers = ["italic"] }
+    "operator" = "base0"
+    "punctuation" = "base0"
+    "punctuation.delimiter" = "base0"
+    "punctuation.bracket" = "base0"
+
+    "keyword" = { fg = "green", modifiers = ["bold"] }
+    "keyword.control" = { fg = "green", modifiers = ["bold"] }
+    "keyword.storage" = { fg = "green", modifiers = ["bold"] }
+
+    "variable" = "blue"
+    "variable.parameter" = "blue"
+    "variable.other.member" = "blue"
+    "variable.builtin" = "blue"
+
+    "constant" = "blue"
+    "constant.numeric" = "cyan"
+    "constant.builtin.boolean" = "cyan"
+
+    "string" = "cyan"
+    "string.special" = "violet"
+    "string.regexp" = "violet"
+
+    "type" = "yellow"
+    "type.builtin" = "yellow"
+    "constructor" = "yellow"
+
+    "function" = { fg = "orange", modifiers = ["italic"] }
+    "function.method" = { fg = "orange", modifiers = ["italic"] }
+    "function.builtin" = { fg = "orange", modifiers = ["italic"] }
+
+    "keyword.control.import" = "magenta"
+    "keyword.directive" = "magenta"
+    "namespace" = "magenta"
+    "attribute" = "magenta"
+
+    "diagnostic.error" = "red"
+    "diagnostic.warning" = "orange"
+    "diagnostic.info" = "cyan"
+
+    [palette]
+    base0 = "#839496"
+    green = "#859900"
+    blue = "#268bd2"
+    cyan = "#2aa198"
+    yellow = "#b58900"
+    orange = "#cb4b16"
+    violet = "#6c71c4"
+    magenta = "#d33682"
+    red = "#dc322f"
+  '';
+
   programs.helix = {
     enable = true;
 
     settings = {
-      # Theme managed by Stylix
+      theme = "nixotic_solarized_light";
 
       editor = {
         line-number = "relative";

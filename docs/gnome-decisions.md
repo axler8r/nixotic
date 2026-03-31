@@ -4,10 +4,28 @@ Design decisions for the GNOME desktop configuration.
 
 **Updated:** February 2026
 
+## Theming
+
+Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, and wallpaper.
+Terminal and code-adjacent tools use manual Solarized themes, keeping shell colours
+and editor syntax colours independent of the base16 palette.
+
+| Tool   | Theme source                            |
+| ------ | --------------------------------------- |
+| GNOME  | Stylix (Solarized Light base16 scheme)  |
+| GTK    | Stylix                                  |
+| Kitty  | Manual ANSI palette in `home/kitty.nix` |
+| Helix  | Custom `nixotic_solarized_light`        |
+| bat    | Custom `NixoticSolarizedLight`          |
+| Neovim | vim-solarized8 (manual, not Stylix)     |
+
+Syntax colour preferences are documented in [theme.md](theme.md).
+
 ## Philosophy
 
 **Less is better.** Start minimal and add only what's needed. The goal is a
 clean, distraction-free environment focused on:
+
 - VS Code (primary IDE)
 - Neovim (secondary editor)
 - Kitty + tmux (terminal)

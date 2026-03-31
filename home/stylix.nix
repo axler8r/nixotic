@@ -11,6 +11,12 @@
 
     # Let VS Code manage its own settings for cross-platform Settings Sync
     vscode.enable = false;
+
+    # Terminal and code-adjacent apps: manual themes keep shell and editor
+    # colors independent from each other and from the base16 palette
+    kitty.enable = false;
+    helix.enable = false;
+    bat.enable = false;
   };
 
   # GTK icon theme - Papirus-Light for Solarized Light theme
