@@ -1,9 +1,8 @@
 # ZFS Configuration
-
 ZFS setup on ambul8r (laptop) with hibernation support.
 
-## Disk Layout
 
+## Disk Layout
 | Partition |  Size | Type | Purpose     |
 | --------- | ----: | ---- | ----------- |
 | nvme0n1p1 |    5G | vfat | /boot (EFI) |
@@ -11,7 +10,9 @@ ZFS setup on ambul8r (laptop) with hibernation support.
 | nvme0n1p3 |   32G | swap | Hibernation |
 | nvme0n1p4 | ~766G | ZFS  | dpool       |
 
+
 ## ZFS Pool Structure
+[files/zsh/functions/New-ZfsLayout](files/zsh/functions/New-ZfsLayout) recreates the dataset hierarchy and ownership described below.
 
 ```
 dpool                                    mountpoint=none
@@ -24,14 +25,15 @@ dpool                                    mountpoint=none
             ├── Projects                 /home/axl/Projects
             │   ├── AxlER8R              /home/axl/Projects/AxlER8R
             │   ├── GitHub               /home/axl/Projects/GitHub
+            │   ├── GitLab               /home/axl/Projects/GitLab
             │   └── Sandbox              /home/axl/Projects/Sandbox
             └── Vaults                   /home/axl/Vaults
 ```
 
+
 ## NixOS Configuration
 
 ### Required Settings
-
 ```nix
 # configuration.nix
 boot.supportedFilesystems = [ "zfs" ];
@@ -50,7 +52,6 @@ services.zfs = {
 ```
 
 ### Swap for Hibernation
-
 ```nix
 # hardware-configuration.nix
 swapDevices = [
@@ -58,8 +59,8 @@ swapDevices = [
 ];
 ```
 
-## Initial Setup Commands
 
+## Initial Setup Commands
 ```bash
 # Create partitions (using fdisk)
 sudo fdisk /dev/nvme0n1
@@ -87,6 +88,7 @@ sudo zfs create -o mountpoint=/home/axl/Media dpool/USERDATA/home/axl/Media
 sudo zfs create -o mountpoint=/home/axl/Projects dpool/USERDATA/home/axl/Projects
 sudo zfs create dpool/USERDATA/home/axl/Projects/AxlER8R
 sudo zfs create dpool/USERDATA/home/axl/Projects/GitHub
+sudo zfs create dpool/USERDATA/home/axl/Projects/GitLab
 sudo zfs create dpool/USERDATA/home/axl/Projects/Sandbox
 sudo zfs create -o mountpoint=/home/axl/Vaults dpool/USERDATA/home/axl/Vaults
 
@@ -94,8 +96,8 @@ sudo zfs create -o mountpoint=/home/axl/Vaults dpool/USERDATA/home/axl/Vaults
 sudo chown -R axl:users /home/axl/{Documents,Downloads,Media,Projects,Vaults}
 ```
 
-## Common Commands
 
+## Common Commands
 | Command                                              | Purpose                 |
 | ---------------------------------------------------- | ----------------------- |
 | `zpool status`                                       | Check pool health       |
@@ -107,8 +109,8 @@ sudo chown -R axl:users /home/axl/{Documents,Downloads,Media,Projects,Vaults}
 | `zfs destroy dpool/path@snapshot`                    | Delete snapshot         |
 | `systemctl hibernate`                                | Hibernate laptop        |
 
-## Adding New Datasets
 
+## Adding New Datasets
 ```bash
 # New project dataset (inherits mountpoint from parent)
 sudo zfs create dpool/USERDATA/home/axl/Projects/NewProject

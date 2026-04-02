@@ -1,0 +1,191 @@
+#! /usr/bin/env zsh
+
+# New-ZfsLayout: Recreate the current ZFS dataset hierarchy
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Recreate the current ZFS dataset hierarchy used on this machine.
+    The layout includes the mounted datasets currently present under:
+    /home/axl/{Documents,Downloads,Media,Projects,Vaults}
+    and /home/axl/Projects/{AxlER8R,GitHub,GitLab,Sandbox}
+
+Usage:
+    ${0:t} [opts]
+
+Options:
+    --help          Show this help message
+    --pool NAME     Pool name to use (default: dpool)
+    --device PATH   Create the pool on this device if the pool does not exist
+    --owner USER    Owner to apply to mounted directories (default: axl)
+    --group GROUP   Group to apply to mounted directories (default: users)
+    --dry-run       Print commands without executing them
+
+Examples:
+    sudo ${0:t}
+    sudo ${0:t} --pool backup
+    sudo ${0:t} --pool dpool --device /dev/nvme0n1p4
+    sudo ${0:t} --dry-run
+"
+
+local _pool="dpool"
+local _device=""
+local _owner="axl"
+local _group="users"
+local _dry_run=""
+
+typeset -a _datasets
+_datasets=(
+    "USERDATA/home/axl/Documents|/home/axl/Documents"
+    "USERDATA/home/axl/Downloads|/home/axl/Downloads"
+    "USERDATA/home/axl/Media|/home/axl/Media"
+    "USERDATA/home/axl/Projects|/home/axl/Projects"
+    "USERDATA/home/axl/Projects/AxlER8R|inherit"
+    "USERDATA/home/axl/Projects/GitHub|inherit"
+    "USERDATA/home/axl/Projects/GitLab|inherit"
+    "USERDATA/home/axl/Projects/Sandbox|inherit"
+    "USERDATA/home/axl/Vaults|/home/axl/Vaults"
+)
+
+typeset -a _ownership_paths
+_ownership_paths=(
+    "/home/axl/Documents"
+    "/home/axl/Downloads"
+    "/home/axl/Media"
+    "/home/axl/Projects"
+    "/home/axl/Projects/AxlER8R"
+    "/home/axl/Projects/GitHub"
+    "/home/axl/Projects/GitLab"
+    "/home/axl/Projects/Sandbox"
+    "/home/axl/Vaults"
+)
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+_run() {
+    if [[ -n "${_dry_run}" ]]; then
+        print -- "$*"
+        return 0
+    fi
+
+    "$@"
+}
+
+_dataset_exists() {
+    local dataset="$1"
+    zfs mount | awk '{print $1}' | grep --fixed-strings --line-regexp --quiet -- "${dataset}"
+}
+
+_pool_exists() {
+    local pool="$1"
+    zfs mount | awk -F/ '{print $1}' | grep --fixed-strings --line-regexp --quiet -- "${pool}"
+}
+
+new_zfs_layout() {
+    local dataset_spec=""
+    local dataset_name=""
+    local dataset_path=""
+    local full_dataset=""
+    local ownership_path=""
+
+    if ! _pool_exists "${_pool}"; then
+        if [[ -z "${_device}" ]]; then
+            __ax_error "Pool '${_pool}' is not visible via mounted datasets; pass --device to create it"
+            return 1
+        fi
+
+        __ax_info "Creating pool ${_pool} on ${_device}"
+        _run zpool create -f \
+            -o ashift=12 \
+            -O compression=zstd \
+            -O acltype=posixacl \
+            -O xattr=sa \
+            -O mountpoint=none \
+            "${_pool}" "${_device}" || return 1
+    else
+        __ax_info "Using existing pool ${_pool}"
+    fi
+
+    for dataset_spec in "${_datasets[@]}"; do
+        dataset_name="${dataset_spec%%|*}"
+        dataset_path="${dataset_spec#*|}"
+        full_dataset="${_pool}/${dataset_name}"
+
+        if _dataset_exists "${full_dataset}"; then
+            __ax_verbose "Dataset already mounted: ${full_dataset}"
+            continue
+        fi
+
+        if [[ "${dataset_path}" == "inherit" ]]; then
+            __ax_info "Creating ${full_dataset}"
+            _run zfs create -p "${full_dataset}" || return 1
+            continue
+        fi
+
+        __ax_info "Creating ${full_dataset} mounted at ${dataset_path}"
+        _run mkdir -p "${dataset_path}"
+        _run zfs create -p -o mountpoint="${dataset_path}" "${full_dataset}" || return 1
+    done
+
+    for ownership_path in "${_ownership_paths[@]}"; do
+        __ax_info "Setting ownership on ${ownership_path}"
+        _run chown "${_owner}:${_group}" "${ownership_path}" || return 1
+    done
+
+    __ax_success "ZFS layout ensured for pool ${_pool}"
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true; shift ;;
+        --pool)     _pool="$2"; shift 2 ;;
+        --device)   _device="$2"; shift 2 ;;
+        --owner)    _owner="$2"; shift 2 ;;
+        --group)    _group="$2"; shift 2 ;;
+        --dry-run)  _dry_run=true; shift ;;
+        *)          __ax_error "Unknown option: $1"; _synopsis; return 1 ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+__ax_check_deps zfs zpool awk grep mkdir chown || return 2
+
+if [[ -z "${_dry_run}" ]]; then
+    __ax_require_root || return 2
+fi
+
+if [[ -n "${_device}" && ! -b "${_device}" ]]; then
+    __ax_error "Device not found: ${_device}"
+    return 1
+fi
+
+new_zfs_layout
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction _run
+unfunction _dataset_exists
+unfunction _pool_exists
+unfunction new_zfs_layout

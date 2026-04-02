@@ -90,9 +90,9 @@
             </dict>
             <dict>
               <key>name</key>
-              <string>Regex and Escapes</string>
+              <string>Regex, Escapes, and Interpolations</string>
               <key>scope</key>
-              <string>string.regexp, constant.character.escape</string>
+              <string>string.regexp, constant.character.escape, constant.other.placeholder, meta.interpolation, punctuation.definition.interpolation</string>
               <key>settings</key>
               <dict><key>foreground</key><string>#6c71c4</string></dict>
             </dict>

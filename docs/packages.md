@@ -1,9 +1,8 @@
 # Package Declaration Guide
-
 Where to declare packages in a NixOS + Home Manager configuration.
 
-## Decision Flowchart
 
+## Decision Flowchart
 ```mermaid
 flowchart TD
     Start([Need a package?]) --> Q1{All users?<br/>Root access?}
@@ -25,10 +24,10 @@ flowchart TD
     style Home fill:#e8f5e9
 ```
 
+
 ## Quick Reference
 
 ### 1. `environment.systemPackages`
-
 **Location:** `hosts/*/configuration.nix`  
 **Use for:** System-wide tools, root access, all users
 
@@ -38,7 +37,6 @@ Examples:
 - Network tools: `nethogs`
 
 ### 2. `users.users.<name>.packages`
-
 **Location:** `hosts/*/configuration.nix`  
 **Use for:** User-specific packages needing system integration
 
@@ -47,7 +45,6 @@ Examples:
 - Apps requiring system services or D-Bus integration
 
 ### 3. `home.packages`
-
 **Location:** `home/default.nix` or `home/gnome.nix` (GUI apps)  
 **Use for:** Most user CLI tools and development packages
 
@@ -62,7 +59,6 @@ Examples in `home/gnome.nix`:
 - GNOME extensions
 
 ### 4. `programs.<name>.enable`
-
 **Location:** `home/*.nix` (dedicated module file)  
 **Use for:** Tools with Home Manager configuration modules
 
@@ -75,8 +71,8 @@ Examples:
 - Prompt: `programs.starship` → `home/starship.nix`
 - File browser: `programs.ranger` → `home/ranger.nix`
 
-## Checking for Home Manager Modules
 
+## Checking for Home Manager Modules
 ```bash
 # Search for available programs
 man home-configuration.nix | grep -A2 "programs\."

@@ -1,123 +1,163 @@
 # Nushell Configuration File
 # See: https://www.nushell.sh/book/configuration.html
 
-# Solarized Dark theme
-let solarized_dark = {
-  separator: "#93a1a1"
-  leading_trailing_space_bg: { attr: n }
-  header: { fg: "#859900" attr: b }
-  empty: "#268bd2"
-  bool: "#93a1a1"
-  int: "#93a1a1"
-  filesize: "#2aa198"
-  duration: "#93a1a1"
-  date: "#d33682"
-  range: "#93a1a1"
-  float: "#93a1a1"
-  string: "#93a1a1"
-  nothing: "#93a1a1"
-  binary: "#93a1a1"
-  cellpath: "#93a1a1"
-  row_index: { fg: "#859900" attr: b }
-  record: "#93a1a1"
-  list: "#93a1a1"
-  block: "#93a1a1"
-  hints: "#586e75"
-  search_result: { bg: "#dc322f" fg: "#fdf6e3" }
-  shape_and: { fg: "#6c71c4" attr: b }
-  shape_binary: { fg: "#6c71c4" attr: b }
-  shape_block: { fg: "#268bd2" attr: b }
-  shape_bool: "#2aa198"
-  shape_closure: { fg: "#859900" attr: b }
-  shape_custom: "#859900"
-  shape_datetime: { fg: "#2aa198" attr: b }
-  shape_directory: "#2aa198"
-  shape_external: "#2aa198"
-  shape_externalarg: { fg: "#859900" attr: b }
-  shape_filepath: "#2aa198"
-  shape_flag: { fg: "#268bd2" attr: b }
-  shape_float: { fg: "#6c71c4" attr: b }
-  shape_garbage: { fg: "#fdf6e3" bg: "#dc322f" attr: b }
-  shape_globpattern: { fg: "#2aa198" attr: b }
-  shape_int: { fg: "#6c71c4" attr: b }
-  shape_internalcall: { fg: "#2aa198" attr: b }
-  shape_list: { fg: "#2aa198" attr: b }
-  shape_literal: "#268bd2"
-  shape_match_pattern: "#859900"
-  shape_matching_brackets: { attr: u }
-  shape_nothing: "#2aa198"
-  shape_operator: "#b58900"
-  shape_or: { fg: "#6c71c4" attr: b }
-  shape_pipe: { fg: "#6c71c4" attr: b }
-  shape_range: { fg: "#b58900" attr: b }
-  shape_record: { fg: "#2aa198" attr: b }
-  shape_redirection: { fg: "#6c71c4" attr: b }
-  shape_signature: { fg: "#859900" attr: b }
-  shape_string: "#859900"
-  shape_string_interpolation: { fg: "#2aa198" attr: b }
-  shape_table: { fg: "#268bd2" attr: b }
-  shape_variable: "#6c71c4"
-  shape_vardecl: "#6c71c4"
+let solarized = {
+  light_background: "#fdf6e3"
+  light_background_contrast: "#eee8d5"
+  lightest_accent: "#93a1a1"
+  light_accent: "#839496"
+  dark_accent: "#657b83"
+  darkest_accent: "#586e75"
+  dark_background_contrast: "#073642"
+  dark_background: "#002b36"
+
+  red: "#dc322f"
+  orange: "#cb4b16"
+  yellow: "#b58900"
+  green: "#859900"
+  cyan: "#2aa198"
+  blue: "#268bd2"
+  violet: "#6c71c4"
+  magenta: "#d33682"
 }
 
-# Solarized Light theme
-let solarized_light = {
-  separator: "#657b83"
+let solarized_theme_base = {
   leading_trailing_space_bg: { attr: n }
-  header: { fg: "#859900" attr: b }
-  empty: "#268bd2"
-  bool: "#657b83"
-  int: "#657b83"
-  filesize: "#2aa198"
-  duration: "#657b83"
-  date: "#d33682"
-  range: "#657b83"
-  float: "#657b83"
-  string: "#657b83"
-  nothing: "#657b83"
-  binary: "#657b83"
-  cellpath: "#657b83"
-  row_index: { fg: "#859900" attr: b }
-  record: "#657b83"
-  list: "#657b83"
-  block: "#657b83"
-  hints: "#93a1a1"
-  search_result: { bg: "#dc322f" fg: "#fdf6e3" }
-  shape_and: { fg: "#6c71c4" attr: b }
-  shape_binary: { fg: "#6c71c4" attr: b }
-  shape_block: { fg: "#268bd2" attr: b }
-  shape_bool: "#2aa198"
-  shape_closure: { fg: "#859900" attr: b }
-  shape_custom: "#859900"
-  shape_datetime: { fg: "#2aa198" attr: b }
-  shape_directory: "#2aa198"
-  shape_external: "#2aa198"
-  shape_externalarg: { fg: "#859900" attr: b }
-  shape_filepath: "#2aa198"
-  shape_flag: { fg: "#268bd2" attr: b }
-  shape_float: { fg: "#6c71c4" attr: b }
-  shape_garbage: { fg: "#fdf6e3" bg: "#dc322f" attr: b }
-  shape_globpattern: { fg: "#2aa198" attr: b }
-  shape_int: { fg: "#6c71c4" attr: b }
-  shape_internalcall: { fg: "#2aa198" attr: b }
-  shape_list: { fg: "#2aa198" attr: b }
-  shape_literal: "#268bd2"
-  shape_match_pattern: "#859900"
-  shape_matching_brackets: { attr: u }
-  shape_nothing: "#2aa198"
-  shape_operator: "#b58900"
-  shape_or: { fg: "#6c71c4" attr: b }
-  shape_pipe: { fg: "#6c71c4" attr: b }
-  shape_range: { fg: "#b58900" attr: b }
-  shape_record: { fg: "#2aa198" attr: b }
-  shape_redirection: { fg: "#6c71c4" attr: b }
-  shape_signature: { fg: "#859900" attr: b }
-  shape_string: "#859900"
-  shape_string_interpolation: { fg: "#2aa198" attr: b }
-  shape_table: { fg: "#268bd2" attr: b }
-  shape_variable: "#6c71c4"
-  shape_vardecl: "#6c71c4"
+  header: { fg: $solarized.green attr: b }
+  empty: $solarized.blue
+  row_index: { fg: $solarized.green attr: b }
+  search_result: { bg: $solarized.red fg: $solarized.light_background }
+  shape_bool: $solarized.blue
+  shape_garbage: { fg: $solarized.red attr: b }
 }
+
+let solarized_dark_values = {
+  separator: $solarized.lightest_accent
+  bool: $solarized.blue
+  int: $solarized.blue
+  filesize: $solarized.blue
+  duration: $solarized.blue
+  date: $solarized.blue
+  range: $solarized.blue
+  float: $solarized.blue
+  string: $solarized.blue
+  nothing: $solarized.blue
+  binary: $solarized.blue
+  cellpath: $solarized.blue
+  record: $solarized.blue
+  list: $solarized.blue
+  block: $solarized.blue
+  hints: $solarized.lightest_accent
+  shape_literal: $solarized.blue
+  shape_nothing: $solarized.blue
+  shape_string: $solarized.blue
+  shape_table: { fg: $solarized.blue attr: b }
+  shape_variable: $solarized.blue
+  shape_vardecl: $solarized.blue
+}
+
+let solarized_dark_shapes = {
+  shape_and: $solarized.lightest_accent
+  shape_binary: $solarized.lightest_accent
+  shape_block: { fg: $solarized.blue attr: b }
+  shape_closure: { fg: $solarized.green attr: b }
+  shape_custom: $solarized.green
+  shape_datetime: $solarized.blue
+  shape_directory: $solarized.blue
+  shape_external: $solarized.green
+  shape_externalarg: $solarized.blue
+  shape_filepath: $solarized.blue
+  shape_flag: { fg: $solarized.blue attr: b }
+  shape_float: $solarized.blue
+  shape_globpattern: $solarized.blue
+  shape_int: $solarized.blue
+  shape_internalcall: $solarized.green
+  shape_list: { fg: $solarized.blue attr: b }
+  shape_match_pattern: $solarized.blue
+  shape_matching_brackets: { fg: $solarized.lightest_accent attr: u }
+  shape_operator: $solarized.lightest_accent
+  shape_or: $solarized.lightest_accent
+  shape_pipe: $solarized.lightest_accent
+  shape_range: $solarized.lightest_accent
+  shape_record: { fg: $solarized.blue attr: b }
+  shape_redirection: $solarized.lightest_accent
+  shape_signature: { fg: $solarized.green attr: b }
+  shape_string_interpolation: $solarized.blue
+}
+
+let solarized_light_values = {
+  separator: $solarized.light_accent
+  bool: $solarized.blue
+  int: $solarized.blue
+  filesize: $solarized.blue
+  duration: $solarized.blue
+  date: $solarized.blue
+  range: $solarized.blue
+  float: $solarized.blue
+  string: $solarized.blue
+  nothing: $solarized.blue
+  binary: $solarized.blue
+  cellpath: $solarized.blue
+  record: $solarized.blue
+  list: $solarized.blue
+  block: $solarized.blue
+  hints: $solarized.lightest_accent
+  shape_literal: $solarized.blue
+  shape_nothing: $solarized.blue
+  shape_string: $solarized.blue
+  shape_table: { fg: $solarized.blue attr: b }
+  shape_variable: $solarized.blue
+  shape_vardecl: $solarized.blue
+}
+
+let solarized_light_shapes = {
+  shape_and: $solarized.light_accent
+  shape_binary: $solarized.light_accent
+  shape_block: { fg: $solarized.blue attr: b }
+  shape_closure: { fg: $solarized.green attr: b }
+  shape_custom: $solarized.green
+  shape_datetime: $solarized.blue
+  shape_directory: $solarized.blue
+  shape_external: $solarized.green
+  shape_externalarg: $solarized.blue
+  shape_filepath: $solarized.blue
+  shape_flag: { fg: $solarized.blue attr: b }
+  shape_float: $solarized.blue
+  shape_globpattern: $solarized.blue
+  shape_int: $solarized.blue
+  shape_internalcall: $solarized.green
+  shape_list: { fg: $solarized.blue attr: b }
+  shape_match_pattern: $solarized.blue
+  shape_matching_brackets: { fg: $solarized.light_accent attr: u }
+  shape_operator: $solarized.light_accent
+  shape_or: $solarized.light_accent
+  shape_pipe: $solarized.light_accent
+  shape_range: $solarized.light_accent
+  shape_record: { fg: $solarized.blue attr: b }
+  shape_redirection: $solarized.light_accent
+  shape_signature: { fg: $solarized.green attr: b }
+  shape_string_interpolation: $solarized.blue
+}
+
+let menu_style = {
+  text: green
+  selected_text: green_reverse
+  description_text: yellow
+}
+
+# Solarized Dark theme
+let solarized_dark = (
+  $solarized_theme_base
+  | merge $solarized_dark_values
+  | merge $solarized_dark_shapes
+)
+
+# Solarized Light theme
+let solarized_light = (
+  $solarized_theme_base
+  | merge $solarized_light_values
+  | merge $solarized_light_shapes
+)
 
 # The default config record
 $env.config = {
@@ -150,7 +190,7 @@ $env.config = {
   }
   
   # Color settings
-  color_config: $solarized_dark  # Change to $solarized_light for light theme
+  color_config: $solarized_light
   use_ansi_coloring: true
   
   # Table display settings
@@ -167,12 +207,12 @@ $env.config = {
   # Explore command settings (for interactive table viewing)
   explore: {
     exit_esc: true
-    command_bar_text: "#C4C9C6"
-    status_bar_background: {fg: "#1D1F21" bg: "#C4C9C6"}
-    highlight: {fg: "black" bg: "yellow"}
-    
+    command_bar_text: $solarized.dark_accent
+    status_bar_background: {fg: $solarized.darkest_accent bg: $solarized.light_background_contrast}
+    highlight: {fg: $solarized.light_background bg: $solarized.yellow}
+
     table: {
-      split_line: "#404040"
+      split_line: $solarized.lightest_accent
       cursor: true
       line_index: true
       line_shift: true
@@ -234,11 +274,7 @@ $env.config = {
         col_width: 20
         col_padding: 2
       }
-      style: {
-        text: green
-        selected_text: green_reverse
-        description_text: yellow
-      }
+      style: $menu_style
     }
     {
       name: history_menu
@@ -248,11 +284,7 @@ $env.config = {
         layout: list
         page_size: 10
       }
-      style: {
-        text: green
-        selected_text: green_reverse
-        description_text: yellow
-      }
+      style: $menu_style
     }
   ]
 }

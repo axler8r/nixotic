@@ -59,14 +59,35 @@ These are the accent colours used for syntax and diagnostics.
 | Comments                                     | Light Accent (base0) | _Italic_ | `839496` |
 | Punctuation, operators, default foreground   | Light Accent (base0) | Normal   | `839496` |
 
-### Notes
 > [!NOTE]
 > - Strings and numeric/boolean literals intentionally share cyan.
 > - Comments, punctuation, operators, and default foreground intentionally share base0.
 > - Imports/includes/uses and macros/pragmas intentionally share magenta.
 
+
+## Zsh Preferences
+For interactive `zsh` command-line highlighting, use semantic colours that make
+command construction easy to scan while staying close to the overall palette.
+
+| Shell Element                       | Colour               | Style    | Hex      |
+| ----------------------------------- | -------------------- | -------- | -------- |
+| Valid commands, builtins, functions | green                | Normal   | `859900` |
+| Invalid or unknown commands         | red                  | **Bold** | `dc322f` |
+| Options and arguments               | blue                 | Normal   | `268bd2` |
+| Shell keywords / reserved words     | green                | **Bold** | `859900` |
+| Comments                            | Light Accent (base0) | _Italic_ | `839496` |
+| Separators and default foreground   | Light Accent (base0) | Normal   | `839496` |
+
+> [!NOTE]
+>
+> - Command validity should be visually obvious while typing.
+> - Option names such as `--color` and general arguments should both read as blue.
+> - Shell-specific readability takes priority over mirroring editor token categories exactly.
+
+
 ## Diagnostics
 Editor diagnostic colours are configured per-editor.
+
 | Severity | Colour | Hex      |
 | -------- | ------ | -------- |
 | Error    | red    | `dc322f` |
@@ -76,15 +97,18 @@ Editor diagnostic colours are configured per-editor.
 Neovim and Helix may require explicit overrides if built-in themes do not match
 these diagnostic preferences.
 
+
 ## Theming Strategy
 Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, wallpaper.
 
 Terminal and code-adjacent tools use manual Solarized themes so that shell colours
 and editor syntax colours remain independent:
 
-| Tool   | Theme source                                         |
-| ------ | ---------------------------------------------------- |
-| Kitty  | Manual ANSI palette in `home/kitty.nix`              |
-| Helix  | Custom `nixotic_solarized_light` in `home/helix.nix` |
-| bat    | Custom `NixoticSolarizedLight` in `home/bat.nix`     |
-| Neovim | vim-solarized8 (manual, not Stylix)                  |
+| Tool    | Theme source                                                     |
+| ------- | ---------------------------------------------------------------- |
+| Kitty   | Manual ANSI palette in `home/kitty.nix`                          |
+| Zsh     | Manual shell highlighting in `home/zsh.nix` plus `dircolors`     |
+| Nushell | Manual `solarized_light` config in `files/nushell/config.nu`     |
+| Helix   | Custom `nixotic_solarized_light` in `home/helix.nix`             |
+| bat     | Custom `NixoticSolarizedLight` in `home/bat.nix`                 |
+| Neovim  | `vim-solarized8` plus manual role overrides in `home/neovim.nix` |

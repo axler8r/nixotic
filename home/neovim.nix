@@ -1,5 +1,26 @@
 { config, pkgs, ... }:
 
+let
+  solarized = {
+    lightBackground = "#fdf6e3";
+    lightBackgroundContrast = "#eee8d5";
+    lightestAccent = "#93a1a1";
+    lightAccent = "#839496";
+    darkAccent = "#657b83";
+    darkestAccent = "#586e75";
+    darkBackgroundContrast = "#073642";
+    darkBackground = "#002b36";
+
+    red = "#dc322f";
+    orange = "#cb4b16";
+    yellow = "#b58900";
+    green = "#859900";
+    cyan = "#2aa198";
+    blue = "#268bd2";
+    violet = "#6c71c4";
+    magenta = "#d33682";
+  };
+in
 {
   programs.neovim = {
     enable = true;
@@ -313,68 +334,73 @@
       vim.cmd('colorscheme solarized8')
 
       -- Enforce Nixotic syntax role palette regardless of colorscheme defaults.
+      -- Names match `docs/theme.md` for readability.
       local role_hl = {
-        Comment = { fg = '#839496', italic = true },
-        SpecialComment = { fg = '#839496', italic = true },
-        Operator = { fg = '#839496' },
-        Delimiter = { fg = '#839496' },
+        Comment = { fg = '${solarized.lightAccent}', italic = true },
+        SpecialComment = { fg = '${solarized.lightAccent}', italic = true },
+        Operator = { fg = '${solarized.lightAccent}' },
+        Delimiter = { fg = '${solarized.lightAccent}' },
 
-        Keyword = { fg = '#859900', bold = true },
-        Conditional = { fg = '#859900', bold = true },
-        Repeat = { fg = '#859900', bold = true },
-        Statement = { fg = '#859900', bold = true },
-        StorageClass = { fg = '#859900', bold = true },
+        Keyword = { fg = '${solarized.green}', bold = true },
+        Conditional = { fg = '${solarized.green}', bold = true },
+        Repeat = { fg = '${solarized.green}', bold = true },
+        Statement = { fg = '${solarized.green}', bold = true },
+        StorageClass = { fg = '${solarized.green}', bold = true },
 
-        Identifier = { fg = '#268bd2' },
-        Constant = { fg = '#268bd2' },
-        Special = { fg = '#268bd2' },
-        Number = { fg = '#2aa198' },
-        Boolean = { fg = '#2aa198' },
-        Float = { fg = '#2aa198' },
-        String = { fg = '#2aa198' },
+        Identifier = { fg = '${solarized.blue}' },
+        Constant = { fg = '${solarized.blue}' },
+        Character = { fg = '${solarized.cyan}' },
+        Number = { fg = '${solarized.cyan}' },
+        Boolean = { fg = '${solarized.cyan}' },
+        Float = { fg = '${solarized.cyan}' },
+        String = { fg = '${solarized.cyan}' },
+        Special = { fg = '${solarized.violet}' },
+        SpecialChar = { fg = '${solarized.violet}' },
 
-        Type = { fg = '#b58900' },
-        Structure = { fg = '#b58900' },
-        Typedef = { fg = '#b58900' },
-        Constructor = { fg = '#b58900' },
+        Type = { fg = '${solarized.yellow}' },
+        Structure = { fg = '${solarized.yellow}' },
+        Typedef = { fg = '${solarized.yellow}' },
+        Constructor = { fg = '${solarized.yellow}' },
 
-        Function = { fg = '#cb4b16', italic = true },
+        Function = { fg = '${solarized.orange}', italic = true },
 
-        Include = { fg = '#d33682' },
-        Macro = { fg = '#d33682' },
-        PreProc = { fg = '#d33682' },
-        Define = { fg = '#d33682' },
+        Include = { fg = '${solarized.magenta}' },
+        Macro = { fg = '${solarized.magenta}' },
+        PreProc = { fg = '${solarized.magenta}' },
+        Define = { fg = '${solarized.magenta}' },
 
-        DiagnosticError = { fg = '#dc322f' },
-        DiagnosticWarn = { fg = '#cb4b16' },
-        DiagnosticInfo = { fg = '#2aa198' },
+        DiagnosticError = { fg = '${solarized.red}' },
+        DiagnosticWarn = { fg = '${solarized.orange}' },
+        DiagnosticInfo = { fg = '${solarized.cyan}' },
 
-        ['@comment'] = { fg = '#839496', italic = true },
-        ['@comment.documentation'] = { fg = '#839496', italic = true },
-        ['@keyword'] = { fg = '#859900', bold = true },
-        ['@keyword.import'] = { fg = '#d33682' },
-        ['@keyword.directive'] = { fg = '#d33682' },
-        ['@keyword.directive.define'] = { fg = '#d33682' },
-        ['@variable'] = { fg = '#268bd2' },
-        ['@variable.member'] = { fg = '#268bd2' },
-        ['@variable.builtin'] = { fg = '#268bd2' },
-        ['@constant'] = { fg = '#268bd2' },
-        ['@constant.builtin'] = { fg = '#268bd2' },
-        ['@number'] = { fg = '#2aa198' },
-        ['@boolean'] = { fg = '#2aa198' },
-        ['@string'] = { fg = '#2aa198' },
-        ['@string.regexp'] = { fg = '#6c71c4' },
-        ['@type'] = { fg = '#b58900' },
-        ['@type.builtin'] = { fg = '#b58900' },
-        ['@constructor'] = { fg = '#b58900' },
-        ['@function'] = { fg = '#cb4b16', italic = true },
-        ['@function.method'] = { fg = '#cb4b16', italic = true },
-        ['@function.builtin'] = { fg = '#cb4b16', italic = true },
-        ['@attribute'] = { fg = '#d33682' },
-        ['@module'] = { fg = '#d33682' },
-        ['@module.builtin'] = { fg = '#d33682' },
-        ['@operator'] = { fg = '#839496' },
-        ['@punctuation'] = { fg = '#839496' },
+        ['@comment'] = { fg = '${solarized.lightAccent}', italic = true },
+        ['@comment.documentation'] = { fg = '${solarized.lightAccent}', italic = true },
+        ['@keyword'] = { fg = '${solarized.green}', bold = true },
+        ['@keyword.import'] = { fg = '${solarized.magenta}' },
+        ['@keyword.directive'] = { fg = '${solarized.magenta}' },
+        ['@keyword.directive.define'] = { fg = '${solarized.magenta}' },
+        ['@variable'] = { fg = '${solarized.blue}' },
+        ['@variable.member'] = { fg = '${solarized.blue}' },
+        ['@variable.builtin'] = { fg = '${solarized.blue}' },
+        ['@constant'] = { fg = '${solarized.blue}' },
+        ['@constant.builtin'] = { fg = '${solarized.blue}' },
+        ['@number'] = { fg = '${solarized.cyan}' },
+        ['@boolean'] = { fg = '${solarized.cyan}' },
+        ['@string'] = { fg = '${solarized.cyan}' },
+        ['@string.escape'] = { fg = '${solarized.violet}' },
+        ['@string.special'] = { fg = '${solarized.violet}' },
+        ['@string.regexp'] = { fg = '${solarized.violet}' },
+        ['@type'] = { fg = '${solarized.yellow}' },
+        ['@type.builtin'] = { fg = '${solarized.yellow}' },
+        ['@constructor'] = { fg = '${solarized.yellow}' },
+        ['@function'] = { fg = '${solarized.orange}', italic = true },
+        ['@function.method'] = { fg = '${solarized.orange}', italic = true },
+        ['@function.builtin'] = { fg = '${solarized.orange}', italic = true },
+        ['@attribute'] = { fg = '${solarized.magenta}' },
+        ['@module'] = { fg = '${solarized.magenta}' },
+        ['@module.builtin'] = { fg = '${solarized.magenta}' },
+        ['@operator'] = { fg = '${solarized.lightAccent}' },
+        ['@punctuation'] = { fg = '${solarized.lightAccent}' },
       }
 
       for group, opts in pairs(role_hl) do
