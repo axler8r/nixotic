@@ -88,7 +88,10 @@
       nvidiaBusId = "PCI:1:0:0";
     };
   };
-  hardware.nvidia-container-toolkit.enable = true;
+
+  # Disabled on the laptop: the CDI generator can fail during activation when
+  # the dGPU driver is not loaded under PRIME offload/power saving.
+  hardware.nvidia-container-toolkit.enable = false;
 
   # Exclude GNOME bloat
   environment.gnome.excludePackages = with pkgs; [
@@ -117,7 +120,6 @@
       brave
     ];
   };
-
 
   nixpkgs.config.allowUnfree = true;
   nix.settings = {
@@ -149,7 +151,6 @@
   programs.nix-ld.enable = true;  # Run non-NixOS binaries
   programs.zsh.enable = true;
   virtualisation.docker.enable = true;
-
 
   services.clamav = {
     daemon.enable = true;

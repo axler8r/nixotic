@@ -34,7 +34,7 @@
       "env GTK_IM_MODULE" = "";
 
       # Font behavior
-      adjust_column_width = "-1";  # Tighter character spacing
+      # adjust_column_width = "-1";  # Tighter character spacing
       font_size = 10.0;
       disable_ligatures = "never";
 

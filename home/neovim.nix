@@ -438,7 +438,7 @@ in
 
       # Markdown
       markdownlint-cli2
-      nodePackages.prettier
+      prettier
 
       # Python
       ruff

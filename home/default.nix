@@ -22,7 +22,7 @@
     ./neovim.nix
     ./nh.nix
     ./nushell.nix
-    ./ranger.nix
+    ./yazi.nix
     ./ripgrep.nix
     ./starship.nix
     ./stylix.nix
@@ -74,7 +74,6 @@
     lsof
     p7zip
     pv
-    python3Packages.pygments # Syntax highlighting for ranger
     sd
     socat
     strace

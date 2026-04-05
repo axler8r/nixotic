@@ -17,11 +17,8 @@
     gparted
     blender
     bustle
-    commit
-    forge-sparks
     freecad
     gimp
-    gnome-builder
     gnome-secrets
     mission-center
     obsidian
@@ -163,7 +160,6 @@
           "Browse"
           "Command"
           "Create"
-          "Develop"
           "Entertain"
           "Manage"
           "Monitor"
@@ -177,16 +173,6 @@
           "blender.desktop"
           "gimp.desktop"
           "org.freecad.FreeCAD.desktop"
-        ];
-      };
-
-      # Develop folder
-      "org/gnome/desktop/app-folders/folders/Develop" = {
-        name = "Develop";
-        apps = [
-          "com.mardojai.ForgeSparks.desktop"
-          "org.gnome.Builder.desktop"
-          "re.sonny.Commit.desktop"
         ];
       };
 
@@ -208,7 +194,7 @@
           "Helix.desktop"
           "htop.desktop"
           "nvim.desktop"
-          "ranger.desktop"
+          "yazi.desktop"
         ];
       };
 
