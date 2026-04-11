@@ -1,6 +1,6 @@
 #! /usr/bin/env zsh
 
-# Set-TrailingNewline: Ensure text files end with exactly one newline
+# Test-TrailingNewline: Check whether text files end with exactly one newline
 
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
@@ -14,8 +14,9 @@ See also:
     ${0:t} --help
 "
 local _help="Description:
-    Ensure all text files in a directory tree end with exactly one newline.
-    Strips trailing blank lines and adds a final newline if missing.
+    Check whether text files in a directory tree end with exactly one newline.
+    Reports failure when files are missing a final newline or contain
+    trailing blank lines.
     Uses fd to discover files (respects .gitignore) and file(1) for
     binary detection.
 
@@ -32,9 +33,10 @@ Arguments:
     directory   Target directory (default: current directory)
 
 Examples:
-    ${0:t}                          # Fix all files in current directory
-    ${0:t} -e nix -e md             # Only fix .nix and .md files
-    ${0:t} ~/projects               # Fix files in specific directory
+    ${0:t}                          # Check all files in current directory
+    ${0:t} --verbose                # Check and list matching files
+    ${0:t} -e nix -e md             # Only check .nix and .md files
+    ${0:t} ~/projects               # Check files in specific directory
 "
 
 
@@ -73,7 +75,7 @@ _directory="${_directory:-.}"
 __ax_require_dir "$_directory" || return 1
 __ax_check_deps fd file || return 2
 
-__ax_trailing_newline_process "fix" "$_directory" "$_all_flag" "${_extensions[@]}"
+__ax_trailing_newline_process "check" "$_directory" "$_all_flag" "${_extensions[@]}"
 local _rc=$?
 
 

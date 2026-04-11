@@ -3,6 +3,6 @@
 {
   programs.nh = {
     enable = true;
-    flake = "/home/axl/.nixotic";
+    flake = "${config.home.homeDirectory}/.nixotic";
   };
 }

@@ -54,15 +54,16 @@ __ax_check_deps docker || return 2
 # Driver -----------------------------------------------------------------------
 function remove_dockerdanglingvolumes() {
     local _volumes=$(docker volume list --quiet --filter="dangling=true")
+    local _volume
 
     if [[ -z "${_volumes}" ]]; then
         echo "No dangling volumes to remove."
         return 0
     fi
 
-    echo "${_volumes}" | while read -r _vol; do
-        echo "Removing volume: ${_vol}"
-        docker volume rm "${_vol}"
+    for _volume in ${(f)_volumes}; do
+        echo "Removing volume: ${_volume}"
+        docker volume rm "${_volume}" || return 1
     done
 }
 

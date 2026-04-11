@@ -56,28 +56,23 @@ __ax_check_deps git || return 2
 
 # Driver -----------------------------------------------------------------------
 function resolve_gitpathrepository() {
-    if command -v git > /dev/null 2>&1
-    then
-        local _data
-        _data=$(foreach __AX_DIRECTORY in *(/) 
-        do
-            pushd $__AX_DIRECTORY
-            if git rev-parse --git-dir > /dev/null 2>&1; then
-                git remote --verbose | grep "fetch"
-                pwd
-            fi
-            popd
-        done \
-        | sed --expression="s/origin//" \
-        | sed --expression="s/ (fetch)//" \
-        | paste --delimiters="|" - -)
+    local _data
+    _data=$(foreach __AX_DIRECTORY in *(/)
+    do
+        pushd "$__AX_DIRECTORY" > /dev/null || return 1
+        if git rev-parse --git-dir > /dev/null 2>&1; then
+            git remote --verbose | grep "fetch"
+            pwd
+        fi
+        popd > /dev/null || return 1
+    done \
+    | sed --expression="s/origin//" \
+    | sed --expression="s/ (fetch)//" \
+    | paste --delimiters="|" - -) || return 1
 
-        echo ""
-        echo -e "Remote|Path\n${_data}" | __ax_table $_raw_flag
-        echo ""
-    else
-        __ax_error "git is not installed."
-    fi
+    echo ""
+    echo -e "Remote|Path\n${_data}" | __ax_table $_raw_flag
+    echo ""
 }
 
 

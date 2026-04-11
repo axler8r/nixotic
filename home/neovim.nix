@@ -28,6 +28,8 @@ in
     viAlias = true;
     vimAlias = true;
     vimdiffAlias = true;
+    withRuby = false;
+    withPython3 = false;
 
     plugins = with pkgs.vimPlugins; [
       # Colorscheme

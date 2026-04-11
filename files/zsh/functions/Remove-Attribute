@@ -73,9 +73,8 @@ done
 __ax_require_arg "${_attribute}" "attribute" || { echo "${_help}"; return 1; }
 __ax_require_arg "${_path}" "path" || { echo "${_help}"; return 1; }
 __ax_check_deps setfattr || return 2
-[[ ! -e "${_path}" ]] && { __ax_error "Path does not exist."; return 1; }
-[[ ! -w "${_path}" ]] && { __ax_error "Path is not writable."; return 1; }
-[[ ! -d "${_path}" && ! -f "${_path}" ]] && { __ax_error "Path is not a file or directory."; return 1; }
+__ax_require_writable_path_target "${_path}" || return 1
+__ax_require_xattr_name "${_attribute}" || return 1
 
 
 # main -------------------------------------------------------------------------
@@ -85,4 +84,3 @@ setfattr --remove user."${_attribute}" "${_path}"
 # cleanup ----------------------------------------------------------------------
 unfunction _show_version
 unfunction _show_help
-

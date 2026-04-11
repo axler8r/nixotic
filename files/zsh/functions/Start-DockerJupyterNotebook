@@ -11,9 +11,10 @@ __ax_check_deps docker || return 2
 
 source "${0:h}/../lib/docker.zsh"
 
-[[ -f /tmp/jupyternotebook*(.) ]] && rm /tmp/jupyternotebook*
+local __AX_BASE_NAME="jupyternotebook"
+[[ -f /tmp/${__AX_BASE_NAME}*(.) ]] && rm /tmp/${__AX_BASE_NAME}*
 
-local __AX_NAME="jupyternotebook-$(date +%Y%m%d%H%M%S)"
+local __AX_NAME="${__AX_BASE_NAME}-$(date +%Y%m%d%H%M%S)"
 
 docker run \
     --name "${__AX_NAME}" \

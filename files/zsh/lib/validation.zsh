@@ -53,3 +53,26 @@ __ax_require_extension() {
     local file="$1" ext="$2"
     [[ "${file:e}" == "$ext" ]] || { __ax_error "File must have .$ext extension: $file"; return 1 }
 }
+
+# Require path to exist and be a file or directory
+# Usage: __ax_require_path_target "$path" || return 1
+__ax_require_path_target() {
+    local path="$1"
+    [[ -e "$path" ]] || { __ax_error "Path does not exist."; return 1 }
+    [[ -d "$path" || -f "$path" ]] || { __ax_error "Path is not a file or directory."; return 1 }
+}
+
+# Require path to exist, be a file or directory, and be writable
+# Usage: __ax_require_writable_path_target "$path" || return 1
+__ax_require_writable_path_target() {
+    local path="$1"
+    __ax_require_path_target "$path" || return 1
+    [[ -w "$path" ]] || { __ax_error "Path is not writable."; return 1 }
+}
+
+# Require extended attribute name to be well-formed
+# Usage: __ax_require_xattr_name "$attr" || return 1
+__ax_require_xattr_name() {
+    local attribute="$1"
+    [[ "$attribute" =~ ^[a-zA-Z0-9._-]+$ ]] || { __ax_error "Invalid attribute name."; return 1 }
+}

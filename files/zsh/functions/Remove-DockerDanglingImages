@@ -54,15 +54,16 @@ __ax_check_deps docker || return 2
 # Driver -----------------------------------------------------------------------
 function remove_dockerdanglingimages() {
     local _ids=$(docker image list --filter="dangling=true" --format="{{.ID}}")
+    local _id
 
     if [[ -z "${_ids}" ]]; then
         echo "No dangling images to remove."
         return 0
     fi
 
-    echo "${_ids}" | while read -r _id; do
+    for _id in ${(f)_ids}; do
         echo "Removing image: ${_id}"
-        docker rmi "${_id}"
+        docker rmi "${_id}" || return 1
     done
 }
 

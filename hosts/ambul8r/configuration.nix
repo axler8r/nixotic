@@ -21,7 +21,6 @@
 
   networking.hostName = "ambul8r";
   networking.networkmanager.enable = true;
-  networking.wireless.enable = true;
 
   time.timeZone = "Pacific/Auckland";
 

@@ -45,6 +45,16 @@ You can:
 - Make sure you use the git commands to rename, move and delete files when files are under version control.
 
 
+## Git Commit Messages
+- Commit messages follow conventional commits.
+- Use `files/git/gitcommit` as the source for type, scope/context, and subject format.
+- Create messages with the following subheadings if needed:
+  - `add:`, `deprecate:`, `retire:`, `modify:`, `defect:`, `style:`, `refactor:`
+- Use lists
+- List each change
+- Description of changes should not exceed 100 characters
+
+
 ## Build Commands
 - `nh os switch`, to apply NixOS + Home Manager changes
 - `nh os build`, to test build without switching

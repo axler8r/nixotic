@@ -3,6 +3,7 @@
 # Get-UserFunctions: List all user functions
 
 source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
 local _synopsis="Synopsis:
@@ -163,6 +164,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Main -------------------------------------------------------------------------
+__ax_check_deps readlink sort || return 2
 local _functions_dir=$(_get_functions_dir)
 
 echo "User Functions (from ${_functions_dir}):"
