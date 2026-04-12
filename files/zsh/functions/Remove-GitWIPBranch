@@ -1,0 +1,42 @@
+#! /usr/bin/env zsh
+
+# Remove-GitWIPBranch: Delete a merged WIP branch by name
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+source "${0:h}/../lib/git.zsh"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <wip-branch>
+
+Delete a merged local wip/* branch.
+
+Requirements:
+  - Inside a Git repository
+  - Branch name must be explicit
+  - Branch must exist locally
+  - Branch must already be merged into stable
+  - Branch cannot be the current branch
+EOF
+    return 0
+fi
+
+typeset _branch="$1"
+
+__ax_require_arg "${_branch}" "wip branch name" || { __ax_error "Usage: ${0:t} <wip-branch>"; return 1 }
+[[ $# -eq 1 ]] || { __ax_error "Usage: ${0:t} <wip-branch>"; return 1 }
+
+__ax_require_git_repo || return $?
+__ax_require_branch_exists stable || return 1
+__ax_require_branch_exists "${_branch}" || return 1
+__ax_require_wip_branch "${_branch}" || return 1
+__ax_require_not_branch "${_branch}" || return 1
+
+git merge-base --is-ancestor "${_branch}" stable \
+    || { __ax_error "Branch is not fully merged into stable: ${_branch}"; return 1 }
+
+git branch -d "${_branch}" > /dev/null \
+    || { __ax_error "Could not delete branch: ${_branch}"; return 1 }
+
+__ax_success "Deleted ${_branch}."

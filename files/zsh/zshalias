@@ -24,6 +24,13 @@ alias lsip=' Get-IpAddress '
 alias lstermdim=' Get-TerminalDimensions '
 alias lswinkey=' Get-WindowsKey '
 
+# Git workflow
+alias update-gitstablebranch=' Update-GitStableBranch '
+alias new-gitwipbranch=' New-GitWIPBranch '
+alias update-gitwipbranchhistory=' Update-GitWIPBranchHistory '
+alias complete-gitwipbranch=' Complete-GitWIPBranch '
+alias remove-gitwipbranch=' Remove-GitWIPBranch '
+
 # Editor variants (light theme)
 alias manw='MANWIDTH="" command man '
 alias nvim=' nvim '

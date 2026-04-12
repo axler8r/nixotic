@@ -1,27 +1,32 @@
 # Git Workflow
-This repository follows **Trunk-Based Development** designed for a single-user
-NixOS configuration. The `stable` branch is the single source of truth.
+This repository uses a simple **WIP-first trunk workflow** for a single-user
+NixOS configuration. The `stable` branch is the source of truth, and all active
+work happens on `wip/*` branches created from `stable`.
 
 
 ## The Cycle
 
-### 1. Start from Stable
+### 1. Update Stable
 ```bash
-git checkout stable
-git pull origin stable
+Update-GitStableBranch
 ```
 
-### 2. Create a Feature Branch
-Use descriptive names for parallel experiments:
+This command refuses dirty worktrees and fast-forwards `stable` from
+`origin/stable`.
+
+### 2. Create a WIP Branch
 ```bash
-git checkout -b feat/nvim-config
-git checkout -b fix/audio-crackling
-git checkout -b refactor/zsh-aliases
+New-GitWIPBranch
 ```
 
-### 3. Develop & Test
-Make changes, then apply:
+This creates and switches to `wip/YYYYMMDD-<random7>` from a clean `stable`
+branch.
+
+### 3. Develop & Validate
+Make changes, then validate them with the existing Nix workflow:
 ```bash
+nix flake check --no-build
+nh os build --dry
 nh os switch
 ```
 
@@ -32,31 +37,41 @@ nh os switch
 See [validation.md](validation.md) for the full validation workflow.
 
 ### 4. Curate History
-Before merging, clean up commits:
+Before landing work on `stable`, clean up the WIP history:
 ```bash
-git rebase --interactive stable
+Update-GitWIPBranchHistory
 ```
 
 - Squash "wip" commits
 - Reword messages for clarity
 - Follow [Conventional Commits](https://www.conventionalcommits.org/)
 
-### 5. Merge
-Fast-forward merge to stable:
+This runs `git rebase --interactive stable` from the current `wip/*` branch
+after checking repo state.
+
+### 5. Complete the WIP Branch
 ```bash
-git checkout stable
-git merge feat/my-change --ff-only
+Complete-GitWIPBranch
 ```
+
+This switches to `stable` and runs `git merge --ff-only <current-wip-branch>`.
+If `stable` cannot be fast-forwarded, it refuses to merge.
 
 ### 6. Cleanup
 ```bash
-git branch -d feat/my-change
+Remove-GitWIPBranch <wip-branch>
 ```
+
+Cleanup stays explicit. The branch name is required, and only merged `wip/*`
+branches can be deleted.
 
 ## Guidelines
 | Practice | Reason |
 |----------|--------|
+| Keep all active work on `wip/*` branches | Enforces the intended `stable -> wip/* -> stable` flow |
+| Let `New-GitWIPBranch` create branch names | Keeps branch creation consistent |
+| Keep history curation explicit | Avoids hidden rebases during completion |
+| Keep cleanup explicit | Avoids hidden deletion of the wrong branch |
 | Separate `flake.lock` updates | Makes regressions easier to identify |
 | Use NixOS generations for rollback | Runtime safety net |
 | Use Git for configuration history | Track what changed and why |
-| Prefix branches with type | `feat/`, `fix/`, `refactor/`, `docs/` |
