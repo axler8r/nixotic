@@ -15,10 +15,7 @@
     gnome-power-manager
     gnome-tweaks
     gparted
-    blender
     bustle
-    freecad
-    gimp
     gnome-secrets
     mission-center
     obsidian
@@ -159,20 +156,9 @@
           "Assist"
           "Browse"
           "Command"
-          "Create"
           "Entertain"
           "Manage"
           "Monitor"
-        ];
-      };
-
-      # Create folder
-      "org/gnome/desktop/app-folders/folders/Create" = {
-        name = "Create";
-        apps = [
-          "blender.desktop"
-          "gimp.desktop"
-          "org.freecad.FreeCAD.desktop"
         ];
       };
 

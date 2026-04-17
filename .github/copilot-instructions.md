@@ -55,10 +55,10 @@ You can:
 - Description of changes should not exceed 100 characters
 
 
-## Build Commands
-- `nh os switch`, to apply NixOS + Home Manager changes
-- `nh os build`, to test build without switching
-- `nix flake check`, to validate flake
+ ## Build Commands
+ - `nh os build`, to test build without switching
+ - `nix flake check`, to validate flake
+ - Do not run `nh os switch`; only the user applies changes in a separate terminal.
 
 
 ## Style

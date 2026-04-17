@@ -123,6 +123,7 @@
   nixpkgs.config.allowUnfree = true;
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
+    auto-optimise-store = true;
 
     # Build performance
     max-jobs = "auto";
@@ -140,8 +141,8 @@
   };
   nix.gc = {
     automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 21d";
+    dates = "daily";
+    options = "--delete-older-than 7d";
     persistent = true;
   };
 
@@ -158,7 +159,6 @@
 
   environment.systemPackages = with pkgs; [
     # system tools
-    cudaPackages.cudatoolkit
     cryptsetup  # LUKS encryption for vault functions
     file
     htop
