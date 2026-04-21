@@ -5,6 +5,7 @@
     ./atuin.nix
     ./bat.nix
     ./btop.nix
+    ./claude.nix
     ./dircolors.nix
     ./direnv.nix
     ./eza.nix
@@ -56,7 +57,6 @@
     # AI coding assistants
     claude-code
     codex
-    github-copilot-cli
 
     # Editors & text processing
     universal-ctags

@@ -64,14 +64,14 @@
       theme = "nixotic_solarized_light";
 
       editor = {
-        line-number = "relative";
-        cursorline = true;
+        auto-pairs = true;
         auto-save = true;
+        bufferline = "multiple";  # Show tabs when multiple buffers open
+        color-modes = true;
+        cursorline = true;
+        line-number = "relative";
         rulers = [70 80 110];
         scrolloff = 13;
-        color-modes = true;
-        bufferline = "multiple";  # Show tabs when multiple buffers open
-        auto-pairs = true;
 
         cursor-shape = {
           insert = "bar";
@@ -85,9 +85,9 @@
         # Whitespace rendering (helps spot trailing spaces)
         whitespace = {
           render = {
+            newline = "none";
             space = "none";
             tab = "all";
-            newline = "none";
           };
           characters = {
             tab = "→";
@@ -107,7 +107,7 @@
           };
         };
 
-        file-picker.hidden = false;
+        file-picker.hidden = true;
 
         lsp = {
           display-messages = true;
@@ -116,16 +116,16 @@
       };
 
       keys.normal = {
-        space.w = ":write";
-        space.q = ":quit";
-        space.f = "file_picker";
-        space.b = "buffer_picker";
-        space.s = "symbol_picker";
         space.S = "workspace_symbol_picker";
-        space.g = "changed_file_picker";
+        space.b = "buffer_picker";
         space.d = "diagnostics_picker";
+        space.f = "file_picker";
+        space.g = "changed_file_picker";
+        space.q = ":quit";
         space.r = ":reload";
+        space.s = "symbol_picker";
         space.space = "last_picker";
+        space.w = ":write";
 
         # Buffer navigation (like :bnext/:bprev)
         "A-." = ":buffer-next";
@@ -167,12 +167,12 @@
 
     # LSP servers for Helix
     extraPackages = with pkgs; [
-      pyright              # Python
-      rust-analyzer        # Rust
-      elixir-ls            # Elixir
       csharp-ls            # C# / .NET
+      elixir-ls            # Elixir
       jdt-language-server  # Java
       nil                  # Nix
+      pyright              # Python
+      rust-analyzer        # Rust
     ];
   };
 }

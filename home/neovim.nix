@@ -299,9 +299,6 @@ in
           })
         '';
       }
-
-      # AI
-      copilot-vim
     ];
 
     initLua = ''

@@ -1,0 +1,14 @@
+# Nix build artefacts
+*.code-workspace
+flake.lock
+nhbuild
+result*
+
+# Hardware-specific config (machine-generated, not for editing)
+hosts/*/hardware-configuration.nix
+
+# Archived docs
+docs/archive/
+
+# Tags
+tags
