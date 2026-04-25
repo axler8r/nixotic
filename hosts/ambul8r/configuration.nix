@@ -150,7 +150,19 @@
   fonts.packages = with pkgs; [ cascadia-code fira-code jetbrains-mono ];
   programs.nix-ld.enable = true;  # Run non-NixOS binaries
   programs.zsh.enable = true;
-  virtualisation.docker.enable = true;
+  virtualisation.docker = {
+    enable = true;
+    daemon.settings = {
+      data-root = "/var/lib/docker";
+      storage-driver = "zfs";
+    };
+  };
+
+  systemd.services.docker = {
+    after = [ "zfs-import-dpool.service" ];
+    requires = [ "zfs-import-dpool.service" ];
+    path = [ pkgs.zfs ];
+  };
 
   services.clamav = {
     daemon.enable = true;

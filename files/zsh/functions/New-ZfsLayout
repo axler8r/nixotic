@@ -44,6 +44,7 @@ local _dry_run=""
 
 typeset -a _datasets
 _datasets=(
+    "HOSTDATA/var/lib/docker|/var/lib/docker"
     "USERDATA/home/axl/Documents|/home/axl/Documents"
     "USERDATA/home/axl/Downloads|/home/axl/Downloads"
     "USERDATA/home/axl/Media|/home/axl/Media"
@@ -89,12 +90,12 @@ _run() {
 
 _dataset_exists() {
     local dataset="$1"
-    zfs mount | awk '{print $1}' | grep --fixed-strings --line-regexp --quiet -- "${dataset}"
+    zfs list -H -o name "${dataset}" &>/dev/null
 }
 
 _pool_exists() {
     local pool="$1"
-    zfs mount | awk -F/ '{print $1}' | grep --fixed-strings --line-regexp --quiet -- "${pool}"
+    zpool list -H -o name "${pool}" &>/dev/null
 }
 
 new_zfs_layout() {
@@ -106,7 +107,7 @@ new_zfs_layout() {
 
     if ! _pool_exists "${_pool}"; then
         if [[ -z "${_device}" ]]; then
-            __ax_error "Pool '${_pool}' is not visible via mounted datasets; pass --device to create it"
+            __ax_error "Pool '${_pool}' does not exist; pass --device to create it"
             return 1
         fi
 
@@ -168,7 +169,7 @@ done
 
 # Main -------------------------------------------------------------------------
 [[ -n $_help_flag ]] && _help && return 0
-__ax_check_deps zfs zpool awk grep mkdir chown || return 2
+__ax_check_deps zfs zpool mkdir chown || return 2
 
 if [[ -z "${_dry_run}" ]]; then
     __ax_require_root || return 2
