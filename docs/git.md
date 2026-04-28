@@ -1,7 +1,13 @@
 # Git Workflow
-This repository uses a simple **WIP-first trunk workflow** for a single-user
-NixOS configuration. The `stable` branch is the source of truth, and all active
-work happens on `wip/*` branches created from `stable`.
+This repository uses a **WIP-first trunk workflow**: all active work happens on
+short-lived `wip/*` branches that fast-forward into `stable`.
+
+A feature-branch or git-flow model would add overhead with no benefit here —
+there is no team review gate, and keeping history linear on `stable` makes it
+easy to bisect regressions. WIP branches are ephemeral; `stable` is the only
+durable ref.
+
+The `stable` branch is the source of truth.
 
 
 ## The Cycle
@@ -47,7 +53,8 @@ Update-GitWIPBranchHistory
 - Follow [Conventional Commits](https://www.conventionalcommits.org/)
 
 This runs `git rebase --interactive stable` from the current `wip/*` branch
-after checking repo state.
+after checking repo state. Curation is a separate explicit step — mixing it
+into the completion command would make rebases invisible and harder to review.
 
 ### 5. Complete the WIP Branch
 ```bash
@@ -55,7 +62,9 @@ Complete-GitWIPBranch
 ```
 
 This switches to `stable` and runs `git merge --ff-only <current-wip-branch>`.
-If `stable` cannot be fast-forwarded, it refuses to merge.
+Fast-forward only is intentional: it requires the WIP branch to be rebased on
+top of `stable` before merging, which keeps `stable`'s history linear and
+bisectable. If `stable` cannot be fast-forwarded, the command refuses.
 
 ### 6. Cleanup
 ```bash
@@ -66,12 +75,12 @@ Cleanup stays explicit. The branch name is required, and only merged `wip/*`
 branches can be deleted.
 
 ## Guidelines
-| Practice | Reason |
-|----------|--------|
-| Keep all active work on `wip/*` branches | Enforces the intended `stable -> wip/* -> stable` flow |
-| Let `New-GitWIPBranch` create branch names | Keeps branch creation consistent |
-| Keep history curation explicit | Avoids hidden rebases during completion |
-| Keep cleanup explicit | Avoids hidden deletion of the wrong branch |
-| Separate `flake.lock` updates | Makes regressions easier to identify |
-| Use NixOS generations for rollback | Runtime safety net |
-| Use Git for configuration history | Track what changed and why |
+| Practice                                   | Reason                                                 |
+| ------------------------------------------ | ------------------------------------------------------ |
+| Keep all active work on `wip/*` branches   | Enforces the intended `stable -> wip/* -> stable` flow |
+| Let `New-GitWIPBranch` create branch names | Keeps branch creation consistent                       |
+| Keep history curation explicit             | Avoids hidden rebases during completion                |
+| Keep cleanup explicit                      | Avoids hidden deletion of the wrong branch             |
+| Separate `flake.lock` updates              | Makes regressions easier to identify                   |
+| Use NixOS generations for rollback         | Runtime safety net                                     |
+| Use Git for configuration history          | Track what changed and why                             |

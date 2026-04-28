@@ -190,6 +190,18 @@
     trim.enable = true;                # TRIM for SSDs
   };
 
+  systemd.tmpfiles.rules = [
+    "d /home/axl/Documents                0755 axl users -"
+    "d /home/axl/Downloads                0755 axl users -"
+    "d /home/axl/Media                    0755 axl users -"
+    "d /home/axl/Projects                 0755 axl users -"
+    "d /home/axl/Projects/AxlER8R         0755 axl users -"
+    "d /home/axl/Projects/GitHub          0755 axl users -"
+    "d /home/axl/Projects/GitLab          0755 axl users -"
+    "d /home/axl/Projects/Sandbox         0755 axl users -"
+    "d /home/axl/Vaults                   0755 axl users -"
+  ];
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave

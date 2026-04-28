@@ -1,44 +1,56 @@
 # Configuration Validation
-
 A staged approach to validate Nix configuration changes before applying them.
-Each step catches different classes of errors.
+Each step is cheaper than the next and catches a different class of error —
+running them in order means failures surface as early as possible.
+
 
 ## The Pipeline
-
 ```mermaid
 flowchart LR
     A[flake check<br/>validate] --> B[nh build<br/>plan+diff]
-    B --> C[realise<br/>inspect]
-    C --> D[nh switch<br/>apply]
-    
-    C -.- E((optional))
-    
+    B --> C[nh switch<br/>apply]
+
     style A fill:#e1f5ff
     style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style D fill:#e8f5e9
+    style C fill:#e8f5e9
 ```
 
-## Standard Workflow
 
+## Standard Workflow
 For routine configuration changes:
 
 ```bash
-# 1. Validate flake structure
+# 1. Validate flake structure — catches schema errors before any build starts
 nix flake check --no-build
 
-# 2. Dry build with package diff
+# 2. Dry build with package diff — shows what will be built/removed without applying
 nh os build --dry
 
 # 3. Apply configuration
 nh os switch
 ```
 
-## Extended Workflow
+`nh` is preferred over `nixos-rebuild` because it shows a readable diff of
+added/removed packages, size comparison, and cleaner error output.
 
-For escaping-sensitive changes (e.g., migrating dotfiles to pure Nix):
 
-### 1. Parse & Evaluate Module
+## When to Use Each Workflow
+| Scenario                   | Workflow                                                    |
+| -------------------------- | ----------------------------------------------------------- |
+| Adding a package           | Apply directly                                              |
+| Routine config changes     | Standard (Check → Plan → Apply)                             |
+| Escaping-sensitive changes | Standard + [inspect derivation](#debugging-escaping-issues) |
+| Large refactors            | Standard + careful inspection                               |
+
+
+## Debugging Escaping Issues
+When migrating dotfiles to pure Nix, escaping bugs are common and invisible
+until the generated file is read directly. Two extra steps help:
+
+### Parse the module
+Before `flake check`, you can parse a single module in isolation to catch syntax
+errors, undefined variables, and type mismatches without evaluating the whole
+flake:
 
 ```bash
 nix eval --impure --expr '
@@ -47,64 +59,25 @@ nix eval --impure --expr '
 '
 ```
 
-**Catches:** Syntax errors, undefined variables, type mismatches
-
-### 2. Flake Check
-
-```bash
-nix flake check --no-build
-```
-
-**Catches:** Missing inputs, schema violations, Home Manager option errors
-
-### 3. Dry Build
+### Realise and inspect the derivation
+After `nh os build --dry`, take the `.drv` path from the output and realise it
+to read the actual generated file. This is the only way to verify that escape
+sequences and string interpolations produced the expected bytes:
 
 ```bash
-nh os build --dry
-```
-
-**Catches:** Missing dependencies, shows derivations to be built
-
-### 4. Realise & Inspect
-
-```bash
-# Build specific derivation from dry build output
+# Build a specific derivation from dry build output
 nix-store --realise /nix/store/<hash>-<name>.drv
 
-# Inspect the generated file
+# Read the generated file directly
 cat /nix/store/<hash>-<name>
 ```
 
-**Catches:** Incorrect escaping, malformed output
-
-### 5. Apply
-
-```bash
-nh os switch
-```
 
 ## Quick Reference
-
-| Step    | Command                          | When to Use        |
-| ------- | -------------------------------- | ------------------ |
-| Check   | `nix flake check --no-build`     | Always             |
-| Plan    | `nh os build --dry`              | Before applying    |
-| Parse   | `nix eval --impure --expr '...'` | Debugging syntax   |
-| Inspect | `nix-store --realise` + `cat`    | Verifying escaping |
-| Apply   | `nh os switch`                   | Deploying changes  |
-
-## When to Use Each Workflow
-
-| Scenario                   | Workflow                         |
-| -------------------------- | -------------------------------- |
-| Adding a package           | Apply directly                   |
-| Routine config changes     | Standard (Check → Plan → Apply)  |
-| Escaping-sensitive changes | Extended (all steps)             |
-| Large refactors            | Extended with careful inspection |
-
-## Why `nh` over `nixos-rebuild`
-
-- Readable diff showing added/removed files
-- Size comparison before/after
-- Progress visualization with dependency graph
-- Cleaner error output
+| Step    | Command                          | Catches                                          |
+| ------- | -------------------------------- | ------------------------------------------------ |
+| Check   | `nix flake check --no-build`     | Schema violations, missing inputs, option errors |
+| Plan    | `nh os build --dry`              | Missing dependencies; shows derivations to build |
+| Apply   | `nh os switch`                   | Runtime failures                                 |
+| Parse   | `nix eval --impure --expr '...'` | Syntax errors, undefined vars (debugging only)   |
+| Inspect | `nix-store --realise` + `cat`    | Incorrect escaping, malformed output             |

@@ -1,0 +1,156 @@
+#! /usr/bin/env zsh
+
+# Sync-FileIndex: Reconcile a tickmark index file with actual directory contents
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [-f INDEX_FILE] [DIRECTORY]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Reconcile a tickmark index file with actual directory contents.
+    New files are appended with an empty mark; deleted files are removed.
+    Existing marks are preserved.
+
+Usage:
+    ${0:t} [-f INDEX_FILE] [--dry-run] [DIRECTORY]
+
+Arguments:
+    DIRECTORY              Directory to scan (default: directory containing INDEX_FILE)
+
+Options:
+    -f, --file INDEX_FILE  Index file to reconcile (default: _TRACK in DIRECTORY)
+    --dry-run              Show what would be added or removed without writing changes
+    --help                 Show this help message
+
+Environment:
+    TRACK_EXCLUDE_GLOB     Colon-separated filename globs to exclude (e.g. \"*.sh:reconcile-*\")
+
+Examples:
+    ${0:t}
+    ${0:t} /path/to/dir
+    ${0:t} -f /path/to/_TRACK
+    ${0:t} --dry-run
+    TRACK_EXCLUDE_GLOB=\"*.sh\" ${0:t}
+"
+
+local _self="${0:t}"
+local _track_file=""
+local _dir=""
+local _dry_run=""
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+_excluded() {
+    local fname="$1"
+    [[ "$fname" == "$_self" ]] && return 0
+    local -a pats=()
+    [[ -n "${TRACK_EXCLUDE_GLOB:-}" ]] && pats=("${(@s/:/)TRACK_EXCLUDE_GLOB}")
+    local pat
+    for pat in "${pats[@]}"; do
+        # shellcheck disable=SC2254
+        case "$fname" in $pat) return 0 ;; esac
+    done
+    return 1
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)         _help_flag=true; shift ;;
+        --dry-run)      _dry_run=true; shift ;;
+        -f|--file)      _track_file="$2"; shift 2 ;;
+        -f*)            _track_file="${1#-f}"; shift ;;
+        *)              _dir="$1"; shift ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+_track_file="${_track_file:-${_dir:-.}/_TRACK}"
+_track_file="$(realpath "$_track_file")"
+_dir="${_dir:-$(dirname "$_track_file")}"
+
+__ax_require_file "$_track_file" || return 1
+
+
+# Driver -----------------------------------------------------------------------
+sync_file_index() {
+    local -A marks
+    local -a order
+    local -A on_disk
+    local -a added=()
+    local -a removed=()
+    local fname bname
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" ]] && continue
+        if [[ "$line" =~ "^\[(.)\][[:space:]](.+)$" ]]; then
+            fname="$match[2]"
+            marks[$fname]="$match[1]"
+            order+=("$fname")
+        fi
+    done < "$_track_file"
+
+    while IFS= read -r -d '' path; do
+        bname="${path:t}"
+        [[ "$bname" == "${_track_file:t}" ]] && continue
+        _excluded "$bname" && continue
+        on_disk[$bname]=1
+    done < <(find "$_dir" -maxdepth 1 -type f -print0)
+
+    for fname in "${(@k)on_disk}"; do
+        (( ${+marks[$fname]} )) || added+=("$fname")
+    done
+
+    for fname in "${(@k)marks}"; do
+        (( ${+on_disk[$fname]} )) || removed+=("$fname")
+    done
+
+    if [[ ${#added[@]} -eq 0 && ${#removed[@]} -eq 0 ]]; then
+        __ax_success "'${_track_file:t}' is already in sync."
+        return 0
+    fi
+
+    [[ ${#added[@]}   -gt 0 ]] && __ax_info "adding   (${#added[@]}): ${(j:, :)added}"
+    [[ ${#removed[@]} -gt 0 ]] && __ax_info "removing (${#removed[@]}): ${(j:, :)removed}"
+
+    [[ -n "$_dry_run" ]] && return 0
+
+    local -a output_lines=()
+    for fname in "${order[@]}"; do
+        (( ${+on_disk[$fname]} )) && output_lines+=("[${marks[$fname]}] $fname")
+    done
+    for fname in "${added[@]}"; do
+        output_lines+=("[ ] $fname")
+    done
+    printf '%s\n' "${(o)output_lines[@]}" > "$_track_file"
+
+    __ax_success "'${_track_file:t}' reconciled."
+}
+
+sync_file_index
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction _excluded
+unfunction sync_file_index

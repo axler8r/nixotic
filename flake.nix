@@ -13,12 +13,18 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, stylix, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, stylix, disko, ... }@inputs:
     let
       system = "x86_64-linux";
-      
+      pkgs = nixpkgs.legacyPackages.${system};
+
       # Common Home Manager configuration
       homeManagerConfig = {
         home-manager.useGlobalPkgs = true;
@@ -42,9 +48,22 @@
     {
       nixosConfigurations = {
         ambul8r = mkHost ./hosts/ambul8r/configuration.nix;
-        
+
         # ML workstation (TODO: configure when ready)
         # infer8r = mkHost ./hosts/infer8r/configuration.nix;
+      };
+
+      apps.${system}.install = {
+        type = "app";
+        program = toString (pkgs.writeShellScript "nixotic-install" ''
+          set -euo pipefail
+          export NIXOTIC_DISKO=${disko}
+          rm -rf /tmp/nixotic
+          cp -r ${self} /tmp/nixotic
+          chmod -R u+w /tmp/nixotic
+          chmod +x /tmp/nixotic/scripts/Install-NixOS.sh
+          exec /tmp/nixotic/scripts/Install-NixOS.sh "$@"
+        '');
       };
     };
 }

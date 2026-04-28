@@ -1,6 +1,13 @@
 # Package Declaration Guide
 Where to declare packages in a NixOS + Home Manager configuration.
 
+NixOS owns the system — services, root access, shared state. Home Manager owns
+the user environment — dotfiles, shell tools, typed configuration. Packages sit
+at different levels because some need system integration (D-Bus, polkit, MIME
+associations) that Home Manager cannot provide, while others are pure user tools
+that have no business touching the system layer. The four locations reflect that
+boundary.
+
 
 ## Decision Flowchart
 ```mermaid
@@ -26,7 +33,6 @@ flowchart TD
 
 
 ## Quick Reference
-
 ### 1. `environment.systemPackages`
 **Location:** `hosts/*/configuration.nix`  
 **Use for:** System-wide tools, root access, all users
@@ -39,6 +45,11 @@ Examples:
 ### 2. `users.users.<name>.packages`
 **Location:** `hosts/*/configuration.nix`  
 **Use for:** User-specific packages needing system integration
+
+This tier exists because some apps (browsers, apps using polkit or D-Bus)
+need to be visible at the system level for things like MIME handler registration
+and desktop integration to work — `home.packages` installs into the user profile
+only, which is not enough.
 
 Examples:
 - Browsers: `brave`
