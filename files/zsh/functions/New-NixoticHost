@@ -1,0 +1,79 @@
+#! /usr/bin/env zsh
+
+# New-NixoticHost: Scaffold a new NixOS host in the local nixotic checkout
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} <hostname> [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Scaffold a new NixOS host in the local nixotic checkout.
+    Wrapper around nix run .#prepare — see scripts/Prepare-NewHost.sh.
+
+Usage:
+    ${0:t} <hostname> [opts]
+
+Options:
+    --help              Show this help message
+    --from <template>   Host to copy as template (default: ambul8r)
+    --no-commit         Scaffold files but skip the WIP branch and commit
+
+Examples:
+    ${0:t} servr8r
+    ${0:t} servr8r --from ambul8r
+    ${0:t} servr8r --no-commit
+"
+
+typeset -a _fwd_args
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() {
+    echo "${_synopsis}" | tail --lines=+2
+}
+
+_help() {
+    echo "${_help}" | tail --lines=+2
+}
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)  _help_flag=true; shift ;;
+        *)       _fwd_args+=("$1"); shift ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n ${_help_flag:-} ]] && _help && return 0
+__ax_check_deps nix || return 2
+
+
+# Driver -----------------------------------------------------------------------
+function new_nixotic_host() {
+    local _nixotic_dir="${HOME}/.nixotic"
+
+    if [[ ! -d "${_nixotic_dir}" ]]; then
+        __ax_error "Nixotic checkout not found at ${_nixotic_dir}"
+        __ax_info  "On a fresh machine run: nix run github:axler8r/nixotic#prepare -- ${_fwd_args[*]}"
+        return 1
+    fi
+
+    nix run "${_nixotic_dir}#prepare" -- "${_fwd_args[@]}"
+}
+
+new_nixotic_host
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis
+unfunction _help
+unfunction new_nixotic_host

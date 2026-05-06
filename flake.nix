@@ -53,17 +53,31 @@
         # infer8r = mkHost ./hosts/infer8r/configuration.nix;
       };
 
-      apps.${system}.install = {
-        type = "app";
-        program = toString (pkgs.writeShellScript "nixotic-install" ''
-          set -euo pipefail
-          export NIXOTIC_DISKO=${disko}
-          rm -rf /tmp/nixotic
-          cp -r ${self} /tmp/nixotic
-          chmod -R u+w /tmp/nixotic
-          chmod +x /tmp/nixotic/scripts/Install-NixOS.sh
-          exec /tmp/nixotic/scripts/Install-NixOS.sh "$@"
-        '');
+      apps.${system} = {
+        install = {
+          type = "app";
+          program = toString (pkgs.writeShellScript "nixotic-install" ''
+            set -euo pipefail
+            export NIXOTIC_DISKO=${disko}
+            rm -rf /tmp/nixotic
+            cp -r ${self} /tmp/nixotic
+            chmod -R u+w /tmp/nixotic
+            chmod +x /tmp/nixotic/scripts/Install-NixOS.sh
+            exec /tmp/nixotic/scripts/Install-NixOS.sh "$@"
+          '');
+        };
+
+        prepare = {
+          type = "app";
+          program = toString (pkgs.writeShellScript "nixotic-prepare" ''
+            set -euo pipefail
+            rm -rf /tmp/nixotic-prepare
+            cp -r ${self} /tmp/nixotic-prepare
+            chmod -R u+w /tmp/nixotic-prepare
+            chmod +x /tmp/nixotic-prepare/scripts/Prepare-NewHost.sh
+            exec /tmp/nixotic-prepare/scripts/Prepare-NewHost.sh "$@"
+          '');
+        };
       };
     };
 }

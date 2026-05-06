@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/lib/preflight.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo "usage: install <hostname>"
     echo ""
@@ -8,6 +11,8 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo "Hosts: $(ls "$(dirname "$0")/../hosts/")"
     exit 0
 fi
+
+nixotic_preflight
 
 HOST="${1:-}"
 if [[ -z "${HOST}" ]]; then
@@ -60,10 +65,24 @@ else
     fi
 fi
 
+echo "==> Patching host ID..."
+HOST_ID="$(head -c 8 /etc/machine-id 2>/dev/null || true)"
+if [[ -z "${HOST_ID}" ]]; then
+    echo "warning: /etc/machine-id not found, skipping hostId patch" >&2
+else
+    sed --in-place \
+        "s|networking\.hostId = \"[^\"]*\"|networking.hostId = \"${HOST_ID}\"|" \
+        "${HOST_CONFIG}"
+    if ! grep -q "networking\.hostId = \"${HOST_ID}\"" "${HOST_CONFIG}"; then
+        echo "error: failed to patch networking.hostId in ${HOST_CONFIG}" >&2
+        exit 1
+    fi
+fi
+
 echo "==> Installing NixOS..."
 nixos-install --flake "${REPO_DIR}#${HOST}"
 
 echo ""
 echo "Done. Reboot, then commit:"
-echo "  hosts/${HOST}/hardware-configuration.nix"
-echo "  hosts/${HOST}/configuration.nix"
+echo "  hosts/${HOST}/hardware-configuration.nix  (real hardware scan)"
+echo "  hosts/${HOST}/configuration.nix           (patched swap UUID and hostId)"
