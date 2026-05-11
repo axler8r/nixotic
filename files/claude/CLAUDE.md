@@ -15,16 +15,16 @@
 
 ## Workflow
 - Branch.
-- Create plan. Use `/planner` for planning.
+- Create plan. Use `superpowers:writing-plans`.
 - Generate/update code.
-  - Use `/implementer` for implementation.
-  - Use `/fleet` for parallel generation.
+  - Use `superpowers:executing-plans` or `superpowers:subagent-driven-development` for implementation.
+  - Use `superpowers:dispatching-parallel-agents` for parallel generation.
   - Keep diffs minimal, coherent, and easy to review.
   - Prefer editing existing files over introducing new files unless a new file materially improves structure.
 - Stop and surface concrete blockers rather than guessing when requirements or constraints conflict.
 - Implement/update tests. Only use mock tests if there is no alternative.
 - Create/update documentation.
-- Review changes. Use `/reviewer` for reviews.
+- Review changes. Use `superpowers:requesting-code-review`.
 - Commit.
   - See `${HOME}/.gitcommit` for commit message format.
   - Never sync.
