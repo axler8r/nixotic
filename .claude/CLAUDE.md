@@ -24,6 +24,11 @@ If touching theming, read `docs/theme.md` first and treat it as the source of tr
 3. User gives feedback or says to proceed.
 
 
+## File Naming
+- All files in `files/` must be visible in the repository (no leading dot), even if they are mapped to hidden paths in the build.
+- The dotfile mapping is handled in `home/files.nix` or equivalent Nix configuration, not in the filename.
+
+
 ## Code Standards
 - ZSH functions use PowerShell approved verbs.
 - ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`).
