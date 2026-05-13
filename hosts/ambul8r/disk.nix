@@ -1,3 +1,12 @@
+{ lib, ... }:
+
+let
+  # Flip to `true` at next reinstall to host /nix on ZFS.
+  # Keep `false` on the running system — disko-generated
+  # fileSystems entries would otherwise try to mount a
+  # dataset that does not exist.
+  enableNixOnZfs = false;
+in
 {
   disko.devices = {
     disk = {
@@ -118,6 +127,14 @@
           "USERDATA/home/axl/Vaults" = {
             type = "zfs_fs";
             options.mountpoint = "/home/axl/Vaults";
+          };
+        } // lib.optionalAttrs enableNixOnZfs {
+          "HOSTDATA/nix" = {
+            type = "zfs_fs";
+            options = {
+              mountpoint = "/nix";
+              atime = "off";
+            };
           };
         };
       };

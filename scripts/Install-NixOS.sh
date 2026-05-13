@@ -37,6 +37,13 @@ if [[ ! -f "${DISK_CONFIG}" ]]; then
     exit 1
 fi
 
+echo "==> Enabling /nix on ZFS..."
+sed --in-place "s|enableNixOnZfs = false;|enableNixOnZfs = true;|" "${DISK_CONFIG}"
+if ! grep -q "enableNixOnZfs = true;" "${DISK_CONFIG}"; then
+    echo "error: failed to enable NixOnZfs in ${DISK_CONFIG}" >&2
+    exit 1
+fi
+
 echo "==> Partitioning disk and creating ZFS layout..."
 if [[ -n "${NIXOTIC_DISKO:-}" ]]; then
     "${NIXOTIC_DISKO}/bin/disko" --mode destroy,format,mount "${DISK_CONFIG}"

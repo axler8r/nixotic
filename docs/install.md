@@ -194,11 +194,12 @@ sudo -E nix run github:axler8r/nixotic#install -- <newhost>
 `-E` carries `NIX_CONFIG` into the root environment. The installer:
 
 1. Fetches the flake from `origin/stable` on GitHub.
-2. Partitions and formats the disk via `disko`.
-3. Generates `hardware-configuration.nix` from the live hardware.
-4. Patches `boot.resumeDevice` with the swap partition UUID.
-5. Patches `networking.hostId` from `/etc/machine-id`.
-6. Runs `nixos-install` and prompts for a root password.
+2. Enables `HOSTDATA/nix` in `disk.nix` so `/nix` is provisioned on ZFS.
+3. Partitions and formats the disk via `disko`.
+4. Generates `hardware-configuration.nix` from the live hardware.
+5. Patches `boot.resumeDevice` with the swap partition UUID.
+6. Patches `networking.hostId` from `/etc/machine-id`.
+7. Runs `nixos-install` and prompts for a root password.
 
 When it finishes, reboot. The next boot is the first boot of the installed
 system.
@@ -302,7 +303,8 @@ The layout below is the `ambul8r` reference; each host declares its own in
 | nvme0n1p4 | ~766G | ZFS  | dpool       |
 
 Root and boot stay on ext4 so the ZFS pool can be wiped or transplanted to
-another machine without destroying the OS.
+another machine without destroying the OS. The Nix store (`/nix`) lives on
+`HOSTDATA/nix` so store growth does not pressure the root partition.
 
 
 ## ZFS Pool Structure
@@ -313,6 +315,7 @@ directly into the home directory and survive reinstalls.
 ```
 dpool                                    mountpoint=none
 ├── HOSTDATA                             mountpoint=none
+│   ├── nix                              /nix
 │   └── var/lib/docker                   /var/lib/docker
 └── USERDATA                             mountpoint=none
     └── home/axl                         mountpoint=none
