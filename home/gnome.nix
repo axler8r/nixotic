@@ -17,6 +17,7 @@
     gparted
     bustle
     gnome-secrets
+    meld
     mission-center
     obsidian
     raider
@@ -100,6 +101,7 @@
           "org.gnome.Nautilus.desktop"
           "brave-browser.desktop"
           "obsidian.desktop"
+          "org.gnome.meld.desktop"
           "code.desktop"
           "kitty.desktop"
         ];

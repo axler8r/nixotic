@@ -72,6 +72,7 @@
     gum         # Pretty terminal output (tables, prompts, spinners)
     jq
     lsof
+    orpie
     p7zip
     pv
     sd
