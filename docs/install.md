@@ -43,6 +43,86 @@ Follow this sequence exactly on a brand-new machine:
 17. From that point on, use `nh os switch` for normal updates.
 
 
+## WSL Hosts (illumin8r)
+
+WSL hosts use a completely different install path. There is no ISO, no disk
+layout, no `hardware-configuration.nix`, no ZFS, and no bootloader.
+`illumin8r` is always installed this way.
+
+### Prerequisites (Windows side)
+
+1. Enable WSL2: `wsl --install` (or via Windows Features → Virtual Machine
+   Platform + Windows Subsystem for Linux).
+2. Confirm WSL2 is the default version: `wsl --set-default-version 2`.
+3. Download the latest NixOS-WSL release tarball from the
+   `nix-community/NixOS-WSL` GitHub releases page.
+
+### Step 1 — Import the NixOS-WSL distribution
+
+From PowerShell or Windows Terminal:
+
+```powershell
+wsl --import NixOS $env:LOCALAPPDATA\NixOS <path-to-tarball> --version 2
+```
+
+### Step 2 — Start the instance
+
+```powershell
+wsl -d NixOS
+```
+
+The initial default user is `nixos`.
+
+### Step 3 — Enable Nix flakes
+
+Inside the WSL instance:
+
+```bash
+mkdir -p /etc/nix
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
+```
+
+### Step 4 — Apply the nixotic configuration
+
+```bash
+nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git /tmp/nixotic'
+sudo nixos-rebuild switch --flake /tmp/nixotic#illumin8r
+```
+
+This installs zsh, helix, git, tmux, tig, github-copilot-cli, and Docker,
+and sets `axl` as the default WSL user.
+
+### Step 5 — Restart WSL
+
+From PowerShell:
+
+```powershell
+wsl --terminate NixOS
+wsl -d NixOS
+```
+
+After restart the default user is `axl`, systemd is running, and Docker is
+active. No reconciliation step is needed — there are no generated values to
+patch back.
+
+### Step 6 — Move the repo into the user home
+
+```bash
+cp -r /tmp/nixotic ~/.nixotic
+```
+
+### Ongoing updates
+
+From inside the WSL instance:
+
+```bash
+cd ~/.nixotic
+git pull
+sudo nixos-rebuild switch --flake .#illumin8r
+```
+
+---
+
 ## Phase 1 — Define the New Host
 Run this on a managed machine, or on any machine with `nix` and network access.
 Using a managed machine is simpler because the repo and helper commands are

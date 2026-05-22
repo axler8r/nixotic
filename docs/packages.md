@@ -18,7 +18,7 @@ flowchart TD
     Q2 -->|Yes| User[users.users.axl.packages<br/>`hosts/*/configuration.nix`]
     Q2 -->|No| Q3{Home Manager<br/>module exists?}
     Q3 -->|Yes| Prog[programs.&lt;name&gt;.enable<br/>`home/*.nix`]
-    Q3 -->|No| Home[home.packages<br/>`home/default.nix`]
+    Q3 -->|No| Home[home.packages<br/>`home/desktop.nix`]
     
     Sys --> End([Package installed])
     User --> End
@@ -56,10 +56,10 @@ Examples:
 - Apps requiring system services or D-Bus integration
 
 ### 3. `home.packages`
-**Location:** `home/default.nix` or `home/gnome.nix` (GUI apps)  
+**Location:** `home/desktop.nix` or `home/gnome.nix` (GUI apps)  
 **Use for:** Most user CLI tools and development packages
 
-Examples in `home/default.nix`:
+Examples in `home/desktop.nix`:
 - Version control: `tig`, `gitflow`
 - CLI tools: `curl`, `wget`, `tokei`, `fdupes`, `bfs`
 - Media: `ffmpeg`, `mpv`

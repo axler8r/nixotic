@@ -4,7 +4,7 @@
 ## Context
 This project manages desired state configuration for my computers using:
 - **NixOS flake** with Home Manager as a module.
-- **Hosts**: `ambul8r` (laptop, NVIDIA), `infer8r` (ML workstation, planned).
+- **Hosts**: `ambul8r` (laptop, NVIDIA), `illumin8r` (WSL dev container host), `infer8r` (ML workstation, planned).
 - **Desktop**: GNOME and only GNOME.
 - **Shell**: ZSH with custom functions in `files/zsh/functions/`.
 - **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/theme.md`.

@@ -11,10 +11,11 @@
 
 ## Hosts
 
-| Host      | Role                              |
-| --------- | --------------------------------- |
-| `ambul8r` | Laptop, NVIDIA GPU, GNOME desktop |
-| `infer8r` | ML workstation (planned)          |
+| Host        | Role                              |
+| ----------- | --------------------------------- |
+| `ambul8r`   | Laptop, NVIDIA GPU, GNOME desktop |
+| `illumin8r` | WSL dev container host, CLI only  |
+| `infer8r`   | ML workstation (planned)          |
 
 ## Stack
 

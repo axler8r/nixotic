@@ -24,5 +24,5 @@ jobs:
       - name: Validate ambul8r
         run: nix build .#nixosConfigurations.ambul8r.config.system.build.toplevel --dry-run
 
-      - name: Validate infer8r
-        run: nix build .#nixosConfigurations.infer8r.config.system.build.toplevel --dry-run
+      - name: Validate illumin8r
+        run: nix build .#nixosConfigurations.illumin8r.config.system.build.toplevel --dry-run
