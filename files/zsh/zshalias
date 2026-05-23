@@ -48,7 +48,14 @@ compdef _tail Read-Log
 
 man() {
     local __AX_WIDTH="$(( COLUMNS > 93 ? 90 : COLUMNS - 3 ))"
-    MANWIDTH="${__AX_WIDTH}" command man $* | bat --style=plain --language=man
+    for arg in "$@"; do
+        case "$arg" in
+            -k|-f|-K|--apropos|--whatis) command man "$@"; return ;;
+        esac
+    done
+    local __AX_PAGE
+    __AX_PAGE=$(command man -w "$@") || return $?
+    mandoc -T utf8 -O width="${__AX_WIDTH}" ${(f)__AX_PAGE} | col -b | bat --style=plain --language=man
 }
 
 # Docker (d prefix)

@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports = [
@@ -17,7 +17,13 @@
   home.stateVersion = "25.11"; # Please read the comment before changing.
 
   home.packages = with pkgs; [
+    (aspellWithDicts (dicts: with dicts; [ en af ]))
     bat
+    # Only the mandoc renderer — man-db provides man/apropos/whatis
+    (runCommand "mandoc-bin" {} ''
+      mkdir -p $out/bin
+      cp ${mandoc}/bin/mandoc $out/bin/
+    '')
     tig
   ];
 
