@@ -14,7 +14,6 @@
     mouse = false;
 
     plugins = with pkgs.tmuxPlugins; [
-      sensible      # Sane defaults for tmux
       yank          # System clipboard integration
       tmux-fzf      # FZF integration for sessions/windows/panes
       {
@@ -31,6 +30,7 @@
     extraConfig = ''
       # ── Additional Server Settings ──
       set -sg display-time 4096
+      set -sg focus-events on
       set -sg renumber-windows on
       set -sg allow-rename off
 
