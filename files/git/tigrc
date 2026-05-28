@@ -1,6 +1,24 @@
 bind generic + !git commit --amend
 bind generic I !git add --interactive %(file)
-color cursor black cyan
-color title-focus black blue
-color title-blur white default
+
+# ── Solarized Light — docs/colour-token-taxonomy.md (Appendix K) ──
+color cursor          color15   color5     bold
+color title-focus     color15   color4     bold
+color title-blur      color10   color7
+color main-tag        color160  default    bold
+color main-local-tag  color160  default    bold
+color main-remote     color166  default
+color main-tracked    color33   default
+color main-head       color64   default    bold
+color diff-header     color245  default    bold
+color diff-chunk      color37   default
+color diff-add        color64   default
+color diff-del        color160  default
+color diff-index      color245  default
+color diff-oldmode    color245  default
+color diff-newmode    color245  default
+color "^commit "      color33   default    bold
+color "^Author: "     color33   default
+color "^Date: "       color245  default
+
 set line-graphics = utf-8

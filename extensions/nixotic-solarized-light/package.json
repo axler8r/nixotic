@@ -1,0 +1,22 @@
+{
+  "name": "nixotic-solarized-light",
+  "displayName": "Nixotic Solarized Light",
+  "description": "Solarized Light theme aligned to the Nixotic colour token taxonomy.",
+  "version": "0.1.0",
+  "publisher": "nixotic",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Themes"],
+  "contributes": {
+    "themes": [
+      {
+        "id": "Nixotic Solarized Light",
+        "label": "Nixotic Solarized Light",
+        "uiTheme": "vs",
+        "path": "./themes/nixotic-solarized-light-color-theme.json"
+      }
+    ]
+  }
+}

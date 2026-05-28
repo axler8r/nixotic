@@ -11,7 +11,7 @@ This project manages desired state configuration for my computers using:
 - **Hosts**: `ambul8r` (laptop, NVIDIA), `illumin8r` (WSL dev container host), `infer8r` (ML workstation, planned).
 - **Desktop**: GNOME and only GNOME.
 - **Shell**: ZSH with custom functions in `files/zsh/functions/`.
-- **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/theme.md`.
+- **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/colour-token-taxonomy.md`.
 
 
 ## On Startup
@@ -19,7 +19,7 @@ Familiarize yourself with the project structure and files.
 
 
 ## About Theming
-If you are touching theming, read `docs/theme.md` first and treat it as the source of truth.
+If you are touching theming, read `docs/colour-token-taxonomy.md` first and treat it as the source of truth.
 
 
 ## How we Work Together
@@ -35,7 +35,7 @@ If you are touching theming, read `docs/theme.md` first and treat it as the sour
 - No conditional guards for Home Manager tools (they're always present).
 - Let Stylix manage GNOME and desktop chrome only.
 - Do not rely on Stylix/Base16 for terminal and editor syntax theming.
-- Keep syntax roles consistent across tools per `docs/theme.md`.
+- Keep syntax roles consistent across tools per `docs/colour-token-taxonomy.md`.
 
 
 ## Git Workflow

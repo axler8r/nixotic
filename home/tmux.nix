@@ -73,39 +73,41 @@
       unbind r
       bind r source-file ~/.config/tmux/tmux.conf \; display-message "Reloaded!"
 
-      # ── Solarized Light Status Bar (base16) ──
-      # base00=#fdf6e3 (bg) base01=#eee8d5 (status bg) base02=#eee8d5 (selection)
-      # base03=#93a1a1 (comments) base04=#839496 (dark fg) base05=#657b83 (fg)
-      # base0A=#b58900 (yellow) base0B=#859900 (green) base0D=#268bd2 (blue)
+      # ── Status Bar — Solarized Light ──
+      # Palette reference: docs/colour-token-taxonomy.md
+      # status.bg:        bg=Light BG Contrast (#eee8d5), fg=Dark Accent (#657b83)
+      # status.session:   bg=blue (#268bd2), fg=Light Background (#fdf6e3)
+      # status.host:      bg=green (#859900), fg=Light Background (#fdf6e3)
+      # status.time:      fg=Dark Accent (#657b83)
       set -g status on
       set -g status-interval 5
       set -g status-position bottom
       set -g status-justify left
-      set -g status-style "bg=#eee8d5,fg=#657b83"  # base01 bg, base05 fg
+      set -g status-style "bg=#eee8d5,fg=#657b83"
 
       # Left status: session name
       set -g status-left-length 40
-      set -g status-left "#[bg=#268bd2,fg=#fdf6e3,bold] #S #[bg=#eee8d5,fg=#268bd2]"  # base0D accent, base00 text
+      set -g status-left "#[bg=#268bd2,fg=#fdf6e3,bold] #S #[bg=#eee8d5,fg=#268bd2]"
 
       # Right status: date and hostname
       set -g status-right-length 80
-      set -g status-right "#[fg=#93a1a1]%Y-%m-%d #[fg=#657b83]%H:%M #[bg=#859900,fg=#fdf6e3] #h "  # base03, base05, base0B
+      set -g status-right "#[fg=#93a1a1]%Y-%m-%d #[fg=#657b83]%H:%M #[bg=#859900,fg=#fdf6e3] #h "
 
       # Window status
-      set -g window-status-format "#[fg=#93a1a1] #I:#W "  # base03
-      set -g window-status-current-format "#[bg=#fdf6e3,fg=#002b36,bold] #I:#W "  # base00 selection, base07
+      set -g window-status-format "#[fg=#93a1a1] #I:#W "
+      set -g window-status-current-format "#[bg=#fdf6e3,fg=#002b36,bold] #I:#W "
       set -g window-status-separator ""
 
       # Pane borders
-      set -g pane-border-style "fg=#eee8d5"  # base01
-      set -g pane-active-border-style "fg=#268bd2"  # base0D
+      set -g pane-border-style "fg=#eee8d5"
+      set -g pane-active-border-style "fg=#268bd2"
 
       # Message styling
-      set -g message-style "bg=#b58900,fg=#fdf6e3"  # base0A, base00
-      set -g message-command-style "bg=#fdf6e3,fg=#b58900"  # base00, base0A
+      set -g message-style "bg=#b58900,fg=#fdf6e3"
+      set -g message-command-style "bg=#fdf6e3,fg=#b58900"
 
       # Mode (copy mode) styling
-      set -g mode-style "bg=#eee8d5,fg=#002b36"  # base02 selection, base07
+      set -g mode-style "bg=#eee8d5,fg=#002b36"
     '';
   };
 }

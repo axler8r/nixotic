@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nixotic Solarized Light — Syntax Examples</title>
+<style>
+
+/* ── Palette ── */
+:root {
+  /* Tonal colours */
+  --sol-light-bg:           #fdf6e3;
+  --sol-light-bg-contrast:  #eee8d5;
+  --sol-lightest-accent:    #93a1a1;
+  --sol-light-accent:       #839496;
+  --sol-dark-accent:        #657b83;
+  --sol-darkest-accent:     #586e75;
+  --sol-dark-bg-contrast:   #073642;
+  --sol-dark-bg:            #002b36;
+
+  /* Chromatic colours */
+  --sol-red:                #dc322f;
+  --sol-orange:             #cb4b16;
+  --sol-yellow:             #b58900;
+  --sol-green:              #859900;
+  --sol-cyan:               #2aa198;
+  --sol-blue:               #268bd2;
+  --sol-violet:             #6c71c4;
+  --sol-magenta:            #d33682;
+
+  /* ── Token slug → colour mapping ──
+     These names match the slug names in colour-token-taxonomy.md.
+     Claude Code: use these variables when mapping slugs to tool configs. */
+
+  /* code.* */
+  --token-keyword:          var(--sol-green);
+  --token-variable:         var(--sol-blue);
+  --token-constant:         var(--sol-blue);
+  --token-type:             var(--sol-yellow);
+  --token-literal-string:   var(--sol-cyan);
+  --token-literal-number:   var(--sol-cyan);
+  --token-literal-bool:     var(--sol-cyan);
+  --token-literal-null:     var(--sol-cyan);
+  --token-function:         var(--sol-orange);
+  --token-import:           var(--sol-magenta);
+  --token-macro:            var(--sol-magenta);
+  --token-interpolation:    var(--sol-violet);
+  --token-regex:            var(--sol-violet);
+  --token-comment:          var(--sol-light-accent);
+  --token-doc-comment:      var(--sol-light-accent);
+  --token-operator:         var(--sol-light-accent);
+  --token-punctuation:      var(--sol-light-accent);
+
+  /* diag.* */
+  --token-diag-error:       var(--sol-red);
+  --token-diag-warning:     var(--sol-orange);
+  --token-diag-info:        var(--sol-cyan);
+
+  /* markup.* */
+  --token-markup-tag:       var(--sol-green);
+  --token-markup-attribute: var(--sol-blue);
+  --token-markup-value:     var(--sol-cyan);
+  --token-markup-entity:    var(--sol-violet);
+  --token-markup-doctype:   var(--sol-magenta);
+
+  /* json.* / yaml.* / toml.* */
+  --token-data-key:         var(--sol-blue);
+  --token-data-string:      var(--sol-cyan);
+  --token-data-number:      var(--sol-cyan);
+  --token-data-bool:        var(--sol-cyan);
+  --token-data-null:        var(--sol-cyan);
+  --token-data-header:      var(--sol-yellow);
+  --token-yaml-anchor:      var(--sol-magenta);
+  --token-yaml-alias:       var(--sol-violet);
+  --token-yaml-tag:         var(--sol-yellow);
+
+  /* css.* */
+  --token-css-selector:     var(--sol-yellow);
+  --token-css-property:     var(--sol-blue);
+  --token-css-value:        var(--sol-cyan);
+  --token-css-at-rule:      var(--sol-magenta);
+
+  /* shell.* */
+  --token-shell-command:    var(--sol-green);
+  --token-shell-keyword:    var(--sol-green);
+  --token-shell-invalid:    var(--sol-red);
+  --token-shell-argument:   var(--sol-blue);
+  --token-shell-variable:   var(--sol-blue);
+  --token-shell-string:     var(--sol-cyan);
+  --token-shell-interp:     var(--sol-violet);
+  --token-shell-separator:  var(--sol-light-accent);
+
+  /* diff.* */
+  --token-diff-added:       var(--sol-green);
+  --token-diff-deleted:     var(--sol-red);
+  --token-diff-changed:     var(--sol-yellow);
+  --token-diff-hunk:        var(--sol-cyan);
+  --token-diff-header:      var(--sol-light-accent);
+
+  /* fs.* (eza / dircolors) */
+  --token-fs-dir:           var(--sol-blue);
+  --token-fs-symlink:       var(--sol-cyan);
+  --token-fs-executable:    var(--sol-red);
+  --token-fs-source:        var(--sol-green);
+  --token-fs-shell:         var(--sol-orange);
+  --token-fs-config:        var(--sol-cyan);
+  --token-fs-document:      var(--sol-light-accent);
+  --token-fs-media:         var(--sol-blue);
+  --token-fs-archive:       var(--sol-violet);
+  --token-fs-notebook:      var(--sol-yellow);
+  --token-fs-office:        var(--sol-magenta);
+  --token-fs-meta:          var(--sol-lightest-accent);
+  --token-fs-permission-r:  var(--sol-yellow);
+  --token-fs-permission-w:  var(--sol-red);
+  --token-fs-permission-x:  var(--sol-green);
+  --token-fs-filesize:      var(--sol-cyan);
+
+  /* ui.* */
+  --token-ui-fg:            var(--sol-light-accent);
+  --token-ui-bg:            var(--sol-light-bg);
+  --token-ui-line-number:   var(--sol-light-accent);
+  --token-ui-cursor:        var(--sol-dark-accent);
+  --token-ui-selection-bg:  var(--sol-light-bg-contrast);
+  --token-ui-match-bracket: var(--sol-yellow);
+  --token-ui-search:        var(--sol-yellow);
+  --token-ui-inlay:         var(--sol-lightest-accent);
+  --token-ui-popup-border:  var(--sol-blue);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #f5f5f0;
+  color: var(--sol-dark-accent);
+  padding: 2rem;
+}
+
+/* ── Layout ── */
+h1 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--sol-dark-bg-contrast);
+  margin-bottom: 0.4rem;
+}
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--sol-dark-accent);
+  margin-bottom: 2rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: 1.5rem;
+}
+.block {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.block-title {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  background: var(--sol-light-bg-contrast);
+  color: var(--sol-darkest-accent);
+  border-bottom: 1px solid #ddd;
+}
+
+/* ── Code block ── */
+pre {
+  font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  background: var(--sol-light-bg);
+  color: var(--sol-light-accent);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* ── Legend ── */
+.legend {
+  padding: 0.75rem 1rem;
+  background: var(--sol-light-bg-contrast);
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+}
+.leg {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--sol-dark-accent);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Token classes ──
+   Naming: matches CSS class used in <span> elements below.
+   Cross-reference: see --token-* variables above for slug mapping. */
+
+/* code.keyword  — green bold */
+.kw  { color: var(--token-keyword);       font-weight: bold; }
+/* code.variable — blue */
+.var { color: var(--token-variable); }
+/* code.type     — yellow */
+.typ { color: var(--token-type); }
+/* code.literal.* — cyan */
+.lit { color: var(--token-literal-string); }
+/* code.function — orange italic */
+.fn  { color: var(--token-function);      font-style: italic; }
+/* code.import / code.macro — magenta */
+.imp { color: var(--token-import); }
+/* code.interpolation / code.regex — violet */
+.ipl { color: var(--token-interpolation); }
+/* code.comment / code.doc_comment — base0 italic */
+.cmt { color: var(--token-comment);       font-style: italic; }
+/* code.operator / code.punctuation — base0 */
+.op  { color: var(--token-operator); }
+.pun { color: var(--token-punctuation); }
+
+/* markup.tag — green bold */
+.tag { color: var(--token-markup-tag);       font-weight: bold; }
+/* markup.attribute — blue */
+.att { color: var(--token-markup-attribute); }
+/* markup.value / json/yaml/toml literal — cyan */
+.val { color: var(--token-markup-value); }
+/* markup.entity / yaml.alias — violet */
+.ent { color: var(--token-markup-entity); }
+/* markup.doctype / css.at_rule — magenta */
+.doc { color: var(--token-markup-doctype); }
+
+/* json/yaml/toml key — blue */
+.key { color: var(--token-data-key); }
+/* toml/yaml header — yellow */
+.hdr { color: var(--token-data-header); }
+/* yaml anchor — magenta */
+.anc { color: var(--token-yaml-anchor); }
+/* yaml alias / type tag — violet */
+.ali { color: var(--token-yaml-alias); }
+
+/* css selector — yellow */
+.sc  { color: var(--token-css-selector); }
+/* css property — blue */
+.csp { color: var(--token-css-property); }
+/* css at-rule — magenta */
+.cat { color: var(--token-css-at-rule); }
+
+/* shell.command / shell.keyword — green bold */
+.cmd { color: var(--token-shell-command);   font-weight: bold; }
+/* shell.command_invalid — red bold */
+.bad { color: var(--token-shell-invalid);   font-weight: bold; }
+/* shell.argument / shell.path / shell.variable — blue */
+.arg { color: var(--token-shell-argument); }
+/* shell.string — cyan */
+.str { color: var(--token-shell-string); }
+/* shell.interpolation — violet */
+.sub { color: var(--token-shell-interp); }
+/* shell.separator — base0 */
+.sep { color: var(--token-shell-separator); }
+
+/* diff.added — green */
+.dip { color: var(--token-diff-added); }
+/* diff.deleted — red */
+.dim { color: var(--token-diff-deleted); }
+/* diff.changed — yellow */
+.dic { color: var(--token-diff-changed); }
+/* diff.hunk — cyan */
+.dih { color: var(--token-diff-hunk); }
+/* diff.file_header — base0 bold */
+.dif { color: var(--token-diff-header);     font-weight: bold; }
+
+/* fs.dir — blue bold */
+.fsd { color: var(--token-fs-dir);          font-weight: bold; }
+/* fs.source (.nix etc) — green bold */
+.fss { color: var(--token-fs-source);       font-weight: bold; }
+/* fs.shell — orange */
+.fsh { color: var(--token-fs-shell); }
+/* fs.config / fs.data — cyan bold */
+.fsc { color: var(--token-fs-config);       font-weight: bold; }
+/* fs.document — base0 */
+.fsdoc { color: var(--token-fs-document); }
+/* fs.archive — violet bold */
+.fsa { color: var(--token-fs-archive);      font-weight: bold; }
+/* fs.notebook — yellow bold */
+.fsn { color: var(--token-fs-notebook);     font-weight: bold; }
+/* fs.office — magenta */
+.fso { color: var(--token-fs-office); }
+/* fs.meta — base1 */
+.fsm { color: var(--token-fs-meta); }
+/* fs.executable — red bold */
+.fsx { color: var(--token-fs-executable);   font-weight: bold; }
+/* fs.permission read/write/exec */
+.pr  { color: var(--token-fs-permission-r); }
+.pw  { color: var(--token-fs-permission-w); }
+.px  { color: var(--token-fs-permission-x); }
+/* fs.filesize — cyan */
+.fsz { color: var(--token-fs-filesize); }
+
+/* diag.* */
+.derr { color: var(--token-diag-error); }
+.dwrn { color: var(--token-diag-warning); }
+.dinf { color: var(--token-diag-info); }
+
+/* status.mode_* */
+.smod {
+  display: inline-block;
+  padding: 0 6px;
+  font-weight: bold;
+  font-size: 11px;
+  border-radius: 2px;
+}
+.smod-n  { background: var(--sol-blue);    color: var(--sol-light-bg); }
+.smod-i  { background: var(--sol-green);   color: var(--sol-light-bg); }
+.smod-v  { background: var(--sol-yellow);  color: var(--sol-light-bg); }
+.smod-r  { background: var(--sol-red);     color: var(--sol-light-bg); }
+.smod-c  { background: var(--sol-orange);  color: var(--sol-light-bg); }
+
+</style>
+</head>
+<body>
+
+<h1>Nixotic Solarized Light — Syntax Examples</h1>
+<p class="subtitle">
+  Token colours as defined in <code>colour-token-taxonomy.md</code>.
+  CSS custom properties (--token-*) map directly to taxonomy slugs.
+  Class names on &lt;span&gt; elements correspond to token roles.
+</p>
+
+<div class="grid">
+
+<!-- ── Python ── -->
+<div class="block">
+  <div class="block-title">Python</div>
+  <pre>
+<span class="imp">from</span> <span class="var">dataclasses</span> <span class="imp">import</span> <span class="var">dataclass</span><span class="pun">,</span> <span class="var">field</span>
+<span class="imp">from</span> <span class="typ">typing</span> <span class="imp">import</span> <span class="typ">Optional</span>
+
+<span class="cmt"># Solarized Light syntax example — Python</span>
+
+<span class="var">MAX_RETRIES</span> <span class="op">=</span> <span class="lit">3</span>
+<span class="var">GREETING</span>   <span class="op">=</span> <span class="lit">"Hello, world"</span>
+
+
+<span class="imp">@dataclass</span>
+<span class="kw">class</span> <span class="typ">Config</span><span class="pun">:</span>
+    <span class="var">host</span><span class="pun">:</span>  <span class="typ">str</span>
+    <span class="var">port</span><span class="pun">:</span>  <span class="typ">int</span>       <span class="op">=</span> <span class="lit">8080</span>
+    <span class="var">debug</span><span class="pun">:</span> <span class="typ">bool</span>      <span class="op">=</span> <span class="lit">False</span>
+    <span class="var">tags</span><span class="pun">:</span>  <span class="typ">list</span><span class="pun">[</span><span class="typ">str</span><span class="pun">]</span>  <span class="op">=</span> <span class="fn">field</span><span class="pun">(</span><span class="var">default_factory</span><span class="op">=</span><span class="typ">list</span><span class="pun">)</span>
+
+
+<span class="kw">def</span> <span class="fn">fetch</span><span class="pun">(</span>
+    <span class="var">cfg</span><span class="pun">:</span> <span class="typ">Config</span><span class="pun">,</span>
+    <span class="var">path</span><span class="pun">:</span> <span class="typ">str</span><span class="pun">,</span>
+    <span class="var">retries</span><span class="pun">:</span> <span class="typ">Optional</span><span class="pun">[</span><span class="typ">int</span><span class="pun">]</span> <span class="op">=</span> <span class="lit">None</span><span class="pun">,</span>
+<span class="pun">)</span> <span class="op">-></span> <span class="typ">bytes</span><span class="pun">:</span>
+    <span class="lit">"""Fetch a resource with retry logic."""</span>
+    <span class="var">limit</span> <span class="op">=</span> <span class="var">retries</span> <span class="kw">if</span> <span class="var">retries</span> <span class="kw">is not</span> <span class="lit">None</span> <span class="kw">else</span> <span class="var">MAX_RETRIES</span>
+    <span class="var">url</span>   <span class="op">=</span> <span class="ipl">f"http://{<span class="var">cfg.host</span>}:{<span class="var">cfg.port</span>}{<span class="var">path</span>}"</span>
+    <span class="kw">for</span> <span class="var">attempt</span> <span class="kw">in</span> <span class="fn">range</span><span class="pun">(</span><span class="var">limit</span><span class="pun">):</span>
+        <span class="kw">try</span><span class="pun">:</span>
+            <span class="kw">return</span> <span class="fn">_do_get</span><span class="pun">(</span><span class="var">url</span><span class="pun">)</span>
+        <span class="kw">except</span> <span class="typ">OSError</span> <span class="kw">as</span> <span class="var">exc</span><span class="pun">:</span>
+            <span class="kw">if</span> <span class="var">attempt</span> <span class="op">==</span> <span class="var">limit</span> <span class="op">-</span> <span class="lit">1</span><span class="pun">:</span>
+                <span class="kw">raise</span>
+            <span class="fn">_log</span><span class="pun">(</span><span class="ipl">f"retry {<span class="var">attempt</span>}: {<span class="var">exc</span>}"</span><span class="pun">)</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>keyword</span>
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>variable</span>
+    <span class="leg"><span class="leg-dot" style="background:#b58900"></span>type</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>literal</span>
+    <span class="leg"><span class="leg-dot" style="background:#cb4b16"></span>function</span>
+    <span class="leg"><span class="leg-dot" style="background:#d33682"></span>import/macro</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>interpolation</span>
+    <span class="leg"><span class="leg-dot" style="background:#839496"></span>comment/punct</span>
+  </div>
+</div>
+
+<!-- ── Elixir ── -->
+<div class="block">
+  <div class="block-title">Elixir</div>
+  <pre>
+<span class="cmt"># Solarized Light syntax example — Elixir</span>
+
+<span class="imp">defmodule</span> <span class="typ">Cache</span> <span class="kw">do</span>
+  <span class="imp">@moduledoc</span> <span class="lit">"Simple in-process key-value cache backed by ETS."</span>
+  <span class="imp">@table</span> <span class="lit">:cache_table</span>
+
+  <span class="imp">@spec</span> <span class="fn">start</span><span class="pun">()</span> <span class="op">::</span> <span class="pun">{</span><span class="lit">:ok</span><span class="pun">,</span> <span class="typ">atom</span><span class="pun">()}</span>
+  <span class="kw">def</span> <span class="fn">start</span><span class="pun">()</span> <span class="kw">do</span>
+    <span class="var">table</span> <span class="op">=</span> <span class="typ">:ets</span><span class="pun">.</span><span class="fn">new</span><span class="pun">(</span><span class="imp">@table</span><span class="pun">,</span> <span class="pun">[</span><span class="lit">:set</span><span class="pun">,</span> <span class="lit">:public</span><span class="pun">])</span>
+    <span class="pun">{</span><span class="lit">:ok</span><span class="pun">,</span> <span class="var">table</span><span class="pun">}</span>
+  <span class="kw">end</span>
+
+  <span class="imp">@spec</span> <span class="fn">get</span><span class="pun">(</span><span class="typ">term</span><span class="pun">())</span> <span class="op">::</span> <span class="pun">{</span><span class="lit">:ok</span><span class="pun">,</span> <span class="typ">term</span><span class="pun">()}</span> <span class="op">|</span> <span class="lit">:miss</span>
+  <span class="kw">def</span> <span class="fn">get</span><span class="pun">(</span><span class="var">key</span><span class="pun">)</span> <span class="kw">do</span>
+    <span class="kw">case</span> <span class="typ">:ets</span><span class="pun">.</span><span class="fn">lookup</span><span class="pun">(</span><span class="imp">@table</span><span class="pun">,</span> <span class="var">key</span><span class="pun">)</span> <span class="kw">do</span>
+      <span class="pun">[{</span><span class="var">_key</span><span class="pun">,</span> <span class="var">val</span><span class="pun">}]</span>  <span class="op">-></span> <span class="pun">{</span><span class="lit">:ok</span><span class="pun">,</span> <span class="var">val</span><span class="pun">}</span>
+      <span class="pun">[]</span>            <span class="op">-></span> <span class="lit">:miss</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+
+  <span class="kw">defp</span> <span class="fn">log</span><span class="pun">(</span><span class="var">msg</span><span class="pun">)</span> <span class="kw">do</span>
+    <span class="typ">IO</span><span class="pun">.</span><span class="fn">puts</span><span class="pun">(</span><span class="ipl">"[cache] #{<span class="var">msg</span>}"</span><span class="pun">)</span>
+  <span class="kw">end</span>
+<span class="kw">end</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>keyword (def/do/end)</span>
+    <span class="leg"><span class="leg-dot" style="background:#b58900"></span>type/module</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>atom/string literal</span>
+    <span class="leg"><span class="leg-dot" style="background:#d33682"></span>module attr (@spec)</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>interpolation #{}</span>
+  </div>
+</div>
+
+<!-- ── Rust ── -->
+<div class="block">
+  <div class="block-title">Rust</div>
+  <pre>
+<span class="cmt">// Solarized Light syntax example — Rust</span>
+
+<span class="imp">use</span> <span class="var">std</span><span class="pun">::</span><span class="var">collections</span><span class="pun">::</span><span class="typ">HashMap</span><span class="pun">;</span>
+<span class="imp">use</span> <span class="var">std</span><span class="pun">::</span><span class="var">fmt</span><span class="pun">;</span>
+
+<span class="imp">#[derive(Debug, Clone)]</span>
+<span class="kw">pub struct</span> <span class="typ">Registry</span><span class="pun">&lt;</span><span class="typ">T</span><span class="pun">&gt;</span> <span class="pun">{</span>
+    <span class="var">entries</span><span class="pun">:</span>  <span class="typ">HashMap</span><span class="pun">&lt;</span><span class="typ">String</span><span class="pun">,</span> <span class="typ">T</span><span class="pun">&gt;,</span>
+    <span class="var">max_size</span><span class="pun">:</span> <span class="typ">usize</span><span class="pun">,</span>
+<span class="pun">}</span>
+
+<span class="kw">impl</span><span class="pun">&lt;</span><span class="typ">T</span><span class="pun">:</span> <span class="typ">Clone</span> <span class="op">+</span> <span class="typ">fmt::Display</span><span class="pun">&gt;</span> <span class="typ">Registry</span><span class="pun">&lt;</span><span class="typ">T</span><span class="pun">&gt;</span> <span class="pun">{</span>
+    <span class="kw">pub fn</span> <span class="fn">new</span><span class="pun">(</span><span class="var">max_size</span><span class="pun">:</span> <span class="typ">usize</span><span class="pun">)</span> <span class="op">-></span> <span class="typ">Self</span> <span class="pun">{</span>
+        <span class="typ">Self</span> <span class="pun">{</span> <span class="var">entries</span><span class="pun">:</span> <span class="typ">HashMap</span><span class="pun">::</span><span class="fn">new</span><span class="pun">(),</span> <span class="var">max_size</span> <span class="pun">}</span>
+    <span class="pun">}</span>
+
+    <span class="kw">pub fn</span> <span class="fn">insert</span><span class="pun">(&amp;</span><span class="kw">mut self</span><span class="pun">,</span> <span class="var">key</span><span class="pun">:</span> <span class="typ">String</span><span class="pun">,</span> <span class="var">val</span><span class="pun">:</span> <span class="typ">T</span><span class="pun">)</span> <span class="op">-></span> <span class="typ">bool</span> <span class="pun">{</span>
+        <span class="kw">if</span> <span class="kw">self</span><span class="pun">.</span><span class="var">entries</span><span class="pun">.</span><span class="fn">len</span><span class="pun">()</span> <span class="op">>=</span> <span class="kw">self</span><span class="pun">.</span><span class="var">max_size</span> <span class="pun">{</span>
+            <span class="kw">return</span> <span class="lit">false</span><span class="pun">;</span>
+        <span class="pun">}</span>
+        <span class="kw">self</span><span class="pun">.</span><span class="var">entries</span><span class="pun">.</span><span class="fn">insert</span><span class="pun">(</span><span class="var">key</span><span class="pun">,</span> <span class="var">val</span><span class="pun">);</span>
+        <span class="lit">true</span>
+    <span class="pun">}</span>
+
+    <span class="kw">pub fn</span> <span class="fn">get</span><span class="pun">(&amp;</span><span class="kw">self</span><span class="pun">,</span> <span class="var">key</span><span class="pun">: &amp;</span><span class="typ">str</span><span class="pun">)</span> <span class="op">-></span> <span class="typ">Option</span><span class="pun">&lt;&amp;</span><span class="typ">T</span><span class="pun">&gt;</span> <span class="pun">{</span>
+        <span class="kw">self</span><span class="pun">.</span><span class="var">entries</span><span class="pun">.</span><span class="fn">get</span><span class="pun">(</span><span class="var">key</span><span class="pun">)</span>
+    <span class="pun">}</span>
+<span class="pun">}</span>
+
+<span class="imp">macro_rules!</span> <span class="fn">log_entry</span> <span class="pun">{</span>
+    <span class="pun">(</span><span class="var">$key</span><span class="pun">:</span><span class="var">expr</span><span class="pun">,</span> <span class="var">$val</span><span class="pun">:</span><span class="var">expr</span><span class="pun">)</span> <span class="op">=></span> <span class="pun">{</span>
+        <span class="fn">println!</span><span class="pun">(</span><span class="ipl">"{}: {}"</span><span class="pun">,</span> <span class="var">$key</span><span class="pun">,</span> <span class="var">$val</span><span class="pun">)</span>
+    <span class="pun">};</span>
+<span class="pun">}</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#d33682"></span>derive attr / use / macro_rules</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>format string {}</span>
+  </div>
+</div>
+
+<!-- ── C# ── -->
+<div class="block">
+  <div class="block-title">C#</div>
+  <pre>
+<span class="cmt">// Solarized Light syntax example — C#</span>
+
+<span class="imp">using</span> <span class="var">System</span><span class="pun">;</span>
+<span class="imp">using</span> <span class="var">System</span><span class="pun">.</span><span class="var">Collections</span><span class="pun">.</span><span class="var">Generic</span><span class="pun">;</span>
+
+<span class="imp">namespace</span> <span class="typ">Nixotic</span><span class="pun">.</span><span class="typ">Cache</span><span class="pun">;</span>
+
+<span class="cmt">/// &lt;summary&gt;Generic bounded registry.&lt;/summary&gt;</span>
+<span class="imp">[Serializable]</span>
+<span class="kw">public sealed class</span> <span class="typ">Registry</span><span class="pun">&lt;</span><span class="typ">T</span><span class="pun">&gt;</span>
+<span class="pun">{</span>
+    <span class="kw">private readonly</span> <span class="typ">Dictionary</span><span class="pun">&lt;</span><span class="typ">string</span><span class="pun">,</span> <span class="typ">T</span><span class="pun">&gt;</span> <span class="var">_entries</span> <span class="op">=</span> <span class="kw">new</span><span class="pun">();</span>
+    <span class="kw">private readonly int</span>                   <span class="var">_maxSize</span><span class="pun">;</span>
+
+    <span class="kw">public</span> <span class="fn">Registry</span><span class="pun">(</span><span class="kw">int</span> <span class="var">maxSize</span><span class="pun">)</span> <span class="op">=></span> <span class="var">_maxSize</span> <span class="op">=</span> <span class="var">maxSize</span><span class="pun">;</span>
+
+    <span class="kw">public bool</span> <span class="fn">Insert</span><span class="pun">(</span><span class="kw">string</span> <span class="var">key</span><span class="pun">,</span> <span class="typ">T</span> <span class="var">value</span><span class="pun">)</span>
+    <span class="pun">{</span>
+        <span class="kw">if</span> <span class="pun">(</span><span class="var">_entries</span><span class="pun">.</span><span class="var">Count</span> <span class="op">>=</span> <span class="var">_maxSize</span><span class="pun">)</span> <span class="kw">return</span> <span class="lit">false</span><span class="pun">;</span>
+        <span class="var">_entries</span><span class="pun">[</span><span class="var">key</span><span class="pun">]</span> <span class="op">=</span> <span class="var">value</span><span class="pun">;</span>
+        <span class="kw">return</span> <span class="lit">true</span><span class="pun">;</span>
+    <span class="pun">}</span>
+
+    <span class="kw">public bool</span> <span class="fn">TryGet</span><span class="pun">(</span><span class="kw">string</span> <span class="var">key</span><span class="pun">,</span> <span class="kw">out</span> <span class="typ">T</span><span class="op">?</span> <span class="var">value</span><span class="pun">)</span>
+        <span class="op">=></span> <span class="var">_entries</span><span class="pun">.</span><span class="fn">TryGetValue</span><span class="pun">(</span><span class="var">key</span><span class="pun">,</span> <span class="kw">out</span> <span class="var">value</span><span class="pun">);</span>
+
+    <span class="kw">public int</span>  <span class="var">Count</span>   <span class="op">=></span> <span class="var">_entries</span><span class="pun">.</span><span class="var">Count</span><span class="pun">;</span>
+    <span class="kw">public bool</span> <span class="var">IsFull</span> <span class="op">=></span> <span class="var">_entries</span><span class="pun">.</span><span class="var">Count</span> <span class="op">>=</span> <span class="var">_maxSize</span><span class="pun">;</span>
+<span class="pun">}</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#d33682"></span>[Serializable] attr / using / namespace</span>
+  </div>
+</div>
+
+<!-- ── JSON ── -->
+<div class="block">
+  <div class="block-title">JSON / JSONC</div>
+  <pre>
+<span class="cmt">// Solarized Light syntax example — JSONC</span>
+<span class="pun">{</span>
+  <span class="key">"project"</span><span class="pun">:</span>  <span class="lit">"nixotic"</span><span class="pun">,</span>
+  <span class="key">"version"</span><span class="pun">:</span>  <span class="lit">"4.0.1"</span><span class="pun">,</span>
+  <span class="key">"stable"</span><span class="pun">:</span>   <span class="lit">true</span><span class="pun">,</span>
+  <span class="key">"revision"</span><span class="pun">:</span> <span class="lit">42</span><span class="pun">,</span>
+  <span class="key">"meta"</span><span class="pun">:</span>     <span class="lit">null</span><span class="pun">,</span>
+  <span class="key">"hosts"</span><span class="pun">:</span> <span class="pun">[</span>
+    <span class="pun">{</span>
+      <span class="key">"name"</span><span class="pun">:</span>    <span class="lit">"ambul8r"</span><span class="pun">,</span>
+      <span class="key">"arch"</span><span class="pun">:</span>    <span class="lit">"x86_64"</span><span class="pun">,</span>
+      <span class="key">"desktop"</span><span class="pun">:</span> <span class="lit">true</span><span class="pun">,</span>
+      <span class="key">"cores"</span><span class="pun">:</span>   <span class="lit">16</span>
+    <span class="pun">},</span>
+    <span class="pun">{</span>
+      <span class="key">"name"</span><span class="pun">:</span>    <span class="lit">"infer8r"</span><span class="pun">,</span>
+      <span class="key">"arch"</span><span class="pun">:</span>    <span class="lit">"x86_64"</span><span class="pun">,</span>
+      <span class="key">"desktop"</span><span class="pun">:</span> <span class="lit">false</span><span class="pun">,</span>
+      <span class="key">"gpu"</span><span class="pun">:</span>     <span class="lit">null</span>
+    <span class="pun">}</span>
+  <span class="pun">],</span>
+  <span class="key">"palette"</span><span class="pun">:</span> <span class="pun">{</span>
+    <span class="key">"bg"</span><span class="pun">:</span>    <span class="lit">"#fdf6e3"</span><span class="pun">,</span>
+    <span class="key">"green"</span><span class="pun">:</span> <span class="lit">"#859900"</span><span class="pun">,</span>
+    <span class="key">"blue"</span><span class="pun">:</span>  <span class="lit">"#268bd2"</span>
+  <span class="pun">}</span>
+<span class="pun">}</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>key (json.key)</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>string/number/bool/null (json.literal.*)</span>
+    <span class="leg"><span class="leg-dot" style="background:#839496"></span>punctuation</span>
+  </div>
+</div>
+
+<!-- ── TOML ── -->
+<div class="block">
+  <div class="block-title">TOML</div>
+  <pre>
+<span class="cmt"># Solarized Light syntax example — TOML</span>
+
+<span class="hdr">[project]</span>
+<span class="key">name</span>    <span class="op">=</span> <span class="lit">"nixotic"</span>
+<span class="key">version</span> <span class="op">=</span> <span class="lit">"4.0.1"</span>
+<span class="key">authors</span> <span class="op">=</span> <span class="pun">[</span><span class="lit">"axl &lt;axler8r@pm.me&gt;"</span><span class="pun">]</span>
+<span class="key">stable</span>  <span class="op">=</span> <span class="lit">true</span>
+<span class="key">build</span>   <span class="op">=</span> <span class="lit">42</span>
+
+<span class="hdr">[[hosts]]</span>
+<span class="key">name</span>    <span class="op">=</span> <span class="lit">"ambul8r"</span>
+<span class="key">arch</span>    <span class="op">=</span> <span class="lit">"x86_64"</span>
+<span class="key">desktop</span> <span class="op">=</span> <span class="lit">true</span>
+<span class="key">cores</span>   <span class="op">=</span> <span class="lit">16</span>
+
+<span class="hdr">[[hosts]]</span>
+<span class="key">name</span>    <span class="op">=</span> <span class="lit">"infer8r"</span>
+<span class="key">arch</span>    <span class="op">=</span> <span class="lit">"x86_64"</span>
+<span class="key">desktop</span> <span class="op">=</span> <span class="lit">false</span>
+
+<span class="hdr">[palette]</span>
+<span class="key">bg</span>    <span class="op">=</span> <span class="lit">"#fdf6e3"</span>
+<span class="key">green</span> <span class="op">=</span> <span class="lit">"#859900"</span>
+<span class="key">blue</span>  <span class="op">=</span> <span class="lit">"#268bd2"</span>
+
+<span class="hdr">[palette.tonal]</span>
+<span class="key">base0</span>  <span class="op">=</span> <span class="lit">"#839496"</span>
+<span class="key">base00</span> <span class="op">=</span> <span class="lit">"#657b83"</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#b58900"></span>table header (toml.header)</span>
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>key</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>string/number/bool</span>
+  </div>
+</div>
+
+<!-- ── YAML ── -->
+<div class="block">
+  <div class="block-title">YAML</div>
+  <pre>
+<span class="cmt"># Solarized Light syntax example — YAML</span>
+<span class="op">---</span>
+<span class="key">project</span><span class="pun">:</span>  <span class="lit">nixotic</span>
+<span class="key">version</span><span class="pun">:</span>  <span class="lit">"4.0.1"</span>
+<span class="key">stable</span><span class="pun">:</span>   <span class="lit">true</span>
+<span class="key">revision</span><span class="pun">:</span> <span class="lit">42</span>
+<span class="key">meta</span><span class="pun">:</span>     <span class="lit">null</span>
+
+<span class="key">palette</span><span class="pun">:</span> <span class="anc">&amp;solarized</span>
+  <span class="key">bg</span><span class="pun">:</span>    <span class="lit">"#fdf6e3"</span>
+  <span class="key">green</span><span class="pun">:</span> <span class="lit">"#859900"</span>
+  <span class="key">blue</span><span class="pun">:</span>  <span class="lit">"#268bd2"</span>
+
+<span class="key">hosts</span><span class="pun">:</span>
+  <span class="pun">-</span> <span class="key">name</span><span class="pun">:</span>    <span class="lit">ambul8r</span>
+    <span class="key">arch</span><span class="pun">:</span>    <span class="ali">!!str</span> <span class="lit">x86_64</span>
+    <span class="key">desktop</span><span class="pun">:</span> <span class="lit">true</span>
+    <span class="key">theme</span><span class="pun">:</span>   <span class="ali">*solarized</span>
+
+  <span class="pun">-</span> <span class="key">name</span><span class="pun">:</span>    <span class="lit">infer8r</span>
+    <span class="key">arch</span><span class="pun">:</span>    <span class="ali">!!str</span> <span class="lit">x86_64</span>
+    <span class="key">desktop</span><span class="pun">:</span> <span class="lit">false</span>
+    <span class="key">gpu</span><span class="pun">:</span>     <span class="lit">null</span>
+    <span class="key">theme</span><span class="pun">:</span>   <span class="ali">*solarized</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#d33682"></span>&amp;anchor (yaml.anchor)</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>*alias / !!tag (yaml.alias)</span>
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>key</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>scalar/literal</span>
+  </div>
+</div>
+
+<!-- ── zsh ── -->
+<div class="block">
+  <div class="block-title">zsh</div>
+  <pre>
+<span class="cmt"># Solarized Light syntax example — zsh</span>
+
+<span class="cmd">export</span> <span class="arg">EDITOR</span><span class="op">=</span><span class="str">"nvim"</span>
+<span class="cmd">export</span> <span class="arg">MAX_JOBS</span><span class="op">=</span><span class="lit">8</span>
+
+<span class="cmd">fetch-and-build</span><span class="pun">()</span> <span class="pun">{</span>
+  <span class="kw">local</span> <span class="arg">repo</span><span class="op">=</span><span class="sub">$(<span class="cmd">git</span> <span class="arg">rev-parse</span> <span class="arg">--show-toplevel</span>)</span>
+  <span class="kw">local</span> <span class="arg">branch</span><span class="op">=</span><span class="sub">${<span class="arg">1</span><span class="op">:-</span><span class="str">stable</span>}</span>
+
+  <span class="kw">if</span> <span class="pun">[[</span> <span class="op">-z</span> <span class="str">"<span class="sub">$repo</span>"</span> <span class="pun">]];</span> <span class="kw">then</span>
+    <span class="bad">eccho</span> <span class="str">"error: not in a git repo"</span> <span class="sep">&gt;&amp;</span><span class="lit">2</span>
+    <span class="kw">return</span> <span class="lit">1</span>
+  <span class="kw">fi</span>
+
+  <span class="cmd">git</span> <span class="arg">fetch</span> <span class="arg">--prune</span>
+  <span class="cmd">git</span> <span class="arg">checkout</span> <span class="str">"<span class="sub">$branch</span>"</span> <span class="sep">||</span> <span class="kw">return</span>
+
+  <span class="cmd">nix</span> <span class="arg">build</span> <span class="arg">--no-link</span> <span class="arg">--print-out-paths</span> <span class="sep">\</span>
+    <span class="sep">|</span> <span class="cmd">tee</span> <span class="str">"<span class="sub">$repo</span>/build.log"</span>
+<span class="pun">}</span>
+
+<span class="kw">for</span> <span class="arg">host</span> <span class="kw">in</span> <span class="str">ambul8r</span> <span class="str">infer8r</span><span class="pun">;</span> <span class="kw">do</span>
+  <span class="cmd">nixos-rebuild</span> <span class="arg">--flake</span> <span class="str">".#<span class="sub">$host</span>"</span> <span class="arg">switch</span>
+<span class="kw">done</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>command/keyword (shell.command)</span>
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>arg/path/variable</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>string literal (shell.string = cyan, not blue)</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>$() substitution (shell.interpolation)</span>
+    <span class="leg"><span class="leg-dot" style="background:#dc322f"></span>invalid command (eccho)</span>
+    <span class="leg"><span class="leg-dot" style="background:#839496"></span>| ; &gt; separators</span>
+  </div>
+</div>
+
+<!-- ── Nushell ── -->
+<div class="block">
+  <div class="block-title">Nushell</div>
+  <pre>
+<span class="cmt"># Solarized Light syntax example — Nushell</span>
+
+<span class="kw">const</span> <span class="var">MAX_JOBS</span> <span class="op">=</span> <span class="lit">8</span>
+
+<span class="cmt"># Build a Nix flake for each host in the list</span>
+<span class="kw">def</span> <span class="fn">build-hosts</span> <span class="pun">[</span>
+  <span class="var">hosts</span><span class="pun">:</span> <span class="typ">list</span><span class="pun">&lt;</span><span class="typ">string</span><span class="pun">&gt;</span>
+  <span class="arg">--dry-run</span>       <span class="cmt"># (-d) Skip actual build</span>
+  <span class="arg">--jobs</span><span class="pun">:</span> <span class="typ">int</span> <span class="op">=</span> <span class="var">MAX_JOBS</span>
+<span class="pun">]</span> <span class="op">-></span> <span class="typ">table</span> <span class="pun">{</span>
+  <span class="var">hosts</span>
+    <span class="op">|</span> <span class="fn">each</span> <span class="pun">{</span><span class="op">|</span><span class="var">host</span><span class="op">|</span>
+        <span class="kw">let</span> <span class="var">flake</span> <span class="op">=</span> <span class="ipl">$".#($host)"</span>
+        <span class="kw">if</span> <span class="var">$dry_run</span> <span class="pun">{</span>
+          <span class="pun">{</span><span class="key">host</span><span class="pun">:</span> <span class="var">$host</span><span class="pun">,</span> <span class="key">status</span><span class="pun">:</span> <span class="lit">"dry-run"</span><span class="pun">}</span>
+        <span class="pun">}</span> <span class="kw">else</span> <span class="pun">{</span>
+          <span class="kw">let</span> <span class="var">result</span> <span class="op">=</span> <span class="fn">nixos-rebuild</span> <span class="arg">--flake</span> <span class="var">$flake</span> <span class="arg">switch</span>
+          <span class="pun">{</span>
+            <span class="key">host</span><span class="pun">:</span>   <span class="var">$host</span><span class="pun">,</span>
+            <span class="key">status</span><span class="pun">:</span> <span class="pun">(</span><span class="kw">if</span> <span class="var">$result</span><span class="pun">.</span><span class="var">exit_code</span> <span class="op">==</span> <span class="lit">0</span> <span class="pun">{</span> <span class="lit">"ok"</span> <span class="pun">}</span> <span class="kw">else</span> <span class="pun">{</span> <span class="lit">"fail"</span> <span class="pun">}),</span>
+            <span class="key">jobs</span><span class="pun">:</span>   <span class="var">$jobs</span>
+          <span class="pun">}</span>
+        <span class="pun">}</span>
+      <span class="pun">}</span>
+<span class="pun">}</span>
+
+<span class="fn">build-hosts</span> <span class="pun">[</span><span class="lit">"ambul8r"</span> <span class="lit">"infer8r"</span><span class="pun">]</span> <span class="arg">--jobs</span> <span class="lit">4</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>int/float/bool/string literals = cyan (corrected from blue)</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>$"()" string interpolation (shape_string_interpolation)</span>
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>record key (json.key role)</span>
+  </div>
+</div>
+
+<!-- ── eza ── -->
+<div class="block">
+  <div class="block-title">eza — long listing</div>
+  <pre>
+<span class="cmt">  eza --all --long --git ~/nixotic</span>
+
+<span class="op">Permissions   Size  Date         Git  Name</span>
+<span class="op">d</span><span class="pr">r</span><span class="pw">w</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span>     <span class="op">-</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsd">.claude</span>
+<span class="op">d</span><span class="pr">r</span><span class="pw">w</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span>     <span class="op">-</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsd">docs</span>
+<span class="op">d</span><span class="pr">r</span><span class="pw">w</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span>     <span class="op">-</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsd">home</span>
+<span class="op">d</span><span class="pr">r</span><span class="pw">w</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span><span class="pr">r</span><span class="op">-</span><span class="px">x</span>     <span class="op">-</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsd">hosts</span>
+<span class="op">.</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>   <span class="fsz">251</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsdoc">.claudeignore</span>
+<span class="op">.</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">3.6k</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsdoc">.gitignore</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">9.8k</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsc">flake.lock</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">2.7k</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fss">flake.nix</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">1.5k</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fss">stylix.nix</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">18k</span>   <span class="lit">2026-05-22</span>  <span class="cmd">N</span>    <span class="fsdoc">colour-token-taxonomy.md</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">48k</span>   <span class="lit">2026-05-22</span>  <span class="cmd">N</span>    <span class="fsdoc">syntax-examples.html</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">800</span>   <span class="lit">2026-05-22</span>  <span class="kw">M</span>    <span class="fsdoc">README.md</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">512</span>   <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsm">old-theme.md.bak</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="px">x</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">4.2k</span>  <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsx">install.sh</span>
+<span class="op">.</span><span class="pr">r</span><span class="pw">w</span><span class="op">-</span><span class="pr">r</span><span class="op">--</span><span class="pr">r</span><span class="op">--</span>  <span class="fsz">28k</span>   <span class="lit">2026-05-22</span>   <span class="op">-</span>    <span class="fsa">backup.tar.gz</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>directory (fs.dir)</span>
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>.nix source (fs.source)</span>
+    <span class="leg"><span class="leg-dot" style="background:#839496"></span>document .md (fs.document)</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>.lock/.json config (fs.config)</span>
+    <span class="leg"><span class="leg-dot" style="background:#dc322f"></span>executable (fs.executable)</span>
+    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>archive (fs.archive)</span>
+    <span class="leg"><span class="leg-dot" style="background:#93a1a1"></span>.bak meta (fs.meta)</span>
+    <span class="leg"><span class="leg-dot" style="background:#b58900"></span>perm-r</span>
+    <span class="leg"><span class="leg-dot" style="background:#dc322f"></span>perm-w</span>
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>perm-x</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>filesize (fs.filesize)</span>
+  </div>
+</div>
+
+<!-- ── Statusline ── -->
+<div class="block" style="grid-column: 1 / -1;">
+  <div class="block-title">Statusline modes — Neovim / Helix / tmux</div>
+  <pre>
+<span class="cmt">  status.mode_* slug colours — foreground always Light Background (#fdf6e3)</span>
+
+  <span class="smod smod-n"> NORMAL </span>  bg = blue   (#268bd2)
+  <span class="smod smod-i"> INSERT </span>  bg = green  (#859900)
+  <span class="smod smod-v"> VISUAL </span>  bg = yellow (#b58900)
+  <span class="smod smod-r"> REPLACE</span>  bg = red    (#dc322f)
+  <span class="smod smod-c"> COMMAND</span>  bg = orange (#cb4b16)
+
+<span class="cmt">  Diagnostic badges in statusline:</span>
+  <span class="derr">✖ 2</span>  <span class="dwrn">⚠ 5</span>  <span class="dinf">ℹ 3</span>
+
+<span class="cmt">  Branch / diff summary:</span>
+  <span class="var"> main</span>  <span class="cmd">+12</span> <span class="bad">-4</span>  <span class="op">config.nix [+]</span>  <span class="op">utf-8  nix  78:42</span>
+</pre>
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>Normal mode</span>
+    <span class="leg"><span class="leg-dot" style="background:#859900"></span>Insert mode</span>
+    <span class="leg"><span class="leg-dot" style="background:#b58900"></span>Visual mode</span>
+    <span class="leg"><span class="leg-dot" style="background:#dc322f"></span>Replace mode / diag error</span>
+    <span class="leg"><span class="leg-dot" style="background:#cb4b16"></span>Command mode / diag warning</span>
+    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>diag info</span>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

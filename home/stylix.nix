@@ -18,6 +18,7 @@
     helix.enable = false;
     bat.enable = false;
     yazi.enable = false;
+    btop.enable = false;
   };
 
   # GTK icon theme - Papirus-Light for Solarized Light theme

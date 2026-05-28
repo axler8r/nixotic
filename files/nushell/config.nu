@@ -86,57 +86,58 @@ let solarized_dark_shapes = {
 }
 
 let solarized_light_values = {
-  separator: $solarized.light_accent
-  bool: $solarized.blue
-  int: $solarized.blue
-  filesize: $solarized.blue
-  duration: $solarized.blue
-  date: $solarized.blue
-  range: $solarized.blue
-  float: $solarized.blue
-  string: $solarized.blue
-  nothing: $solarized.blue
-  binary: $solarized.blue
-  cellpath: $solarized.blue
-  record: $solarized.blue
-  list: $solarized.blue
-  block: $solarized.blue
-  hints: $solarized.lightest_accent
-  shape_literal: $solarized.blue
-  shape_nothing: $solarized.blue
-  shape_string: $solarized.blue
-  shape_table: { fg: $solarized.blue attr: b }
+  separator:   $solarized.light_accent
+  bool:        $solarized.cyan
+  int:         $solarized.cyan
+  filesize:    $solarized.cyan
+  duration:    $solarized.cyan
+  date:        $solarized.cyan
+  range:       $solarized.blue
+  float:       $solarized.cyan
+  string:      $solarized.cyan
+  nothing:     $solarized.cyan
+  binary:      $solarized.blue
+  cellpath:    $solarized.blue
+  record:      $solarized.blue
+  list:        $solarized.blue
+  block:       $solarized.blue
+  hints:       $solarized.lightest_accent
+  shape_literal:  $solarized.cyan
+  shape_nothing:  $solarized.cyan
+  shape_string:   $solarized.cyan
+  shape_table:    { fg: $solarized.blue attr: b }
   shape_variable: $solarized.blue
-  shape_vardecl: $solarized.blue
+  shape_vardecl:  $solarized.blue
 }
 
 let solarized_light_shapes = {
-  shape_and: $solarized.light_accent
-  shape_binary: $solarized.light_accent
-  shape_block: { fg: $solarized.blue attr: b }
-  shape_closure: { fg: $solarized.green attr: b }
-  shape_custom: $solarized.green
-  shape_datetime: $solarized.blue
-  shape_directory: $solarized.blue
-  shape_external: $solarized.green
-  shape_externalarg: $solarized.blue
-  shape_filepath: $solarized.blue
-  shape_flag: { fg: $solarized.blue attr: b }
-  shape_float: $solarized.blue
-  shape_globpattern: $solarized.blue
-  shape_int: $solarized.blue
-  shape_internalcall: $solarized.green
-  shape_list: { fg: $solarized.blue attr: b }
-  shape_match_pattern: $solarized.blue
-  shape_matching_brackets: { fg: $solarized.light_accent attr: u }
-  shape_operator: $solarized.light_accent
-  shape_or: $solarized.light_accent
-  shape_pipe: $solarized.light_accent
-  shape_range: $solarized.light_accent
-  shape_record: { fg: $solarized.blue attr: b }
-  shape_redirection: $solarized.light_accent
-  shape_signature: { fg: $solarized.green attr: b }
-  shape_string_interpolation: $solarized.blue
+  shape_and:                  $solarized.light_accent
+  shape_binary:               $solarized.light_accent
+  shape_block:                { fg: $solarized.blue attr: b }
+  shape_closure:              { fg: $solarized.green attr: b }
+  shape_custom:               $solarized.green
+  shape_datetime:             $solarized.cyan
+  shape_directory:            $solarized.blue
+  shape_external:             { fg: $solarized.green attr: b }
+  shape_externalarg:          $solarized.blue
+  shape_filepath:             $solarized.blue
+  shape_flag:                 { fg: $solarized.blue attr: b }
+  shape_float:                $solarized.cyan
+  shape_globpattern:          $solarized.blue
+  shape_int:                  $solarized.cyan
+  shape_internalcall:         { fg: $solarized.green attr: b }
+  shape_list:                 { fg: $solarized.blue attr: b }
+  shape_match_pattern:        $solarized.blue
+  shape_matching_brackets:    { fg: $solarized.lightest_accent attr: u }
+  shape_operator:             $solarized.light_accent
+  shape_or:                   $solarized.light_accent
+  shape_pipe:                 $solarized.light_accent
+  shape_range:                $solarized.light_accent
+  shape_record:               { fg: $solarized.blue attr: b }
+  shape_redirection:          $solarized.light_accent
+  shape_signature:            { fg: $solarized.green attr: b }
+  shape_string_interpolation: $solarized.violet
+  shape_keyword:              { fg: $solarized.green attr: b }
 }
 
 let menu_style = {

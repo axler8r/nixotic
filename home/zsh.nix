@@ -85,32 +85,40 @@ in
       (builtins.readFile ../files/zsh/zshrc)
       (lib.mkOrder 910 ''
         # Solarized Light shell highlighting
-        # Names match `docs/theme.md` for readability.
+        # Names match docs/colour-token-taxonomy.md (Appendix E) for readability.
         typeset -gA ZSH_HIGHLIGHT_STYLES
         ZSH_HIGHLIGHT_STYLES[default]='fg=${solarized.lightAccent}'
         ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=${solarized.red},bold'
         ZSH_HIGHLIGHT_STYLES[commandunknown]='fg=${solarized.red},bold'
         ZSH_HIGHLIGHT_STYLES[comment]='fg=${solarized.lightAccent},italic'
         ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=${solarized.green},bold'
-        ZSH_HIGHLIGHT_STYLES[alias]='fg=${solarized.green}'
-        ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=${solarized.green}'
-        ZSH_HIGHLIGHT_STYLES[global-alias]='fg=${solarized.green}'
+        ZSH_HIGHLIGHT_STYLES[alias]='fg=${solarized.green},bold'
+        ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=${solarized.green},bold'
+        ZSH_HIGHLIGHT_STYLES[global-alias]='fg=${solarized.green},bold'
         ZSH_HIGHLIGHT_STYLES[precommand]='fg=${solarized.green},bold'
-        ZSH_HIGHLIGHT_STYLES[command]='fg=${solarized.green}'
-        ZSH_HIGHLIGHT_STYLES[function]='fg=${solarized.green}'
-        ZSH_HIGHLIGHT_STYLES[builtin]='fg=${solarized.green}'
+        ZSH_HIGHLIGHT_STYLES[command]='fg=${solarized.green},bold'
+        ZSH_HIGHLIGHT_STYLES[function]='fg=${solarized.green},bold'
+        ZSH_HIGHLIGHT_STYLES[builtin]='fg=${solarized.green},bold'
         ZSH_HIGHLIGHT_STYLES[path]='fg=${solarized.blue}'
         ZSH_HIGHLIGHT_STYLES[path_pathseparator]='fg=${solarized.lightAccent}'
         ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=${solarized.blue}'
         ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[back-quoted-argument]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[globbing]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[history-expansion]='fg=${solarized.blue}'
-        ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=${solarized.lightAccent}'
+        ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=${solarized.cyan}'
+        ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=${solarized.cyan}'
+        ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[back-quoted-argument]='fg=${solarized.cyan}'
+        ZSH_HIGHLIGHT_STYLES[dollar-double-quoted-argument]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[back-double-quoted-argument]='fg=${solarized.violet}'
         ZSH_HIGHLIGHT_STYLES[assign]='fg=${solarized.blue}'
+        ZSH_HIGHLIGHT_STYLES[globbing]='fg=${solarized.blue}'
+        ZSH_HIGHLIGHT_STYLES[history-expansion]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=${solarized.lightAccent}'
+        ZSH_HIGHLIGHT_STYLES[redirection]='fg=${solarized.lightAccent}'
+        ZSH_HIGHLIGHT_STYLES[named-fd]='fg=${solarized.lightAccent}'
+        ZSH_HIGHLIGHT_STYLES[process-substitution]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[process-substitution-delimiter]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[arithmetic-expansion]='fg=${solarized.violet}'
+        ZSH_HIGHLIGHT_STYLES[rc-quote]='fg=${solarized.cyan}'
       '')
       # After plugins (900) and fzf (910): load fzf keybindings then rebind Tab to fzf-tab
       (lib.mkOrder 920 ''
@@ -129,6 +137,26 @@ in
   programs.fzf = {
     enable = true;
     enableZshIntegration = false;  # Disabled: conflicts with fzf-tab
+    defaultOptions = [
+      # Solarized Light — docs/colour-token-taxonomy.md (Appendix H)
+      "--color=bg+:#eee8d5"
+      "--color=bg:#fdf6e3"
+      "--color=border:#268bd2"
+      "--color=fg:#839496"
+      "--color=fg+:#657b83"
+      "--color=gutter:#fdf6e3"
+      "--color=header:#d33682"
+      "--color=hl:#b58900"
+      "--color=hl+:#b58900"
+      "--color=info:#839496"
+      "--color=marker:#859900"
+      "--color=pointer:#268bd2"
+      "--color=prompt:#268bd2"
+      "--color=query:#657b83"
+      "--color=scrollbar:#93a1a1"
+      "--color=separator:#93a1a1"
+      "--color=spinner:#2aa198"
+    ];
   };
 
   programs.zoxide = {

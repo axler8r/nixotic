@@ -40,9 +40,21 @@ in
         plugin = lualine-nvim;
         type = "lua";
         config = ''
+          local sol_lualine = {
+            normal   = { a = { fg = '#fdf6e3', bg = '#268bd2', gui = 'bold' },
+                         b = { fg = '#657b83', bg = '#eee8d5' },
+                         c = { fg = '#657b83', bg = '#eee8d5' } },
+            insert   = { a = { fg = '#fdf6e3', bg = '#859900', gui = 'bold' } },
+            visual   = { a = { fg = '#fdf6e3', bg = '#b58900', gui = 'bold' } },
+            replace  = { a = { fg = '#fdf6e3', bg = '#dc322f', gui = 'bold' } },
+            command  = { a = { fg = '#fdf6e3', bg = '#cb4b16', gui = 'bold' } },
+            inactive = { a = { fg = '#93a1a1', bg = '#eee8d5' },
+                         b = { fg = '#93a1a1', bg = '#eee8d5' },
+                         c = { fg = '#93a1a1', bg = '#eee8d5' } },
+          }
           require('lualine').setup {
             options = {
-              theme = 'solarized_light',
+              theme = sol_lualine,
               section_separators = { left = "", right = "" },
               component_separators = { left = "", right = "" },
             },
@@ -333,7 +345,7 @@ in
       vim.cmd('colorscheme solarized8')
 
       -- Enforce Nixotic syntax role palette regardless of colorscheme defaults.
-      -- Names match `docs/theme.md` for readability.
+      -- Names match docs/colour-token-taxonomy.md (Appendix A) for readability.
       local role_hl = {
         Comment = { fg = '${solarized.lightAccent}', italic = true },
         SpecialComment = { fg = '${solarized.lightAccent}', italic = true },
@@ -400,6 +412,58 @@ in
         ['@module.builtin'] = { fg = '${solarized.magenta}' },
         ['@operator'] = { fg = '${solarized.lightAccent}' },
         ['@punctuation'] = { fg = '${solarized.lightAccent}' },
+
+        -- Markup (Appendix A.1)
+        Tag = { fg = '${solarized.green}', bold = true },
+        htmlArg = { fg = '${solarized.blue}' },
+        xmlAttrib = { fg = '${solarized.blue}' },
+        htmlString = { fg = '${solarized.cyan}' },
+        xmlString = { fg = '${solarized.cyan}' },
+        htmlSpecialChar = { fg = '${solarized.violet}' },
+        xmlEntity = { fg = '${solarized.violet}' },
+        htmlPreProc = { fg = '${solarized.magenta}' },
+        xmlProcessing = { fg = '${solarized.magenta}' },
+
+        -- Diff (Appendix A.1)
+        DiffAdd = { fg = '${solarized.green}' },
+        DiffDelete = { fg = '${solarized.red}' },
+        DiffChange = { fg = '${solarized.yellow}' },
+        DiffText = { fg = '${solarized.cyan}' },
+
+        -- Diagnostics — add hint (Appendix A.1)
+        DiagnosticHint = { fg = '${solarized.cyan}' },
+
+        -- UI chrome (Appendix A.1)
+        LineNr = { fg = '${solarized.lightAccent}' },
+        CursorLineNr = { fg = '${solarized.darkAccent}', bold = true },
+        Cursor = { fg = '${solarized.darkAccent}' },
+        CursorIM = { fg = '${solarized.darkAccent}' },
+        CursorLine = { bg = '${solarized.lightBackgroundContrast}' },
+        Visual = { bg = '${solarized.lightBackgroundContrast}' },
+        MatchParen = { fg = '${solarized.yellow}', bold = true },
+        IncSearch = { fg = '${solarized.yellow}', bold = true },
+        CurSearch = { fg = '${solarized.yellow}', bold = true },
+        Search = { fg = '${solarized.lightestAccent}' },
+        LspInlayHint = { fg = '${solarized.lightestAccent}', italic = true },
+        NormalFloat = { bg = '${solarized.lightBackgroundContrast}' },
+        FloatBorder = { fg = '${solarized.blue}' },
+
+        -- Treesitter additions (Appendix A.2)
+        ['@keyword.control'] = { fg = '${solarized.green}', bold = true },
+        ['@keyword.storage'] = { fg = '${solarized.green}', bold = true },
+        ['@keyword.return'] = { fg = '${solarized.green}', bold = true },
+        ['@variable.parameter'] = { fg = '${solarized.blue}' },
+        ['@number.float'] = { fg = '${solarized.cyan}' },
+        ['@function.call'] = { fg = '${solarized.orange}', italic = true },
+        ['@punctuation.delimiter'] = { fg = '${solarized.lightAccent}' },
+        ['@punctuation.bracket'] = { fg = '${solarized.lightAccent}' },
+        ['@tag'] = { fg = '${solarized.green}', bold = true },
+        ['@tag.builtin'] = { fg = '${solarized.green}', bold = true },
+        ['@tag.attribute'] = { fg = '${solarized.blue}' },
+        ['@string.special.symbol'] = { fg = '${solarized.violet}' },
+        ['@diff.plus'] = { fg = '${solarized.green}' },
+        ['@diff.minus'] = { fg = '${solarized.red}' },
+        ['@diff.delta'] = { fg = '${solarized.yellow}' },
       }
 
       for group, opts in pairs(role_hl) do

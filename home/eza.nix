@@ -21,7 +21,7 @@
   };
 
   home.sessionVariables = {
-    EZA_COLORS = "ur=32:uw=33:ux=31:ue=31:gr=32:gw=33:gx=31:tr=32:tw=33:tx=31:sn=32:sb=33:xx=34";
+    EZA_COLORS = "ur=38;5;64:uw=38;5;160:ux=38;5;64:ue=38;5;160:gr=38;5;64:gw=38;5;160:gx=38;5;64:tr=38;5;64:tw=38;5;160:tx=38;5;64:sn=38;5;37:sb=38;5;136:xx=38;5;33";
   };
 
   programs.zsh.shellAliases = {

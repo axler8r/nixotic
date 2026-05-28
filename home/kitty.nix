@@ -6,10 +6,10 @@
 
     settings = {
       # Solarized Light colors
-      background            = "#fdf6e3";
-      foreground            = "#839496";
-      selection_foreground  = "#d33682";
-      selection_background  = "#eee8d5";
+      background           = "#fdf6e3";
+      foreground           = "#839496";
+      selection_foreground = "#d33682";
+      selection_background = "#eee8d5";
 
       # ANSI color palette
       color0  = "#073642";
@@ -35,12 +35,12 @@
 
       # Font behavior
       # adjust_column_width = "-1";  # Tighter character spacing
-      font_size = 10.0;
+      font_size = 9.0;
       disable_ligatures = "never";
 
       # Cursor
       cursor = "#d33682";
-      cursor_text_color = "#eee8d5";
+      cursor_text_color = "#fdf6e3";
       cursor_blink_interval = "-2";
       cursor_stop_blinking_after = 20;
 

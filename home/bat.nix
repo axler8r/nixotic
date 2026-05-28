@@ -112,6 +112,69 @@
               <key>settings</key>
               <dict><key>foreground</key><string>#839496</string></dict>
             </dict>
+            <dict>
+              <key>name</key><string>Markup Tag</string>
+              <key>scope</key><string>entity.name.tag</string>
+              <key>settings</key>
+              <dict>
+                <key>foreground</key><string>#859900</string>
+                <key>fontStyle</key><string>bold</string>
+              </dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Markup Attribute</string>
+              <key>scope</key><string>entity.other.attribute-name</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#268bd2</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Markup Entity</string>
+              <key>scope</key><string>constant.character.entity</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#6c71c4</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Markup Doctype</string>
+              <key>scope</key><string>meta.tag.sgml.doctype</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#d33682</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>CSS Selector</string>
+              <key>scope</key><string>entity.name.tag.css, entity.other.attribute-name.class, entity.other.attribute-name.id, entity.other.attribute-name.pseudo-class</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#b58900</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>CSS Property</string>
+              <key>scope</key><string>support.type.property-name</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#268bd2</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>CSS At-Rule</string>
+              <key>scope</key><string>keyword.control.at-rule</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#d33682</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Diff Added</string>
+              <key>scope</key><string>markup.inserted</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#859900</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Diff Deleted</string>
+              <key>scope</key><string>markup.deleted</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#dc322f</string></dict>
+            </dict>
+            <dict>
+              <key>name</key><string>Diff Changed</string>
+              <key>scope</key><string>markup.changed</string>
+              <key>settings</key>
+              <dict><key>foreground</key><string>#b58900</string></dict>
+            </dict>
           </array>
         </dict>
         </plist>
