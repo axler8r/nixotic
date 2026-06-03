@@ -181,4 +181,12 @@ in
       ${pkgs.uv}/bin/uv generate-shell-completion zsh > $out
     ''
   );
+
+  home.packages = [
+    (pkgs.runCommand "zsh-completions-nixotic" { } ''
+      mkdir -p $out/share/zsh/site-functions
+      cp ${../files/zsh/completions/_New-DevEnvironment} $out/share/zsh/site-functions/_New-DevEnvironment
+      cp ${../files/zsh/completions/_Remove-DevEnvironment} $out/share/zsh/site-functions/_Remove-DevEnvironment
+    '')
+  ];
 }

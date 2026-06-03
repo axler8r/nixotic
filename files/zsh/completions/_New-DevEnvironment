@@ -1,0 +1,11 @@
+#compdef New-DevEnvironment
+
+_New-DevEnvironment() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '--name[project name (default: current directory)]:name:' \
+    '--lang[language template]:language:(python elixir dotnet)' \
+    '*:nix package:'
+}
+
+_New-DevEnvironment "$@"

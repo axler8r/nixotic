@@ -1,0 +1,75 @@
+#! /usr/bin/env zsh
+
+# Remove-DevEnvironment: Remove a direnv + flake-parts development environment
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Variables --------------------------------------------------------------------
+local _synopsis="Synopsis:
+    ${0:t} [opts]
+
+See also:
+    ${0:t} --help
+"
+local _help="Description:
+    Remove a direnv + Nix Flakes development environment from the current
+    directory. Deletes flake.nix, .envrc, and .direnv/ (including the
+    nix-direnv GC root that pins store paths). Run --gc to also collect
+    unreachable Nix store paths.
+
+Usage:
+    ${0:t} [opts]
+
+Options:
+    --help              Show this help message
+    --gc                Run nix store gc after removal
+
+Examples:
+    ${0:t}              # Remove dev environment in current directory
+    ${0:t} --gc         # Remove and collect unreachable Nix store paths
+"
+
+# Defaults
+local _gc=false
+local _help_flag=""
+
+
+# Functions --------------------------------------------------------------------
+_synopsis() { echo "${_synopsis}" | tail --lines=+2 }
+_help() { echo "${_help}" | tail --lines=+2 }
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)     _help_flag=true; shift ;;
+        --gc)       _gc=true; shift ;;
+        -*)         __ax_error "Unknown option: $1" && return 1 ;;
+        *)          __ax_error "Unexpected argument: $1" && return 1 ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+[[ -n $_help_flag ]] && _help && return 0
+
+if [[ ! -f flake.nix ]]; then
+    __ax_error "No flake.nix found in current directory"
+    return 1
+fi
+
+__ax_confirm "Remove dev environment in ${PWD:t}?" || return 0
+
+[[ -f flake.nix ]] && rm flake.nix  && echo "Removed flake.nix"
+[[ -f .envrc    ]] && rm .envrc     && echo "Removed .envrc"
+[[ -d .direnv   ]] && rm -rf .direnv && echo "Removed .direnv/"
+
+if [[ "$_gc" == "true" ]]; then
+    echo "Collecting unreachable Nix store paths..."
+    nix store gc
+fi
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction _synopsis _help 2>/dev/null
