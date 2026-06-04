@@ -66,5 +66,8 @@ in
 
     # Disable Chromium/Brave theming (allows manual theme installation)
     targets.chromium.enable = false;
+
+    # Stylix kmscon module uses removed nixpkgs options (extraConfig, fonts)
+    targets.kmscon.enable = false;
   };
 }
