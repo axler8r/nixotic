@@ -1,0 +1,12 @@
+#compdef Mount-Nfs
+
+_Mount-Nfs() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '(-s --server)'{-s,--server}'[NFS server hostname or IP]:server:_hosts' \
+    '(-p --path)'{-p,--path}'[remote export path]:path:' \
+    '(-m --mount)'{-m,--mount}'[local mount point]:mount point:_directories' \
+    '(-o --options)'{-o,--options}'[mount options]:options:'
+}
+
+_Mount-Nfs "$@"

@@ -1,0 +1,9 @@
+#compdef Get-GitHubLicenses
+
+_Get-GitHubLicenses() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '--raw[raw table output]'
+}
+
+_Get-GitHubLicenses "$@"

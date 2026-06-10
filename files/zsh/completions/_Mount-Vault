@@ -1,0 +1,21 @@
+#compdef Mount-Vault
+
+_Mount-Vault() {
+  local state
+
+  _arguments -C \
+    '(- *)--help[show help]' \
+    '1:vault name:->vault' \
+    '::mount point:_directories' \
+    && return 0
+
+  case $state in
+    vault)
+      local -a _names
+      _names=(${(f)"$(command ls ${HOME}/Vaults/.*.vault 2>/dev/null | sed 's|.*/\.||; s|\.vault$||')"})
+      compadd -a _names
+      ;;
+  esac
+}
+
+_Mount-Vault "$@"

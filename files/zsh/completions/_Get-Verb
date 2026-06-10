@@ -1,0 +1,9 @@
+#compdef Get-Verb
+
+_Get-Verb() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '--group[show verbs grouped by category]'
+}
+
+_Get-Verb "$@"

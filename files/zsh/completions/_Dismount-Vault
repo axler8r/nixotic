@@ -1,0 +1,21 @@
+#compdef Dismount-Vault
+
+_Dismount-Vault() {
+  local state
+
+  _arguments -C \
+    '(- *)--help[show help]' \
+    '1:vault name or mount point:->target' \
+    && return 0
+
+  case $state in
+    target)
+      local -a _names
+      _names=(${HOME}/Vaults/*(N/:t))
+      compadd -a _names
+      _directories
+      ;;
+  esac
+}
+
+_Dismount-Vault "$@"

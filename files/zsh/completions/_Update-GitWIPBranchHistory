@@ -1,0 +1,8 @@
+#compdef Update-GitWIPBranchHistory
+
+_Update-GitWIPBranchHistory() {
+  _arguments \
+    '(- *)--help[show help]'
+}
+
+_Update-GitWIPBranchHistory "$@"

@@ -1,0 +1,8 @@
+#compdef Complete-GitWIPBranch
+
+_Complete-GitWIPBranch() {
+  _arguments \
+    '(- *)--help[show help]'
+}
+
+_Complete-GitWIPBranch "$@"

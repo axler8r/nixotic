@@ -1,0 +1,17 @@
+#compdef New-Function
+
+_New-Function() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '1:template type:(wrapper function script)' \
+    '2:function name:' \
+    '(-o --output)'{-o,--output}'[output directory]:directory:_directories' \
+    '(-d --description)'{-d,--description}'[function description]:description:' \
+    '(-a --author)'{-a,--author}'[author name]:author:' \
+    '--version-number[version number for script templates]:version:' \
+    '(-n --dry-run)'{-n,--dry-run}'[print template without creating file]' \
+    '(-f --force)'{-f,--force}'[overwrite existing file]' \
+    '(-v --verbose)'{-v,--verbose}'[enable verbose output]'
+}
+
+_New-Function "$@"

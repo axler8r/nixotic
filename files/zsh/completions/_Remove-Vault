@@ -1,0 +1,21 @@
+#compdef Remove-Vault
+
+_Remove-Vault() {
+  local state
+
+  _arguments -C \
+    '(- *)--help[show help]' \
+    '--force[skip confirmation prompt]' \
+    '1:vault name:->vault' \
+    && return 0
+
+  case $state in
+    vault)
+      local -a _names
+      _names=(${(f)"$(command ls ${HOME}/Vaults/.*.vault 2>/dev/null | sed 's|.*/\.||; s|\.vault$||')"})
+      compadd -a _names
+      ;;
+  esac
+}
+
+_Remove-Vault "$@"

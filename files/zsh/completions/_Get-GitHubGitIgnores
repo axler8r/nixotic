@@ -1,0 +1,8 @@
+#compdef Get-GitHubGitIgnores
+
+_Get-GitHubGitIgnores() {
+  _arguments \
+    '(- *)--help[show help]'
+}
+
+_Get-GitHubGitIgnores "$@"

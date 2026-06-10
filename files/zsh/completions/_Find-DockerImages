@@ -1,0 +1,10 @@
+#compdef Find-DockerImages
+
+_Find-DockerImages() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '--raw[raw table output]' \
+    '*:search term:'
+}
+
+_Find-DockerImages "$@"
