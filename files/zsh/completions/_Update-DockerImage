@@ -1,0 +1,21 @@
+#compdef Update-DockerImage
+
+_Update-DockerImage() {
+  local state
+
+  _arguments -C \
+    '(- *)--help[show help]' \
+    '*:image:->images' \
+    && return 0
+
+  case $state in
+    images)
+      local -a _images
+      _images=(${(f)"$(docker image list --format='{{.Repository}}:{{.Tag}}' \
+        | sed '/^vsc/d; /^axler8r/d; /<none>/d; /devcontainer/d')"})
+      compadd -a _images
+      ;;
+  esac
+}
+
+_Update-DockerImage "$@"
