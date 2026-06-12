@@ -5,26 +5,21 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [opts] [directory]
+# Help -------------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts] [directory]
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Find files that use both tabs and spaces for indentation.
-    Files using only tabs or only spaces are fine — only mixed
-    indentation is reported. Uses fd to discover files (respects
-    .gitignore) and grep for detection.
-
-Usage:
-    ${0:t} [opts] [directory]
+Find files that use both tabs and spaces for indentation.
+Files using only tabs or only spaces are fine — only mixed
+indentation is reported. Uses fd to discover files (respects
+.gitignore) and grep for detection.
 
 Options:
     -e ext      Only check files with this extension (repeatable)
     --all       Include hidden files and ignored files
-    --help      Show this help message
+    --raw       Display results as raw output (no formatting)
+    -h, --help  Show this help message
 
 Arguments:
     directory   Target directory (default: current directory)
@@ -34,18 +29,9 @@ Examples:
     ${0:t} ~/projects               # Check specific directory
     ${0:t} -e py -e js              # Only Python and JavaScript files
     ${0:t} --all                    # Include hidden/ignored files
-"
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
+EOF
+    return 0
+fi
 
 # Options ----------------------------------------------------------------------
 local -a _extensions
@@ -55,11 +41,10 @@ local _directory=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true ;;
         --all)      _all_flag=true ;;
         --raw)      _raw_flag="--raw" ;;
         -e)         shift; _extensions+=("$1") ;;
-        -*)         __ax_error "Unknown option: $1" && _synopsis && return 1 ;;
+        -*)         __ax_error "Unknown option: $1" && return 1 ;;
         *)          _directory="$1" ;;
     esac
     shift
@@ -67,7 +52,6 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
 
 _directory="${_directory:-.}"
 __ax_require_dir "$_directory" || return 1
@@ -185,8 +169,6 @@ local _rc=$?
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
 unfunction find_mixed_indentation
 
 return $_rc

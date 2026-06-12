@@ -118,7 +118,7 @@ def generate_function_template(name: str, description: Optional[str] = None) -> 
     pascal_name = to_pascal_case(name)
     snake_name = to_snake_case(name)
     desc: str = description or f"Description of {pascal_name}"
-    
+
     return f'''#! /usr/bin/env zsh
 
 # {pascal_name}: {desc}
@@ -126,71 +126,50 @@ def generate_function_template(name: str, description: Optional[str] = None) -> 
 source "${{0:h}}/../lib/output.zsh"
 source "${{0:h}}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${{0:t}} [opts] [args]
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${{0:t}} [opts] [args]
 
-See also:
-    ${{0:t}} --help
-"
-local _help="Description:
-    {desc}
-
-Usage:
-    ${{0:t}} [opts] [args]
+{desc}
 
 Options:
-    --help      Show this help message.
+    -h, --help    Show this help message
     [Add other options here]
 
+Arguments:
+    <arg>         Description
+
 Examples:
-    ${{0:t}} arg1 arg2
-"
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {{
-    echo "${{_synopsis}}" | tail --lines=+2
-}}
-
-_help() {{
-    echo "${{_help}}" | tail --lines=+2
-}}
-
+    ${{0:t}} arg1
+EOF
+    return 0
+fi
 
 # Options ----------------------------------------------------------------------
+local _arg=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true ;;
-        --opt1)     _opt1_flag=true ;;
-        *)          _args=$1        ;;
+        -*)     __ax_error "Unknown option: $1"; return 1 ;;
+        *)      _arg="$1" ;;
     esac
     shift
 done
 
-
-# Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
-__ax_require_arg "$_args" "argument" || return 1
+__ax_require_arg "$_arg" "argument" || return 1
 
 
 # Driver -----------------------------------------------------------------------
 function {snake_name}() {{
-    local arg=${{1}}
-    
+    local arg="${{1}}"
+
     # Add function logic here
     echo "Executing {pascal_name} with: ${{arg}}"
 }}
 
+{snake_name} "$_arg"
 
-{snake_name} "${{_args}}"
-
-
-# Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
 unfunction {snake_name}
-
 '''
 
 
@@ -287,11 +266,11 @@ show_version() {{
 }}
 
 # Logging functions
-log_info() {{ echo -e "${{BLUE}}[INFO]${{NC}} $*" >&2; }}
-log_warn() {{ echo -e "${{YELLOW}}[WARN]${{NC}} $*" >&2; }}
-log_error() {{ echo -e "${{RED}}[ERROR]${{NC}} $*" >&2; }}
-log_success() {{ echo -e "${{GREEN}}[SUCCESS]${{NC}} $*" >&2; }}
-log_verbose() {{ [[ ${{VERBOSE}} -eq 1 ]] && echo -e "${{BLUE}}[VERBOSE]${{NC}} $*" >&2; }}
+log_info()    {{ [[ -t 2 && -z "${{NO_COLOR+x}}" ]] && echo -e "${{BLUE}}[INFO]${{NC}} $*" >&2    || echo "[INFO] $*" >&2; }}
+log_warn()    {{ [[ -t 2 && -z "${{NO_COLOR+x}}" ]] && echo -e "${{YELLOW}}[WARN]${{NC}} $*" >&2  || echo "[WARN] $*" >&2; }}
+log_error()   {{ [[ -t 2 && -z "${{NO_COLOR+x}}" ]] && echo -e "${{RED}}[ERROR]${{NC}} $*" >&2    || echo "[ERROR] $*" >&2; }}
+log_success() {{ [[ -t 2 && -z "${{NO_COLOR+x}}" ]] && echo -e "${{GREEN}}[SUCCESS]${{NC}} $*" >&2 || echo "[SUCCESS] $*" >&2; }}
+log_verbose() {{ [[ ${{VERBOSE}} -eq 1 ]] && {{ [[ -t 2 && -z "${{NO_COLOR+x}}" ]] && echo -e "${{BLUE}}[VERBOSE]${{NC}} $*" >&2 || echo "[VERBOSE] $*" >&2; }}; }}
 
 error_exit() {{
     local exit_code=${{2:-1}}

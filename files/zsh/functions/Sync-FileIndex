@@ -5,29 +5,22 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
+# Help -------------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [-f INDEX_FILE] [--dry-run] [DIRECTORY]
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [-f INDEX_FILE] [DIRECTORY]
-
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Reconcile a tickmark index file with actual directory contents.
-    New files are appended with an empty mark; deleted files are removed.
-    Existing marks are preserved.
-
-Usage:
-    ${0:t} [-f INDEX_FILE] [--dry-run] [DIRECTORY]
-
-Arguments:
-    DIRECTORY              Directory to scan (default: directory containing INDEX_FILE)
+Reconcile a tickmark index file with actual directory contents.
+New files are appended with an empty mark; deleted files are removed.
+Existing marks are preserved.
 
 Options:
     -f, --file INDEX_FILE  Index file to reconcile (default: _TRACK in DIRECTORY)
     --dry-run              Show what would be added or removed without writing changes
-    --help                 Show this help message
+    -h, --help             Show this help message
+
+Arguments:
+    DIRECTORY              Directory to scan (default: directory containing INDEX_FILE)
 
 Environment:
     TRACK_EXCLUDE_GLOB     Colon-separated filename globs to exclude (e.g. \"*.sh:reconcile-*\")
@@ -38,22 +31,14 @@ Examples:
     ${0:t} -f /path/to/_TRACK
     ${0:t} --dry-run
     TRACK_EXCLUDE_GLOB=\"*.sh\" ${0:t}
-"
+EOF
+    return 0
+fi
 
 local _self="${0:t}"
 local _track_file=""
 local _dir=""
 local _dry_run=""
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
 
 _excluded() {
     local fname="$1"
@@ -72,7 +57,6 @@ _excluded() {
 # Options ----------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)         _help_flag=true; shift ;;
         --dry-run)      _dry_run=true; shift ;;
         -f|--file)      _track_file="$2"; shift 2 ;;
         -f*)            _track_file="${1#-f}"; shift ;;
@@ -82,7 +66,6 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
 
 _track_file="${_track_file:-${_dir:-.}/_TRACK}"
 _track_file="$(realpath "$_track_file")"
@@ -150,7 +133,5 @@ sync_file_index
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
 unfunction _excluded
 unfunction sync_file_index

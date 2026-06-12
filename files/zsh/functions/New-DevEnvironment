@@ -5,33 +5,34 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [opts] [packages...]
+# Defaults
+local _name="${PWD:t}"
+local _lang=""
+local -a _packages=()
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
+
+# Help check ------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts] [packages...]
+
+Description:
     Create a new direnv + Nix Flakes development environment using flake-parts.
     Nix provides the runtime and essential tooling. Use language-native tools
     (uv, mix, dotnet) to manage project dependencies.
 
-Usage:
-    ${0:t} [opts] [packages...]
-
 Options:
-    --help              Show this help message
-    --name NAME         Project name (default: current directory name)
-    --lang LANG         Language template: python, elixir, dotnet
+    -h, --help              Show this help message
+    --name NAME             Project name (default: current directory name)
+    --lang LANG             Language template: python, elixir, dotnet
 
 Arguments:
-    packages            Additional Nix packages (bare names, e.g. jq ripgrep)
+    packages                Additional Nix packages (bare names, e.g. jq ripgrep)
 
 Language Templates:
-    python              python3, uv              → use uv for deps
-    elixir              elixir                   → use mix for deps
-    dotnet              dotnet-sdk               → use dotnet CLI for deps
+    python                  python3, uv  → use uv for deps
+    elixir                  elixir       → use mix for deps
+    dotnet                  dotnet-sdk   → use dotnet CLI for deps
 
 Examples:
     ${0:t} --lang python                        # Python with uv
@@ -39,24 +40,14 @@ Examples:
     ${0:t} --lang dotnet                        # .NET with dotnet CLI
     ${0:t} --lang python jq ripgrep             # Python + extra tools
     ${0:t} jq fd ripgrep                        # Ad-hoc shell, no language template
-"
-
-# Defaults
-local _name="${PWD:t}"
-local _lang=""
-local _help_flag=""
-local -a _packages=()
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() { echo "${_synopsis}" | tail --lines=+2 }
-_help() { echo "${_help}" | tail --lines=+2 }
+EOF
+    return 0
+fi
 
 
 # Options ----------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true; shift ;;
         --name)     _name="$2"; shift 2 ;;
         --lang)     _lang="$2"; shift 2 ;;
         -*)         __ax_error "Unknown option: $1" && return 1 ;;
@@ -66,11 +57,11 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
 __ax_check_deps direnv nix || return 2
 
 if [[ -z "$_lang" ]] && [[ ${#_packages[@]} -eq 0 ]]; then
-    _synopsis
+    __ax_error "Usage: ${0:t} [opts] [packages...]"
+    __ax_info "Use --help for more information"
     return 1
 fi
 
@@ -161,4 +152,4 @@ new_dev_environment "$_name" "$_lang" "${_packages[@]}"
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis _help new_dev_environment 2>/dev/null
+unfunction new_dev_environment 2>/dev/null

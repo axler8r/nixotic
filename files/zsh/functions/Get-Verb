@@ -5,31 +5,37 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _self="${0:A}"
-local _synopsis="
-Synopsis:
-    ${_self} [opts]
+local _raw_flag=""
+local _group_flag=""
 
-See also:
-    ${_self} --help
-"
-local _help="
-Usage:
-    ${0:t} [opts]
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [--raw] [--group]
 
-Description:
-    Get the approved verb list of PowerShell.
+Display the approved verb list used for ZSH function naming conventions.
 
 Options:
-    --help          Show this help message.
-    --group         Show the verbs grouped by category.
+    -h, --help    Show this help message
+    --group       Show verbs grouped by category (default)
+    --raw         One verb per line, alphabetically sorted
 
 Examples:
-    ${_self} --group
-"
-local _grouped_verbs="
-Common
+    ${0:t}
+    ${0:t} --raw | grep -i convert
+EOF
+    return 0
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --raw)      _raw_flag="--raw" ;;
+        --group)    _group_flag=true ;;
+        -*)         __ax_error "Unknown option: $1"; return 1 ;;
+    esac
+    shift
+done
+
+local _grouped_verbs="Common
     Add Clear Close Copy Enter Exit Find Format Get Hide Join Lock Move New Open
     Optimize Push Pop Redo Remove Rename Reset Resize Search Select Set Show
     Skip Split Step Switch Undo Unlock Watch
@@ -48,51 +54,10 @@ Lifecycle
 Other
     Use
 Security
-    Block Grant Protect Revoke Unblock Unprotect
-"
+    Block Grant Protect Revoke Unblock Unprotect"
 
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-_group() {
-    echo "${_grouped_verbs}" | tail --lines=+2
-}
-
-# Options ----------------------------------------------------------------------
-local _help_flag=""
-local _group_flag=""
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help) _help_flag=true ;;
-        --group)   _group_flag=true ;;
-        --)        shift; break ;;
-        -*)        __ax_error "Unknown option: $1"; return 1 ;;
-        *)         __ax_error "Unexpected argument: $1"; return 1 ;;
-    esac
-    shift
-done
-
-
-# Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
-
-if [[ -n $_group_flag ]]; then
-    _group
-    return 0
+if [[ -n "$_raw_flag" ]] || [[ ! -t 1 ]]; then
+    print -- "$_grouped_verbs" | grep "^    " | tr ' ' '\n' | grep -v "^$" | sort
+else
+    print -- "$_grouped_verbs"
 fi
-
-_group && return 0
-
-
-# Unset ------------------------------------------------------------------------
-unfunction _group
-unfunction _help
-unfunction _synopsis

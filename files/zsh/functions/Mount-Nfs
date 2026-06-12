@@ -5,22 +5,23 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} --server <host> --path <path> [opts]
+# Defaults
+local _server=""
+local _remote_path=""
+local _mount_point="/mnt/nfs"
+local _options="rw,sync"
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Mount an NFS export from a remote server.
-    Requires root privileges (use sudo).
 
-Usage:
-    ${0:t} --server <host> --path <path> [opts]
+# Options ----------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+
+Mount an NFS export from a remote server.
+Requires root privileges (use sudo).
 
 Options:
-    --help              Show this help message
+    -h, --help          Show this help message
     --server, -s        NFS server hostname or IP (required)
     --path, -p          Remote export path to mount (required)
     --mount, -m         Local mount point (default: /mnt/nfs)
@@ -30,38 +31,18 @@ Examples:
     ${0:t} --server 192.168.1.10 --path /exports/data
     ${0:t} -s nfs.example.com -p /share -m /mnt/myshare
     ${0:t} -s 10.0.0.5 -p /backup -o ro,noatime
-"
+EOF
+    return 0
+fi
 
-# Defaults
-local _server=""
-local _remote_path=""
-local _mount_point="/mnt/nfs"
-local _options="rw,sync"
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-
-
-
-# Options ----------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)
-            _help_flag=true
-            shift
-            ;;
         -s|--server)
             if [[ -z "${2:-}" ]]; then
                 __ax_error "Option '$1' requires an argument."
-                _synopsis
+                cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
                 return 1
             fi
             _server="$2"
@@ -70,7 +51,9 @@ while [[ $# -gt 0 ]]; do
         -p|--path)
             if [[ -z "${2:-}" ]]; then
                 __ax_error "Option '$1' requires an argument."
-                _synopsis
+                cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
                 return 1
             fi
             _remote_path="$2"
@@ -79,7 +62,9 @@ while [[ $# -gt 0 ]]; do
         -m|--mount)
             if [[ -z "${2:-}" ]]; then
                 __ax_error "Option '$1' requires an argument."
-                _synopsis
+                cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
                 return 1
             fi
             _mount_point="$2"
@@ -88,7 +73,9 @@ while [[ $# -gt 0 ]]; do
         -o|--options)
             if [[ -z "${2:-}" ]]; then
                 __ax_error "Option '$1' requires an argument."
-                _synopsis
+                cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
                 return 1
             fi
             _options="$2"
@@ -96,12 +83,16 @@ while [[ $# -gt 0 ]]; do
             ;;
         -*)
             __ax_error "Unknown option: $1"
-            _synopsis
+            cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
             return 1
             ;;
         *)
             __ax_error "Unexpected argument: $1"
-            _synopsis
+            cat << EOF
+Usage: ${0:t} --server <host> --path <path> [opts]
+EOF
             return 1
             ;;
     esac
@@ -109,9 +100,8 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
-__ax_require_arg "$_server" "server" || { _synopsis; return 1; }
-__ax_require_arg "$_remote_path" "remote path" || { _synopsis; return 1; }
+__ax_require_arg "$_server" "server" || { __ax_error "Usage: ${0:t} --server <host> --path <path> [opts]"; return 1; }
+__ax_require_arg "$_remote_path" "remote path" || { __ax_error "Usage: ${0:t} --server <host> --path <path> [opts]"; return 1; }
 
 
 # Driver -----------------------------------------------------------------------
@@ -206,7 +196,3 @@ function mount_nfs() {
 
 
 mount_nfs "${_server}" "${_remote_path}" "${_mount_point}" "${_options}"
-
-
-# Cleanup ----------------------------------------------------------------------
-unfunction _synopsis _help mount_nfs

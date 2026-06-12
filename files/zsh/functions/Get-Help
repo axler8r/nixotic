@@ -5,10 +5,42 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t} <command> - Display command help with syntax highlighting" && return 0
+local _raw_flag=""
 
-__ax_require_arg "$1" "command" || { echo "Usage: ${0:t} <command>"; return 1; }
-__ax_check_deps bat || return 2
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [--raw] <command>
+
+Display a command's --help output with bat syntax highlighting.
+
+Options:
+    -h, --help    Show this help message
+    --raw         Plain output, no syntax highlighting
+
+Arguments:
+    <command>     Command to query
+
+Examples:
+    ${0:t} git
+    ${0:t} --raw fd | grep pattern
+EOF
+    return 0
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --raw)  _raw_flag="--raw"; shift ;;
+        -*)     __ax_error "Unknown option: $1"; return 1 ;;
+        *)      break ;;
+    esac
+done
+
+__ax_require_arg "$1" "command" || return 1
 command -v "$1" &>/dev/null || { __ax_error "Command not found: $1"; return 1; }
 
-"${@}" --help | bat --plain --language=help
+if [[ -n "$_raw_flag" ]] || [[ ! -t 1 ]]; then
+    "${@}" --help
+else
+    __ax_check_deps bat || return 2
+    "${@}" --help | bat --plain --language=help
+fi

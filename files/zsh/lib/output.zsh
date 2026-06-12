@@ -7,14 +7,48 @@
 #   source "${0:h}/../lib/output.zsh"
 #
 
-# Standard output helpers
-__ax_error()   { print -P "%F{red}Error:%f $1" >&2 }
-__ax_warn()    { print -P "%F{yellow}Warning:%f $1" >&2 }
-__ax_info()    { print -P "%F{green}Info:%f $1" }
-__ax_success() { print -P "%F{green}Success:%f $1" }
+# Standard output helpers — all write to stderr
+__ax_error() {
+    if [[ -t 2 && -z "${NO_COLOR+x}" ]]; then
+        print -P "%F{red}Error:%f $1" >&2
+    else
+        print "Error: $1" >&2
+    fi
+}
+
+__ax_warn() {
+    if [[ -t 2 && -z "${NO_COLOR+x}" ]]; then
+        print -P "%F{yellow}Warning:%f $1" >&2
+    else
+        print "Warning: $1" >&2
+    fi
+}
+
+__ax_info() {
+    if [[ -t 2 && -z "${NO_COLOR+x}" ]]; then
+        print -P "%F{green}Info:%f $1" >&2
+    else
+        print "Info: $1" >&2
+    fi
+}
+
+__ax_success() {
+    if [[ -t 2 && -z "${NO_COLOR+x}" ]]; then
+        print -P "%F{green}Success:%f $1" >&2
+    else
+        print "Success: $1" >&2
+    fi
+}
 
 # Verbose output (only prints if _verbose_flag is set)
-__ax_verbose() { [[ -n $_verbose_flag ]] && print -P "%F{blue}Debug:%f $1" >&2 }
+__ax_verbose() {
+    [[ -n $_verbose_flag ]] || return 0
+    if [[ -t 2 && -z "${NO_COLOR+x}" ]]; then
+        print -P "%F{blue}Debug:%f $1" >&2
+    else
+        print "Debug: $1" >&2
+    fi
+}
 
 # Confirmation prompt (returns 0 if yes, 1 if no)
 # Usage: __ax_confirm "Delete this file?" || return 0
@@ -27,9 +61,8 @@ __ax_confirm() {
 
 # Table output helper
 # Reads pipe-delimited rows from stdin (first row = header).
-# Pretty mode (default): gum table with rounded border.
-# Raw mode (--raw flag): plain column-aligned output.
-# Auto-fallback: uses raw mode if gum is not available.
+# Formatted mode: gum table when stdout is a TTY and NO_COLOR is unset.
+# Plain mode: column-aligned output (--raw, non-TTY stdout, NO_COLOR set, or no gum).
 #
 # Usage:
 #   echo -e "Name|Size\nfoo.txt|1.2 KB" | __ax_table
@@ -38,7 +71,7 @@ __ax_table() {
     local raw=false
     [[ "$1" == "--raw" ]] && raw=true
 
-    if [[ "$raw" == true ]] || ! command -v gum &>/dev/null; then
+    if [[ "$raw" == true ]] || [[ ! -t 1 ]] || [[ -n "${NO_COLOR+x}" ]] || ! command -v gum &>/dev/null; then
         column -t -s"|"
     else
         gum table --separator "|" --border rounded --print

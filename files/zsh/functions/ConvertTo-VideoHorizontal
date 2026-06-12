@@ -5,23 +5,18 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} <input> <output>
+# Help -------------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <input> <output>
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
+Description:
     Flips a video horizontally and re-encodes the audio to prevent timestamp
     sync issues. Attempts hardware acceleration first, then falls back to
     software processing if hardware is not available.
 
-Usage:
-    ${0:t} <input> <output>
-
 Options:
-    --help      Show this help message.
+    -h, --help  Show this help message
 
 Hardware Acceleration Setup:
     For Intel QSV (Quick Sync Video) - RECOMMENDED for Intel CPUs:
@@ -46,23 +41,16 @@ Supported Hardware:
 
 Examples:
     ${0:t} input.mp4 output.mp4
-"
+EOF
+    return 0
+fi
 
+# Options -------------------------------------------------------------------------
+local _input=""
+local _output=""
 
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-
-# Options ----------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true ;;
         *)
             if [[ -z $_input ]]; then
                 _input=$1
@@ -70,7 +58,6 @@ while [[ $# -gt 0 ]]; do
                 _output=$1
             else
                 __ax_error "Too many arguments"
-                _synopsis
                 return 1
             fi
             ;;
@@ -78,11 +65,9 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
-__ax_require_arg "$_input" "input file" || { _synopsis; return 1; }
-__ax_require_arg "$_output" "output file" || { _synopsis; return 1; }
+__ax_require_arg "$_input" "input file" || return 1
+__ax_require_arg "$_output" "output file" || return 1
 __ax_check_deps ffmpeg || return 2
 
 
@@ -123,9 +108,3 @@ function format_videohorizontal() {
 
 
 format_videohorizontal "${_input}" "${_output}"
-
-
-# Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
-unfunction format_videohorizontal

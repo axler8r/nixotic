@@ -5,55 +5,41 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} <hostname> [opts]
+typeset -a _fwd_args
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
+
+# Help check ------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <hostname> [opts]
+
+Description:
     Scaffold a new NixOS host in the local nixotic checkout.
     Wrapper around nix run .#prepare — see scripts/Prepare-NewHost.sh.
 
-Usage:
-    ${0:t} <hostname> [opts]
-
 Options:
-    --help              Show this help message
-    --from <template>   Host to copy as template (default: ambul8r)
-    --no-commit         Scaffold files but skip the WIP branch and commit
+    -h, --help              Show this help message
+    --from <template>       Host to copy as template (default: ambul8r)
+    --no-commit             Scaffold files but skip the WIP branch and commit
 
 Examples:
     ${0:t} servr8r
     ${0:t} servr8r --from ambul8r
     ${0:t} servr8r --no-commit
-"
-
-typeset -a _fwd_args
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
+EOF
+    return 0
+fi
 
 
 # Options ----------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)  _help_flag=true; shift ;;
         *)       _fwd_args+=("$1"); shift ;;
     esac
 done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n ${_help_flag:-} ]] && _help && return 0
 __ax_check_deps nix || return 2
 
 
@@ -74,6 +60,4 @@ new_nixotic_host
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
-unfunction new_nixotic_host
+unfunction new_nixotic_host 2>/dev/null

@@ -1,0 +1,46 @@
+#! /usr/bin/env zsh
+
+# Update-DockerImage: Pull one or more Docker images to their latest versions
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [image...]
+
+Pull Docker images to their latest versions. With no arguments, updates all
+installed images (excluding devcontainer, vsc, and local axler8r images).
+
+Options:
+    -h, --help    Show this help message
+
+Arguments:
+    image         One or more image names (repo:tag)
+
+Examples:
+    ${0:t}
+    ${0:t} nginx:latest postgres:16
+    Get-DockerImages --raw | awk -F'|' 'NR>1{print \$1":"\$2}' | xargs ${0:t}
+EOF
+    return 0
+fi
+
+__ax_check_deps docker || return 2
+
+local -a _images
+
+if [[ $# -gt 0 ]]; then
+    _images=("$@")
+else
+    _images=(${(f)"$(docker image list --format="{{.Repository}}:{{.Tag}}" \
+        | sed '/^vsc/d; /^axler8r/d; /<none>/d; /devcontainer/d')"})
+fi
+
+if [[ ${#_images[@]} -eq 0 ]]; then
+    __ax_info "No images to update."
+    return 0
+fi
+
+printf '%s\n' "${_images[@]}" | xargs -L1 docker pull
+printf "\n"

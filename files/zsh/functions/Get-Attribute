@@ -5,47 +5,33 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# variables --------------------------------------------------------------------
-local _self="${0}"
-local _help="
-synopsis: ${_self} <attribute> <path>
-    Get an attribute on a file or directory.
+# option parsing ---------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <attribute> <path>
 
-options:
-    -h, --help     Show this help message and exit.
-    -v, --version  Show version information and exit.
+Get an attribute on a file or directory.
 
-arguments:
+Options:
+    -h, --help    Show this help message
+
+Arguments:
     <attribute>  The attribute to get.
     <path>       The path to the file or directory.
 
-example:
-    get-attribute user.comment /path/to/file
-    get-attribute user.app.name /path/to/directory
-"
-local _version="0.7.1"
+Examples:
+    ${0:t} user.comment /path/to/file
+    ${0:t} user.app.name /path/to/directory
+EOF
+    return 0
+fi
 
-
-# functions --------------------------------------------------------------------
-function _show_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-function _show_version() {
-    echo "${_version}"
-}
-
-
-# option parsing ---------------------------------------------------------------
 local _attribute=""
 local _path=""
-local _help_flag=""
-local _version_flag=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -h|--help)    _help_flag=true ;;
-        -v|--version) _version_flag=true ;;
+        -h|--help)    return 0 ;;
         --)           shift; break ;;
         -*)           __ax_error "Unknown option: $1"; return 1 ;;
         *)
@@ -55,18 +41,12 @@ while [[ $# -gt 0 ]]; do
                 _path="$1"
             else
                 __ax_error "Too many arguments"
-                echo "${_help}"
                 return 1
             fi
             ;;
     esac
     shift
 done
-
-
-# option actions ---------------------------------------------------------------
-[[ -n "${_help_flag}" ]] && echo "${_help}" && return 0
-[[ -n "${_version_flag}" ]] && echo "${_version}" && return 0
 
 
 # checks -----------------------------------------------------------------------
@@ -79,8 +59,3 @@ __ax_require_xattr_name "${_attribute}" || return 1
 
 # main -------------------------------------------------------------------------
 getfattr --name user."${_attribute}" "${_path}"
-
-
-# cleanup ----------------------------------------------------------------------
-unfunction _show_version
-unfunction _show_help

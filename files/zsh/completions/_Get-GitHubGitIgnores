@@ -2,7 +2,8 @@
 
 _Get-GitHubGitIgnores() {
   _arguments \
-    '(- *)--help[show help]'
+    '(- *)--help[show help]' \
+    '--raw[plain list, no header, no pager]'
 }
 
 _Get-GitHubGitIgnores "$@"

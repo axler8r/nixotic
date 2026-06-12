@@ -5,9 +5,43 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-[[ "$1" == "--help" ]] && echo "Usage: ${0:t}" && return 0
+local _raw_flag=""
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [--raw]
+
+Display default browser handlers for HTTP and HTTPS.
+
+Options:
+    -h, --help    Show this help message
+    --raw         Print handler values only, one per line (no labels)
+
+Examples:
+    ${0:t}
+    ${0:t} --raw | head -1
+EOF
+    return 0
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --raw)  _raw_flag="--raw" ;;
+        -*)     __ax_error "Unknown option: $1"; return 1 ;;
+    esac
+    shift
+done
 
 __ax_check_deps xdg-mime || return 2
 
-echo "HTTP:  " $(xdg-mime query default x-scheme-handler/http)
-echo "HTTPS: " $(xdg-mime query default x-scheme-handler/https)
+local _http _https
+_http=$(xdg-mime query default x-scheme-handler/http)
+_https=$(xdg-mime query default x-scheme-handler/https)
+
+if [[ -n "$_raw_flag" ]] || [[ ! -t 1 ]]; then
+    print -- "$_http"
+    print -- "$_https"
+else
+    print "HTTP:   $_http"
+    print "HTTPS:  $_https"
+fi

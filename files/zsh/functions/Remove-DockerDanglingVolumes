@@ -5,49 +5,24 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t}
+# Help check ---------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t}
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Remove all dangling Docker volumes (volumes not attached to any container).
-
-Usage:
-    ${0:t}
+Remove all dangling Docker volumes (volumes not attached to any container).
 
 Options:
-    --help      Show this help message.
+    -h, --help    Show this help message
 
 Examples:
-    remove-dockerdanglingvolumes
-"
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-
-# Options ----------------------------------------------------------------------
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --help)     _help_flag=true ;;
-        *)          _arg=$1         ;;
-    esac
-    shift
-done
+    ${0:t}
+EOF
+    return 0
+fi
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
 __ax_check_deps docker || return 2
 
 
@@ -71,6 +46,4 @@ function remove_dockerdanglingvolumes() {
 remove_dockerdanglingvolumes
 
 
-unfunction _synopsis
-unfunction _help
 unfunction remove_dockerdanglingvolumes

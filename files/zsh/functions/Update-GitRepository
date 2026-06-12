@@ -1,0 +1,52 @@
+#! /usr/bin/env zsh
+
+# Update-GitRepository: Pull and update one or more git repositories
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [path...]
+
+Pull and update git repositories. With no arguments, scans the current
+directory for git repositories.
+
+Options:
+    -h, --help    Show this help message
+
+Arguments:
+    path          One or more git repository paths
+
+Examples:
+    ${0:t}
+    ${0:t} ~/Projects/foo ~/Projects/bar
+    ${0:t} ~/Projects/*/
+EOF
+    return 0
+fi
+
+__ax_check_deps git parallel || return 2
+
+local -a _dirs
+
+if [[ $# -gt 0 ]]; then
+    for _arg in "$@"; do
+        if [[ -d "${_arg%/}/.git" ]]; then
+            _dirs+=("${_arg%/}")
+        else
+            __ax_warn "Not a git repository: $_arg"
+        fi
+    done
+else
+    for dir in */; do
+        [[ -d "${dir}.git" ]] && _dirs+=("$PWD/${dir%/}")
+    done
+fi
+
+if [[ ${#_dirs[@]} -eq 0 ]]; then
+    __ax_info "No git repositories found."
+    return 0
+fi
+
+parallel 'echo {} && git -C {} pull && git -C {} submodule update' ::: "${_dirs[@]}"

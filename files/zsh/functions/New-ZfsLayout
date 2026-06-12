@@ -6,36 +6,6 @@ source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [opts]
-
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Recreate the current ZFS dataset hierarchy used on this machine.
-    The layout includes the mounted datasets currently present under:
-    /home/axl/{Documents,Downloads,Media,Projects,Vaults}
-    and /home/axl/Projects/{AxlER8R,GitHub,GitLab,Sandbox}
-
-Usage:
-    ${0:t} [opts]
-
-Options:
-    --help          Show this help message
-    --pool NAME     Pool name to use (default: dpool)
-    --device PATH   Create the pool on this device if the pool does not exist
-    --owner USER    Owner to apply to mounted directories (default: axl)
-    --group GROUP   Group to apply to mounted directories (default: users)
-    --dry-run       Print commands without executing them
-
-Examples:
-    sudo ${0:t}
-    sudo ${0:t} --pool backup
-    sudo ${0:t} --pool dpool --device /dev/nvme0n1p4
-    sudo ${0:t} --dry-run
-"
-
 local _pool="dpool"
 local _device=""
 local _owner="axl"
@@ -71,14 +41,6 @@ _ownership_paths=(
 
 
 # Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
 _run() {
     if [[ -n "${_dry_run}" ]]; then
         print -- "$*"
@@ -154,21 +116,46 @@ new_zfs_layout() {
 
 
 # Options ----------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts]
+
+Description:
+    Recreate the current ZFS dataset hierarchy used on this machine.
+    The layout includes the mounted datasets currently present under:
+    /home/axl/{Documents,Downloads,Media,Projects,Vaults}
+    and /home/axl/Projects/{AxlER8R,GitHub,GitLab,Sandbox}
+
+Options:
+    -h, --help      Show this help message
+    --pool NAME     Pool name to use (default: dpool)
+    --device PATH   Create the pool on this device if the pool does not exist
+    --owner USER    Owner to apply to mounted directories (default: axl)
+    --group GROUP   Group to apply to mounted directories (default: users)
+    --dry-run       Print commands without executing them
+
+Examples:
+    sudo ${0:t}
+    sudo ${0:t} --pool backup
+    sudo ${0:t} --pool dpool --device /dev/nvme0n1p4
+    sudo ${0:t} --dry-run
+EOF
+    return 0
+fi
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true; shift ;;
         --pool)     _pool="$2"; shift 2 ;;
         --device)   _device="$2"; shift 2 ;;
         --owner)    _owner="$2"; shift 2 ;;
         --group)    _group="$2"; shift 2 ;;
         --dry-run)  _dry_run=true; shift ;;
-        *)          __ax_error "Unknown option: $1"; _synopsis; return 1 ;;
+        *)          __ax_error "Unknown option: $1"; return 1 ;;
     esac
 done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
 __ax_check_deps zfs zpool mkdir chown || return 2
 
 if [[ -z "${_dry_run}" ]]; then
@@ -181,12 +168,3 @@ if [[ -n "${_device}" && ! -b "${_device}" ]]; then
 fi
 
 new_zfs_layout
-
-
-# Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
-unfunction _run
-unfunction _dataset_exists
-unfunction _pool_exists
-unfunction new_zfs_layout

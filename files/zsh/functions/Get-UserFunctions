@@ -5,40 +5,27 @@
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
-# Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [opts]
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [--raw] [--powershell] [--linux]
 
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Lists all user functions that follow PowerShell naming conventions
-    (<verb>-<noun>) with their descriptions.
-
-Usage:
-    ${0:t} [options]
+List all user-defined ZSH functions with their descriptions.
 
 Options:
-    --help          Show this help message
-    --powershell    Show only PowerShell-style functions (PascalCase)
+    -h, --help      Show this help message
+    --raw           One function name per line, no descriptions
+    --powershell    Show only PowerShell-style functions (PascalCase Verb-Noun)
     --linux         Show only Linux-style functions (lowercase-with-hyphens)
 
 Examples:
-    ${0:t}                  # Show all, organized by style
-    ${0:t} --powershell     # Show only PowerShell functions
-    ${0:t} --linux          # Show only Linux functions
-"
+    ${0:t}
+    ${0:t} --raw | grep Get-
+    ${0:t} --powershell
+EOF
+    return 0
+fi
 
 # Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
 _get_functions_dir() {
     local functions_dir
     if [[ -n "${funcfiletrace[1]}" ]]; then
@@ -53,7 +40,7 @@ _get_functions_dir() {
 _extract_function_description() {
     local func_file="$1"
     local func_name="${func_file:t}"
-    
+
     # Read the file and extract the description from the comment line
     local description=""
     while IFS= read -r line; do
@@ -64,7 +51,7 @@ _extract_function_description() {
             break
         fi
     done < "$func_file"
-    
+
     echo "$description"
 }
 
@@ -88,30 +75,30 @@ _is_symlink() {
 _list_function_files() {
     local functions_dir="$1"
     local filter="$2"  # "powershell", "linux", or "all"
-    
+
     if [[ ! -d "$functions_dir" ]]; then
         return 1
     fi
-    
+
     local -a powershell_funcs
     local -a linux_funcs
-    
+
     # Collect and categorize all functions
     for func_file in "${functions_dir}"/*(-.:t); do
         if [[ "$func_file" =~ ^[A-Za-z]+-[A-Za-z0-9-]+$ ]]; then
             local description=$(_extract_function_description "${functions_dir}/${func_file}")
             local is_symlink=""
-            
+
             if _is_symlink "${functions_dir}/${func_file}"; then
                 is_symlink=" → $(readlink "${functions_dir}/${func_file}")"
             fi
-            
+
             if [[ -z "$description" ]]; then
                 description="(no description)"
             fi
-            
+
             local formatted_line="${func_file}|${description}${is_symlink}"
-            
+
             if _is_powershell_style "$func_file"; then
                 powershell_funcs+=("$formatted_line")
             elif _is_linux_style "$func_file"; then
@@ -119,7 +106,7 @@ _list_function_files() {
             fi
         fi
     done
-    
+
     # Output based on filter
     case "$filter" in
         powershell)
@@ -138,7 +125,7 @@ _list_function_files() {
                 echo "PowerShell-Style Functions:"
                 echo -e "Function|Description\n$(printf '%s\n' "${powershell_funcs[@]}" | sort)" | __ax_table $_raw_flag
             fi
-            
+
             if [[ ${#linux_funcs[@]} -gt 0 ]]; then
                 echo ""
                 echo "Linux-Style Functions:"
@@ -151,17 +138,41 @@ _list_function_files() {
 # Options ----------------------------------------------------------------------
 local _filter="all"
 local _raw_flag=""
+local _powershell_flag=""
+local _linux_flag=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help) _help && return 0 ;;
-        --powershell) _filter="powershell" ;;
-        --linux) _filter="linux" ;;
+        --powershell) _filter="powershell"; _powershell_flag=true ;;
+        --linux) _filter="linux"; _linux_flag=true ;;
         --raw) _raw_flag="--raw" ;;
         *) __ax_error "Unknown option: $1" && return 1 ;;
     esac
     shift
 done
+
+# Raw output -------------------------------------------------------------------
+if [[ -n "$_raw_flag" ]] || [[ ! -t 1 ]]; then
+    local _functions_dir
+    _functions_dir="$(_get_functions_dir)"
+    for func_file in "$_functions_dir"/[A-Z]*; do
+        [[ -f "$func_file" ]] || continue
+        local _fname="${func_file:t}"
+        if [[ -n "$_powershell_flag" ]]; then
+            [[ "$_fname" =~ ^[A-Z][a-z]+-[A-Z] ]] || continue
+        elif [[ -n "$_linux_flag" ]]; then
+            [[ "$_fname" =~ ^[a-z]+-[a-z] ]] || continue
+        fi
+        print -- "$_fname"
+    done | sort
+    unfunction _get_functions_dir
+    unfunction _extract_function_description
+    unfunction _is_powershell_style
+    unfunction _is_linux_style
+    unfunction _is_symlink
+    unfunction _list_function_files
+    return 0
+fi
 
 # Main -------------------------------------------------------------------------
 __ax_check_deps readlink sort || return 2
@@ -173,8 +184,6 @@ _list_function_files "$_functions_dir" "$_filter"
 
 
 # Cleanup ----------------------------------------------------------------------
-unfunction _synopsis
-unfunction _help
 unfunction _get_functions_dir
 unfunction _extract_function_description
 unfunction _is_powershell_style

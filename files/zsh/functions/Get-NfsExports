@@ -6,53 +6,37 @@ source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
 # Variables --------------------------------------------------------------------
-local _synopsis="Synopsis:
-    ${0:t} [opts] [server]
-
-See also:
-    ${0:t} --help
-"
-local _help="Description:
-    Check for exported NFS mounts on a server using showmount.
-    Displays all available NFS exports and their access permissions.
-
-Usage:
-    ${0:t} [opts] [server]
-
-Options:
-    --help      Show this help message
-
-Arguments:
-    server      NFS server hostname or IP (default: localhost)
-
-Examples:
-    ${0:t}                          # Check exports on localhost
-    ${0:t} 192.168.1.10
-    ${0:t} nfs.example.com
-"
-
-
-# Functions --------------------------------------------------------------------
-_synopsis() {
-    echo "${_synopsis}" | tail --lines=+2
-}
-
-_help() {
-    echo "${_help}" | tail --lines=+2
-}
-
-
-
-
-# Options ----------------------------------------------------------------------
 local _server="localhost"
 local _raw_flag=""
 
+# Options/Arguments ---------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts] [server]
+
+Description:
+    Check for exported NFS mounts on a server using showmount.
+    Displays all available NFS exports and their access permissions.
+
+Options:
+    -h, --help    Show this help message
+    --raw         Display output in raw format
+
+Arguments:
+    server        NFS server hostname or IP (default: localhost)
+
+Examples:
+    ${0:t}
+    ${0:t} 192.168.1.10
+    ${0:t} nfs.example.com
+EOF
+    return 0
+fi
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --help)     _help_flag=true ;;
         --raw)      _raw_flag="--raw" ;;
-        -*)         __ax_error "Unknown option: $1"; _synopsis; return 1 ;;
+        -*)         __ax_error "Unknown option: $1"; return 1 ;;
         *)          _server="$1" ;;
     esac
     shift
@@ -60,9 +44,6 @@ done
 
 
 # Main -------------------------------------------------------------------------
-[[ -n $_help_flag ]] && _help && return 0
-
-
 # Driver -----------------------------------------------------------------------
 function get_nfs_exports() {
     local server="$1"
@@ -111,7 +92,3 @@ function get_nfs_exports() {
 
 
 get_nfs_exports "${_server}"
-
-
-# Cleanup ----------------------------------------------------------------------
-unfunction _synopsis _help get_nfs_exports

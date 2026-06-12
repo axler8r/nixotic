@@ -29,6 +29,16 @@ Functions use **PascalCase Verb-Noun** naming (PowerShell-style):
 | `Clear-`     | Remove cached data           | `Clear-DnsCache`                  |
 | `Measure-`   | Benchmark/profile            | `Measure-Performance`             |
 
+## Output Contract
+
+**stdout carries data. stderr carries status.**
+
+- `__ax_error`, `__ax_warn`, `__ax_info`, `__ax_success` all write to stderr
+- Functions that produce no data (action takers: `New-`, `Remove-`, `Update-`, etc.)
+  write nothing to stdout — only status to stderr
+- Color is suppressed automatically when the output stream is not a TTY, or when
+  `NO_COLOR` is set (any value)
+
 ## Creating New Functions
 
 Use `New-Function` to generate templates:
@@ -67,6 +77,49 @@ alias start-dockerjupyternotebook=' Start-DockerJupyterNotebook '
 | `function` | 16-80 | Structured with options/help        |
 | `script`   | 81+   | Full automation with logging, traps |
 
+## `--raw` Flag
+
+All `Get-`, `Find-`, `Resolve-`, and `Measure-` functions that produce structured or
+formatted output must accept `--raw`.
+
+`--raw` output:
+- Plain text only — no color, no borders, no gum
+- One record per line for lists
+- Tab-separated fields for structured data
+- Suitable for `grep`, `awk`, `sort`, `xargs`
+
+Functions using `__ax_table` pass `$_raw_flag` through directly. `__ax_table` also
+auto-detects non-TTY stdout, so pipelines get plain output without needing `--raw`.
+
+## Help Pattern
+
+**Pattern 1 is the only pattern.** Place the help check before argument parsing.
+
+```zsh
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts] [args]
+
+One-line description of what this function does.
+
+Options:
+    -h, --help    Show this help message
+    --raw         Plain text output    ← data-producing functions only
+
+Arguments:
+    <arg>         Description          ← omit section if no positional args
+
+Examples:
+    ${0:t} foo
+    ${0:t} --raw | grep something
+EOF
+    return 0
+fi
+```
+
+Pattern 2 (the `local _help=...` / `_help_flag` / inner `_help()` / `unfunction` approach)
+is retired.
+
 ## Shared Libraries
 
 Reusable configuration and helpers live in `lib/`:
@@ -93,8 +146,8 @@ source "${0:h}/../lib/validation.zsh"
 | ---------------- | ------------------------------------------ |
 | `__ax_error`     | Red error message to stderr                |
 | `__ax_warn`      | Yellow warning message to stderr           |
-| `__ax_info`      | Green info message                         |
-| `__ax_success`   | Green success message                      |
+| `__ax_info`      | Green info message to stderr               |
+| `__ax_success`   | Green success message to stderr            |
 | `__ax_verbose`   | Blue debug message (if `_verbose_flag` set)|
 | `__ax_confirm`   | Interactive y/N prompt                     |
 
