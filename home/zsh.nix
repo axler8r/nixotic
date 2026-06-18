@@ -120,11 +120,15 @@ in
         ZSH_HIGHLIGHT_STYLES[arithmetic-expansion]='fg=${solarized.violet}'
         ZSH_HIGHLIGHT_STYLES[rc-quote]='fg=${solarized.cyan}'
       '')
-      # After plugins (900) and fzf (910): load fzf keybindings then rebind Tab to fzf-tab
+      # After plugins (900) and fzf (910): load fzf keybindings.
+      # Tab binding is deferred into zvm_after_init so zsh-vi-mode cannot
+      # clobber it when it fires its own init hook after shell startup.
       (lib.mkOrder 920 ''
         source <(${pkgs.fzf}/bin/fzf --zsh)
-        bindkey -M viins '^I' fzf-tab-complete
-        bindkey -M emacs '^I' fzf-tab-complete
+        zvm_after_init() {
+          bindkey -M viins '^I' fzf-tab-complete
+          bindkey -M emacs '^I' fzf-tab-complete
+        }
       '')
     ];
 

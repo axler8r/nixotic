@@ -34,6 +34,7 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 - ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`).
 - Use `command -v` not `which` for command detection.
 - No conditional guards for Home Manager tools (they're always present).
+- ZSH completions use `home.packages` with a `pkgs.runCommand` derivation (see `home/zsh.nix`) — not `xdg.dataFile`, which is not on `$fpath`.
 - Let Stylix manage GNOME and desktop chrome only.
 - Do not rely on Stylix/Base16 for terminal and editor syntax theming.
 - Keep syntax roles consistent across tools per `docs/colour-token-taxonomy.md`.
@@ -42,6 +43,7 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 ## Git Workflow
 - Add, rename, move and delete files as needed.
 - Do not stage or commit changes — the user does that after review.
+- Do not run `git push` — the user always pushes by hand.
 - Use git commands to rename, move and delete files under version control.
 
 
@@ -56,7 +58,9 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 ## Build Commands
 - `nh os build` — test build without switching.
 - `nix flake check` — validate flake.
+- Do not run build commands automatically — offer them and let the user decide. Builds can take a long time.
 - Do not run `nh os switch`; only the user applies changes in a separate terminal.
+- If Python is needed for a task, use `nix run nixpkgs#python3 -- <args>`.
 
 
 ## Style
