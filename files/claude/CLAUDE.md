@@ -1,6 +1,16 @@
 # Global Development Preferences
 
 
+## Environment
+This host is NixOS — a lean, declarative system where tools are not installed globally.
+
+- Use `nix run nixpkgs#<tool> -- <args>` to run a tool ephemerally (just-in-time, no install).
+- Use `nix shell nixpkgs#<tool>` to enter a shell with a tool available for a session.
+- Never check for tools with `which`, `command -v`, or assume system-wide availability.
+- Never use `pip`, `apt`, `brew`, `npm -g`, or any other package manager to install tools on the host.
+- Project-specific tools (dotnet, make, etc.) are declared in the project's `flake.nix` devShell and activated via `direnv`.
+
+
 ## Preferences
 - Dev Container-based development over local development.
 - Dev Container-installed extensions over local-installed extensions.
