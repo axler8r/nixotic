@@ -1,8 +1,7 @@
 <type>['('(<id>|<context>)')']: <message>
 
-# [body]
-
-# [footer]
+<subheading>:
+  -
 
 # ----------- INSTRUCTIONS -------------------------------------- >8 -
 #             See https://www.conventionalcommits.org for details.
@@ -10,6 +9,33 @@
 #             Add an <id> or <context> for reference where relevant.
 #             Supply a <message> in <verb> <detail> format.
 #             When in doubt, use 'wip'.
+#
+# ----------- BODY FORMAT ----------------------------------------
+#             Always include a body. One blank line between subject
+#             and body. Choose subheadings from the list below.
+#             One blank line between subheadings. List items use
+#             2-space indent, lowercase, no trailing period.
+#             Use — (em dash U+2014) to add context: "  - item — why"
+#
+#             Example:
+#               feat(shell): split foo into focused scripts
+#
+#               retire:
+#                 - foo — replaced by bar and baz
+#
+#               add:
+#                 - bar — handles the x case
+#                 - baz — handles the y case
+#
+# ----------- SUBHEADINGS ----------------------------------------
+#             add:        new behaviour, capabilities, or files
+#             modify:     changes to existing behaviour
+#             retire:     behaviour or files removed
+#             deprecate:  marked for future removal
+#             defect:     bug fixes
+#             style:      formatting, naming, cosmetic changes
+#             refactor:   restructuring without behaviour change
+#
 # ----------- MAJOR --------------------------------------------------
 # feat!       refactor, retire…
 # ----------- MINOR --------------------------------------------------

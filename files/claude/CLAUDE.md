@@ -1,18 +1,11 @@
 # Global Development Preferences
 
+# Preferences
 
-## Environment
-This host is NixOS — a lean, declarative system where tools are not installed globally.
+Prefer Development Container development over local development.
 
-- Use `nix run nixpkgs#<tool> -- <args>` to run a tool ephemerally (just-in-time, no install).
-- Use `nix shell nixpkgs#<tool>` to enter a shell with a tool available for a session.
-- Never check for tools with `which`, `command -v`, or assume system-wide availability.
-- Never use `pip`, `apt`, `brew`, `npm -g`, or any other package manager to install tools on the host.
-- Project-specific tools (dotnet, make, etc.) are declared in the project's `flake.nix` devShell and activated via `direnv`.
+## Development Container Environment
 
-
-## Preferences
-- Dev Container-based development over local development.
 - Dev Container-installed extensions over local-installed extensions.
 - `Dockerfile`-based dev container.
 - `Dockerfile` contains: runtime(s), ZSH, `make`, project tools, and user/group with uid/gid 1000 named `vscode`.
@@ -22,9 +15,20 @@ This host is NixOS — a lean, declarative system where tools are not installed 
 - `git` + WIP branch for trunk-based development.
 - Follow conventional commit specification for commit messages.
 
+## Local Environment
+
+In the absence of a Development Container project environment consider:
+
+This host is NixOS — a lean, declarative system where tools are not necessarily installed globally.
+
+- When `which`, `command -v` fails:
+  - Use `nix run nixpkgs#<tool> -- <args>` to run a tool ephemerally (just-in-time, no install), or,
+  - use `nix shell nixpkgs#<tool>` to enter a shell with a tool available for a session.
+- Never use `pip`, `apt`, `brew`, `npm -g`, or any other package manager to install tools on the host.
+- Project-specific tools (dotnet, make, etc.) are declared in the project's `flake.nix` devShell and activated via `direnv`.
 
 ## Workflow
-- Branch.
+
 - Create plan. Use `superpowers:writing-plans`.
 - Generate/update code.
   - Use `superpowers:executing-plans` or `superpowers:subagent-driven-development` for implementation.
@@ -40,9 +44,32 @@ This host is NixOS — a lean, declarative system where tools are not installed 
   - Never sync.
   - Never merge.
 
-
 ## Verification
+
 Before concluding work:
+
 - Ensure acceptance criteria are satisfied.
 - Ensure validation commands pass, or explain precisely why they do not.
 - Call out residual risk, deferred work, and follow-up recommendations explicitly.
+
+## Git Commit Messages
+
+- Use `files/git/gitcommit` as the source for commit types and context format.
+- Subject: `<type>[(<context>)]: <verb> <message>` — max 100 characters; lowercase throughout except identifiers and proper nouns.
+- Body: always present, separated from subject by one blank line.
+- Subheadings: `add:` `modify:` `retire:` `deprecate:` `defect:` `style:` `refactor:` — blank line between subheadings.
+- List items: `  - lowercase description` — no trailing period; use `—` (em dash U+2014) to add clarifying context.
+- Describe what was achieved, not which files changed.
+
+Example:
+
+```
+feat(shell): split foo into focused scripts
+
+retire:
+  - foo — replaced by focused per-language scripts
+
+add:
+  - bar — handles the x case
+  - baz — handles the y case
+```
