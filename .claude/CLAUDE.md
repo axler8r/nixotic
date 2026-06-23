@@ -18,10 +18,11 @@ Familiarize yourself with the project structure and files.
 If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as the source of truth.
 
 
-## How We Work Together
-1. User asks for something.
-2. Explain what you will do and how, and ask for clarification if needed.
-3. User gives feedback or says to proceed.
+## Superpowers
+Artifact location: `.superpowers/` (gitignored).
+- Specs: `.superpowers/specs/`
+- Plans: `.superpowers/plans/`
+- SDDs: `.superpowers/sdd/`
 
 
 ## File Naming
@@ -42,9 +43,14 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 
 ## Git Workflow
 - Add, rename, move and delete files as needed.
-- Do not stage or commit changes — the user does that after review.
-- Do not run `git push` — the user always pushes by hand.
+- Stage and commit freely on WIP branches.
 - Use git commands to rename, move and delete files under version control.
+- WIP branch merge process:
+  1. `git reset --soft stable` then `git commit` — squash all WIP commits into one clean commit
+  2. `git checkout stable`
+  3. `git merge --ff-only wip/<branch>`
+  4. `git branch --delete wip/<branch>`
+- Do not run `git push` — the user always pushes by hand.
 
 
 ## Git Commit Messages
