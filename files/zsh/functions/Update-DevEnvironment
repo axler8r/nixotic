@@ -1,0 +1,38 @@
+#! /usr/bin/env zsh
+
+# Update-DevEnvironment: Update a direnv + flake-parts development environment
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+
+# Help check ------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t}
+
+Description:
+    Update a direnv + Nix Flakes development environment in the current
+    directory. Advances flake.lock to the latest revisions of all inputs,
+    then reloads the direnv environment.
+
+Options:
+    -h, --help    Show this help message
+
+Examples:
+    ${0:t}        # Update flake inputs and reload environment
+EOF
+    return 0
+fi
+
+
+# Main -------------------------------------------------------------------------
+__ax_check_deps direnv nix || return 2
+
+if [[ ! -f flake.nix ]]; then
+    __ax_error "No flake.nix found in current directory"
+    return 1
+fi
+
+nix flake update || return 1
+direnv reload
