@@ -77,11 +77,16 @@ function new_elixir_dev_environment() {
     fi
 
     local all_packages=""
-    local -a all_pkg_names=("${lang_pkg_names[@]}" "${extra_packages[@]}")
-    if [[ ${#all_pkg_names[@]} -gt 0 ]]; then
-        all_packages=$(printf '            pkgs.%s\n' "${all_pkg_names[@]}")
-        all_packages="${all_packages%$'\n'}"
+    local lang_part=""
+    local extra_part=""
+    if [[ ${#lang_pkg_names[@]} -gt 0 ]]; then
+        lang_part=$(printf '            pkgs.beamPackages.%s\n' "${lang_pkg_names[@]}")
     fi
+    if [[ ${#extra_packages[@]} -gt 0 ]]; then
+        extra_part=$(printf '            pkgs.%s\n' "${extra_packages[@]}")
+    fi
+    all_packages="${lang_part}${extra_part}"
+    all_packages="${all_packages%$'\n'}"
 
     cat > flake.nix << EOF
 {
