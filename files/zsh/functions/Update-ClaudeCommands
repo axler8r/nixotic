@@ -6,6 +6,7 @@ source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
 local _gist_id="${CLAUDE_COMMANDS_GIST:-}"
+local _template="${HOME}/.claude/templates/project/axler8r.md"
 
 
 # Help check ------------------------------------------------------------------
@@ -14,8 +15,10 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
 Usage: ${0:t} [opts]
 
 Description:
-    Refresh the gist-managed Claude slash commands in the current project.
-    Replaces start.md, resume.md, and finish.md in .claude/commands/axler8r/.
+    Refresh the gist-managed Claude slash commands and axler8r workflow in the
+    current project. Overwrites .claude/axler8r.md from the nixotic template,
+    ensures .claude/CLAUDE.md imports it via @axler8r.md, and replaces
+    start.md, resume.md, and finish.md in .claude/commands/axler8r/.
     User-added custom commands are left untouched.
 
 Options:
@@ -43,8 +46,8 @@ done
 # Main -------------------------------------------------------------------------
 __ax_check_deps git || return 2
 
-if [[ ! -d .claude/commands/axler8r ]]; then
-    __ax_error ".claude/commands/axler8r/ not found — run Initialize-ClaudeProject first"
+if [[ ! -d .claude ]]; then
+    __ax_error ".claude/ not found — run Initialize-ClaudeProject first"
     return 1
 fi
 
@@ -57,6 +60,7 @@ fi
 # Driver -----------------------------------------------------------------------
 function update_claude_commands() {
     local gist_id="$1"
+    local template="$2"
     local staging
 
     staging=$(mktemp -d) || { __ax_error "Failed to create temp directory"; return 1 }
@@ -67,6 +71,8 @@ function update_claude_commands() {
         __ax_error "Failed to clone gist: ${gist_id}"
         return 1
     fi
+
+    mkdir -p .claude/commands/axler8r
 
     local -a command_files=(start.md resume.md finish.md)
     local updated=0
@@ -80,11 +86,26 @@ function update_claude_commands() {
         fi
     done
 
+    if [[ -f "$template" ]]; then
+        cp "$template" .claude/axler8r.md
+        __ax_info "Updated .claude/axler8r.md"
+    else
+        __ax_warn "Template not found: $template — skipping axler8r.md update"
+    fi
+
+    if [[ ! -f .claude/CLAUDE.md ]]; then
+        print '@axler8r.md' > .claude/CLAUDE.md
+        __ax_info "Created .claude/CLAUDE.md with @axler8r.md reference"
+    elif ! grep -qF '@axler8r.md' .claude/CLAUDE.md; then
+        printf '\n@axler8r.md\n' >> .claude/CLAUDE.md
+        __ax_info "Added @axler8r.md reference to .claude/CLAUDE.md"
+    fi
+
     __ax_success "Updated ${updated} command file(s)"
 }
 
 
-update_claude_commands "$_gist_id"
+update_claude_commands "$_gist_id" "$_template"
 
 
 # Cleanup ----------------------------------------------------------------------

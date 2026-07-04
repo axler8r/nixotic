@@ -6,7 +6,7 @@
     ".claude/commands/using-dev-container.md".source = ../files/claude/commands/using-dev-container.md;
     ".claude/commands/using-dotnet-dev-container.md".source = ../files/claude/commands/using-dotnet-dev-container.md;
     ".claude/commands/using-python-dev-container.md".source = ../files/claude/commands/using-python-dev-container.md;
-    ".claude/templates/project/CLAUDE.md".source = ../files/claude/project/CLAUDE.md;
+    ".claude/templates/project/axler8r.md".source = ../files/claude/project/axler8r.md;
   };
 
   home.sessionVariables = {

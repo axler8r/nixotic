@@ -6,7 +6,7 @@ source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
 
 local _gist_id="${CLAUDE_COMMANDS_GIST:-}"
-local _template="${HOME}/.claude/templates/project/CLAUDE.md"
+local _template="${HOME}/.claude/templates/project/axler8r.md"
 
 
 # Help check ------------------------------------------------------------------
@@ -16,9 +16,11 @@ Usage: ${0:t} [opts]
 
 Description:
     Set up the Claude GitHub-MCP developer workflow in the current project.
-    Creates .claude/CLAUDE.md from the nixotic project template and populates
+    Writes .claude/axler8r.md from the nixotic project template, ensures
+    .claude/CLAUDE.md imports it via @axler8r.md, and populates
     .claude/commands/axler8r/ with slash commands from the configured gist.
     Commands are available as /axler8r:start, /axler8r:resume, /axler8r:finish.
+    Safe to run on projects with an existing .claude/ directory.
 
     Prerequisites:
       - Current directory is a git repository with a remote named 'origin'
@@ -56,11 +58,6 @@ fi
 
 if ! git remote get-url origin &>/dev/null 2>&1; then
     __ax_error "No git remote 'origin' configured"
-    return 1
-fi
-
-if [[ -d .claude ]]; then
-    __ax_error ".claude/ already exists — remove it first or use Update-ClaudeCommands"
     return 1
 fi
 
@@ -102,11 +99,18 @@ function initialize_claude_project() {
         fi
     done
 
-    cp "$template" .claude/CLAUDE.md
+    cp "$template" .claude/axler8r.md
+
+    if [[ ! -f .claude/CLAUDE.md ]]; then
+        print '@axler8r.md' > .claude/CLAUDE.md
+    elif ! grep -qF '@axler8r.md' .claude/CLAUDE.md; then
+        printf '\n@axler8r.md\n' >> .claude/CLAUDE.md
+    fi
 
     __ax_success "Claude workflow initialised"
     print ""
-    print "  Created:"
+    print "  Files:"
+    [[ -f .claude/axler8r.md ]]                      && print "    .claude/axler8r.md"
     [[ -f .claude/CLAUDE.md ]]                       && print "    .claude/CLAUDE.md"
     [[ -f .claude/commands/axler8r/start.md ]]       && print "    .claude/commands/axler8r/start.md  (/axler8r:start)"
     [[ -f .claude/commands/axler8r/resume.md ]]      && print "    .claude/commands/axler8r/resume.md (/axler8r:resume)"
