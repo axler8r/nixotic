@@ -1,0 +1,122 @@
+#! /usr/bin/env zsh
+
+# Initialize-ClaudeProject: Set up the Claude GitHub-MCP workflow in the current project
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+local _gist_id="${CLAUDE_COMMANDS_GIST:-}"
+local _template="${HOME}/.claude/templates/project/CLAUDE.md"
+
+
+# Help check ------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts]
+
+Description:
+    Set up the Claude GitHub-MCP developer workflow in the current project.
+    Creates .claude/CLAUDE.md from the nixotic project template and populates
+    .claude/commands/ with slash commands from the configured gist.
+
+    Prerequisites:
+      - Current directory is a git repository with a remote named 'origin'
+      - CLAUDE_COMMANDS_GIST is set (or pass --gist)
+
+Options:
+    -h, --help          Show this help message
+    --gist GIST_ID      Gist ID (overrides \$CLAUDE_COMMANDS_GIST)
+
+Examples:
+    ${0:t}
+    ${0:t} --gist abc123def456
+EOF
+    return 0
+fi
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --gist)     _gist_id="$2"; shift 2 ;;
+        -*)         __ax_error "Unknown option: $1"; return 1 ;;
+        *)          __ax_error "Unexpected argument: $1"; return 1 ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+__ax_check_deps git || return 2
+
+if ! git rev-parse --git-dir &>/dev/null 2>&1; then
+    __ax_error "Not a git repository"
+    return 1
+fi
+
+if ! git remote get-url origin &>/dev/null 2>&1; then
+    __ax_error "No git remote 'origin' configured"
+    return 1
+fi
+
+if [[ -d .claude ]]; then
+    __ax_error ".claude/ already exists — remove it first or use Update-ClaudeCommands"
+    return 1
+fi
+
+if [[ -z "$_gist_id" ]]; then
+    __ax_error "Gist ID not set. Set \$CLAUDE_COMMANDS_GIST or use --gist GIST_ID"
+    return 1
+fi
+
+if [[ ! -f "$_template" ]]; then
+    __ax_error "Project template not found: $_template"
+    __ax_error "Run 'nh os switch' to apply the latest nixotic configuration"
+    return 1
+fi
+
+
+# Driver -----------------------------------------------------------------------
+function initialize_claude_project() {
+    local gist_id="$1"
+    local template="$2"
+    local staging
+
+    staging=$(mktemp -d) || { __ax_error "Failed to create temp directory"; return 1 }
+    trap "rm -rf '${staging}'" EXIT INT TERM
+
+    __ax_info "Cloning gist ${gist_id}..."
+    if ! git clone "https://gist.github.com/${gist_id}.git" "${staging}/gist" --quiet 2>&1; then
+        __ax_error "Failed to clone gist: ${gist_id}"
+        return 1
+    fi
+
+    mkdir -p .claude/commands
+
+    local -a command_files=(start.md resume.md finish.md)
+    for cmd in "${command_files[@]}"; do
+        if [[ -f "${staging}/gist/${cmd}" ]]; then
+            cp "${staging}/gist/${cmd}" ".claude/commands/${cmd}"
+        else
+            __ax_warn "${cmd} not found in gist — skipping"
+        fi
+    done
+
+    cp "$template" .claude/CLAUDE.md
+
+    __ax_success "Claude workflow initialised"
+    print ""
+    print "  Created:"
+    [[ -f .claude/CLAUDE.md ]]              && print "    .claude/CLAUDE.md"
+    [[ -f .claude/commands/start.md ]]      && print "    .claude/commands/start.md"
+    [[ -f .claude/commands/resume.md ]]     && print "    .claude/commands/resume.md"
+    [[ -f .claude/commands/finish.md ]]     && print "    .claude/commands/finish.md"
+    print ""
+    print "  Next: commit .claude/ and create your first issue with /start"
+}
+
+
+initialize_claude_project "$_gist_id" "$_template"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction initialize_claude_project 2>/dev/null

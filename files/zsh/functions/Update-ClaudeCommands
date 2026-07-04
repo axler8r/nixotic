@@ -1,0 +1,91 @@
+#! /usr/bin/env zsh
+
+# Update-ClaudeCommands: Refresh gist-managed Claude slash commands in the current project
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+local _gist_id="${CLAUDE_COMMANDS_GIST:-}"
+
+
+# Help check ------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [opts]
+
+Description:
+    Refresh the gist-managed Claude slash commands in the current project.
+    Replaces start.md, resume.md, and finish.md in .claude/commands/.
+    User-added custom commands are left untouched.
+
+Options:
+    -h, --help          Show this help message
+    --gist GIST_ID      Gist ID (overrides \$CLAUDE_COMMANDS_GIST)
+
+Examples:
+    ${0:t}
+    ${0:t} --gist abc123def456
+EOF
+    return 0
+fi
+
+
+# Options ----------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --gist)     _gist_id="$2"; shift 2 ;;
+        -*)         __ax_error "Unknown option: $1"; return 1 ;;
+        *)          __ax_error "Unexpected argument: $1"; return 1 ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+__ax_check_deps git || return 2
+
+if [[ ! -d .claude/commands ]]; then
+    __ax_error ".claude/commands/ not found — run Initialize-ClaudeProject first"
+    return 1
+fi
+
+if [[ -z "$_gist_id" ]]; then
+    __ax_error "Gist ID not set. Set \$CLAUDE_COMMANDS_GIST or use --gist GIST_ID"
+    return 1
+fi
+
+
+# Driver -----------------------------------------------------------------------
+function update_claude_commands() {
+    local gist_id="$1"
+    local staging
+
+    staging=$(mktemp -d) || { __ax_error "Failed to create temp directory"; return 1 }
+    trap "rm -rf '${staging}'" EXIT INT TERM
+
+    __ax_info "Cloning gist ${gist_id}..."
+    if ! git clone "https://gist.github.com/${gist_id}.git" "${staging}/gist" --quiet 2>&1; then
+        __ax_error "Failed to clone gist: ${gist_id}"
+        return 1
+    fi
+
+    local -a command_files=(start.md resume.md finish.md)
+    local updated=0
+    for cmd in "${command_files[@]}"; do
+        if [[ -f "${staging}/gist/${cmd}" ]]; then
+            cp "${staging}/gist/${cmd}" ".claude/commands/${cmd}"
+            __ax_info "Updated .claude/commands/${cmd}"
+            (( updated++ ))
+        else
+            __ax_warn "${cmd} not found in gist — skipping"
+        fi
+    done
+
+    __ax_success "Updated ${updated} command file(s)"
+}
+
+
+update_claude_commands "$_gist_id"
+
+
+# Cleanup ----------------------------------------------------------------------
+unfunction update_claude_commands 2>/dev/null
