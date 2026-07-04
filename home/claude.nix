@@ -10,6 +10,6 @@
   };
 
   home.sessionVariables = {
-    CLAUDE_COMMANDS_GIST = "";  # Set to your gist ID after publishing slash commands
+    CLAUDE_COMMANDS_GIST = "9b268e8f233fe5b9c8b0d982f5aee29c";  # axler8r/claude-project-commands gist
   };
 }

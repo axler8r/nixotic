@@ -15,7 +15,7 @@ Usage: ${0:t} [opts]
 
 Description:
     Refresh the gist-managed Claude slash commands in the current project.
-    Replaces start.md, resume.md, and finish.md in .claude/commands/.
+    Replaces start.md, resume.md, and finish.md in .claude/commands/axler8r/.
     User-added custom commands are left untouched.
 
 Options:
@@ -43,8 +43,8 @@ done
 # Main -------------------------------------------------------------------------
 __ax_check_deps git || return 2
 
-if [[ ! -d .claude/commands ]]; then
-    __ax_error ".claude/commands/ not found — run Initialize-ClaudeProject first"
+if [[ ! -d .claude/commands/axler8r ]]; then
+    __ax_error ".claude/commands/axler8r/ not found — run Initialize-ClaudeProject first"
     return 1
 fi
 
@@ -72,8 +72,8 @@ function update_claude_commands() {
     local updated=0
     for cmd in "${command_files[@]}"; do
         if [[ -f "${staging}/gist/${cmd}" ]]; then
-            cp "${staging}/gist/${cmd}" ".claude/commands/${cmd}"
-            __ax_info "Updated .claude/commands/${cmd}"
+            cp "${staging}/gist/${cmd}" ".claude/commands/axler8r/${cmd}"
+            __ax_info "Updated .claude/commands/axler8r/${cmd}"
             (( updated++ ))
         else
             __ax_warn "${cmd} not found in gist — skipping"
