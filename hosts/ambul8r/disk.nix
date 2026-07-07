@@ -8,6 +8,10 @@ let
   enableNixOnZfs = false;
 in
 {
+  # Partitioning declaration only — hardware-configuration.nix owns the
+  # fileSystems/swapDevices of the running system.
+  disko.enableConfig = false;
+
   disko.devices = {
     disk = {
       main = {

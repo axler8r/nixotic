@@ -36,6 +36,7 @@
           specialArgs = { inherit inputs; };
           modules = [
             hostPath
+            disko.nixosModules.disko
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
@@ -51,6 +52,7 @@
     in
     {
       nixosConfigurations = {
+        # prepare:hosts — Prepare-NewHost.sh inserts scaffolded hosts below this line.
         ambul8r = mkHost { hostPath = ./hosts/ambul8r/configuration.nix; };
 
         illumin8r = mkHost {
@@ -59,24 +61,17 @@
           homeConfig   = ./home/wsl.nix;
         };
 
+        cre8r = mkHost {
+          hostPath     = ./hosts/cre8r/configuration.nix;
+          enableStylix = false;
+          homeConfig   = ./home/headless.nix;
+        };
+
         # ML workstation (TODO: configure when ready)
         # infer8r = mkHost { hostPath = ./hosts/infer8r/configuration.nix; };
       };
 
       apps.${system} = {
-        install = {
-          type = "app";
-          program = toString (pkgs.writeShellScript "nixotic-install" ''
-            set -euo pipefail
-            export NIXOTIC_DISKO=${disko}
-            rm -rf /tmp/nixotic
-            cp -r ${self} /tmp/nixotic
-            chmod -R u+w /tmp/nixotic
-            chmod +x /tmp/nixotic/scripts/Install-NixOS.sh
-            exec /tmp/nixotic/scripts/Install-NixOS.sh "$@"
-          '');
-        };
-
         prepare = {
           type = "app";
           program = toString (pkgs.writeShellScript "nixotic-prepare" ''

@@ -27,15 +27,12 @@
 
 ## Installation
 
-To bring up a new host, use the automated installer — it partitions the disk,
-sets up ZFS, and runs `nixos-install` in one step:
+New hosts are provisioned over SSH from an existing machine (normally the
+`cre8r` helper VM) using nixos-anywhere — one command, unattended. The new
+machine boots the stock NixOS ISO and waits; nothing is typed on it beyond
+setting a root password.
 
-```bash
-sudo nix run github:axler8r/nixotic#install -- ambul8r
-```
-
-See [docs/install.md](../docs/install.md) for the full install and first-boot
-workflow, including how to persist the hardware configuration after reboot.
+See [docs/install.md](../docs/install.md) for the full walkthrough.
 
 ## Ongoing Updates
 

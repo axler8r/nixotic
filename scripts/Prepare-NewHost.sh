@@ -130,9 +130,9 @@ cp "hosts/${TEMPLATE}/disk.nix"          "hosts/${NEWHOST}/disk.nix"
 cat > "hosts/${NEWHOST}/hardware-configuration.nix" <<NIXEOF
 # Placeholder hardware configuration for ${NEWHOST}
 #
-# REPLACE THIS FILE after install:
-#   sudo cp /etc/nixos/hardware-configuration.nix \\
-#       ~/.nixotic/hosts/${NEWHOST}/hardware-configuration.nix
+# Overwritten automatically during install by:
+#   nixos-anywhere --generate-hardware-config nixos-generate-config \\
+#       hosts/${NEWHOST}/hardware-configuration.nix
 #
 # This placeholder allows the flake to evaluate before the host is installed.
 
@@ -168,7 +168,12 @@ NIXEOF
 
 # Patch hostName and hostId ----------------------------------------------
 
-NEW_HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8)"
+NEW_HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8 || true)"
+
+if [[ -z "${NEW_HOST_ID}" ]]; then
+    echo "error: failed to generate host ID" >&2
+    exit 1
+fi
 
 sed -i \
     "s|networking\.hostName = \"[^\"]*\"|networking.hostName = \"${NEWHOST}\"|" \
@@ -185,19 +190,26 @@ else
         "hosts/${NEWHOST}/configuration.nix"
 fi
 
+sed -i \
+    "s|boot\.resumeDevice = \"[^\"]*\"|boot.resumeDevice = \"/dev/disk/by-partlabel/disk-main-swap\"|" \
+    "hosts/${NEWHOST}/configuration.nix"
+
 
 # Register in flake.nix --------------------------------------------------
 
-LAST_MKHOST_LINE="$(awk '/mkHost/ && !/^[[:space:]]*#/ {last=NR} END {print last}' flake.nix)"
-
-if [[ -z "${LAST_MKHOST_LINE}" ]]; then
-    echo "error: could not locate mkHost entry in flake.nix; add the entry manually:" >&2
-    echo "  ${NEWHOST} = mkHost ./hosts/${NEWHOST}/configuration.nix;" >&2
+if ! grep -q '# prepare:hosts' flake.nix; then
+    echo "error: sentinel '# prepare:hosts' not found in flake.nix; add the entry manually:" >&2
+    echo "  ${NEWHOST} = mkHost { hostPath = ./hosts/${NEWHOST}/configuration.nix; };" >&2
     exit 1
 fi
 
-sed -i "${LAST_MKHOST_LINE}a\\        ${NEWHOST} = mkHost .\/hosts\/${NEWHOST}\/configuration.nix;" \
+sed -i "/# prepare:hosts/a\\        ${NEWHOST} = mkHost { hostPath = ./hosts/${NEWHOST}/configuration.nix; };" \
     flake.nix
+
+
+# Stage new files so Nix can see them (flake evaluates only tracked paths) ---
+
+git add "hosts/${NEWHOST}/" flake.nix
 
 
 # Validate ---------------------------------------------------------------
@@ -211,7 +223,7 @@ nix flake check --no-build
 if [[ "${NO_COMMIT}" == "true" ]]; then
     echo "==> Skipping commit (--no-commit)."
 else
-    WIP_BRANCH="wip/$(date +%Y%m%d)-$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7)"
+    WIP_BRANCH="wip/$(date +%Y%m%d)-$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7 || true)"
     git checkout -b "${WIP_BRANCH}"
     git add "hosts/${NEWHOST}/" flake.nix
     git commit -m "feat(host): scaffold ${NEWHOST} from ${TEMPLATE}"
@@ -225,44 +237,28 @@ fi
 cat <<EOF
 
 Done. Scaffolded hosts/${NEWHOST}/ from ${TEMPLATE}.
-hostId set to: ${NEW_HOST_ID}
+hostId set to: ${NEW_HOST_ID} (random, permanent — ZFS needs stability, not machine-id derivation)
 
 Review and edit hosts/${NEWHOST}/configuration.nix:
   networking.hostName         already set to "${NEWHOST}"
-  networking.hostId           set to "${NEW_HOST_ID}" (placeholder — see NOTE below)
-  boot.resumeDevice           leave as placeholder; installer will patch it
+  boot.resumeDevice           deterministic partlabel; remove if the host has no swap
   boot.loader.*               adjust if not EFI / systemd-boot
   services.xserver.videoDrivers  remove NVIDIA block if host has no NVIDIA GPU
   hardware.nvidia.*           remove or rewrite for the actual GPU
-  hardware.nvidia.prime.*     update bus IDs from lspci, or remove
   services.xserver.xkb.layout set keyboard layout if not "nz"
   time.timeZone               update if not "Pacific/Auckland"
   system.stateVersion         set to the NixOS release being installed
   users.users.axl.packages    trim/extend for this host's role
-  disk.nix: disk.main.device  verify with lsblk on the new machine
+  disk.nix: disk.main.device  verify: ssh root@<target-ip> lsblk
 
-NOTE: networking.hostId should match head -c 8 /etc/machine-id on the
-      installed system. The installer (scripts/Install-NixOS.sh) will
-      patch it automatically. After first boot, verify it matches and
-      commit the corrected value (Phase C).
+Install (target machine booted on the standard NixOS ISO, root password set):
 
-Installation paths:
-  Bare metal (nixotic installer):
-    sudo -E nix run github:axler8r/nixotic#install -- ${NEWHOST}
+  cd ~/.nixotic
+  nix run github:nix-community/nixos-anywhere -- \\
+    --flake .#${NEWHOST} \\
+    --generate-hardware-config nixos-generate-config hosts/${NEWHOST}/hardware-configuration.nix \\
+    root@<target-ip>
 
-  Already-installed NixOS (adopt into nixotic):
-    sudo nixos-rebuild switch --flake ~/.nixotic#${NEWHOST}
-
-The WIP commit lives at ${WORK_DIR}.
-Push is always manual — transport to a machine with push access first:
-
-  USB:  cd ${WORK_DIR}
-        git format-patch stable..HEAD -o /mnt/usb/
-        # on managed machine: git am /mnt/usb/*.patch
-
-  scp:  scp -r ${WORK_DIR} axl@<managed-machine>:/tmp/nixotic-newhost
-        # on managed machine: cherry-pick or git am the commit
-
-Then on the managed machine: curate, ff-merge to stable, git push origin stable.
-The install app fetches the published GitHub revision — push before booting the installer.
+See docs/install.md for the full walkthrough. Push is manual, after the
+install succeeds: merge the WIP branch to stable (ff-only), then git push.
 EOF

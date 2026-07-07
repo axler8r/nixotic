@@ -4,6 +4,7 @@
   imports =
     [
       ./hardware-configuration.nix
+      ./disk.nix
     ];
 
   boot.loader.systemd-boot.enable = true;
@@ -17,7 +18,7 @@
   boot.supportedFilesystems = [ "zfs" "nfs" ];
   boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "dpool" ];
-  networking.hostId = "001421c4";  # Required for ZFS - from: head -c 8 /etc/machine-id
+  networking.hostId = "001421c4";  # Required for ZFS — random, permanent per host
 
   networking.hostName = "ambul8r";
   networking.networkmanager.enable = true;

@@ -1,56 +1,223 @@
 # Installing Nixotic
-Covers bootstrapping a brand-new host from scratch: defining the host,
-installing from the NixOS ISO, and reconciling the generated values after the
-first boot. Also covers ZFS disk layout and ongoing ZFS operations.
+Covers provisioning a new host with nixos-anywhere from the `cre8r` driver
+VM, the one-time bootstrap of `cre8r` itself, and the WSL install path.
+Also covers ZFS disk layout and ongoing ZFS operations.
 
 
 ## Read This First
 Three rules matter more than anything else:
+1. New machines are installed **from another machine** (normally `cre8r`),
+   never by typing on the new machine itself. The new machine only ever
+   boots the stock NixOS ISO and waits.
+2. Nothing needs to be pushed before installing. nixos-anywhere reads the
+   **local checkout** at `~/.nixotic`, WIP branch and all. Push after the
+   install succeeds.
+3. Nothing needs to be reconciled after installing. The hardware config is
+   written into the local checkout *before* the install, `networking.hostId`
+   is a random permanent value chosen at scaffold time, and
+   `boot.resumeDevice` uses a disko partition label that is known before the
+   disk even exists.
 
-1. There is no separate "install plain NixOS first" step in this workflow.
-2. `prepare` happens before `install`.
-3. The installer fetches from `origin/stable`, so the new host config must be
-   pushed before `nix run github:axler8r/nixotic#install -- <newhost>`.
 
-There are two different boots:
+## Provision a New Host from cre8r
+Total hands-on time at the new machine: about two minutes. Everything else
+happens at `cre8r` (or any managed machine — the steps are identical).
 
-1. Boot the installer ISO on the new machine.
-2. After `nixos-install` finishes, reboot into the newly installed system.
+### Step 1 — Boot the target on the NixOS ISO
+Write the standard NixOS ISO (minimal is fine) to a USB stick and boot the
+new machine from it. Log in as `nixos` (no password).
+
+Give root a password and note the IP address:
+
+```bash
+sudo passwd root      # nixos-anywhere connects as root
+ip a                  # note the IP, e.g. 192.168.1.50
+```
+
+Ethernet with DHCP comes up automatically. Verify:
+
+```bash
+curl -fsSI https://github.com >/dev/null && echo ok
+```
+
+Expected: `ok`.
+
+**What can go wrong here:**
+- *No IP shown*: Wi-Fi needs manual setup on the minimal ISO — run
+  `sudo systemctl start wpa_supplicant`, then `wpa_cli` →
+  `add_network` / `set_network 0 ssid "<SSID>"` /
+  `set_network 0 psk "<password>"` / `enable_network 0` / `quit`.
+- *Machine won't boot the USB*: check UEFI boot order and disable Secure
+  Boot.
+
+That is all the typing the new machine ever gets. Walk away from it.
+
+### Step 2 — Scaffold the host (on cre8r)
+```bash
+cd ~/.nixotic
+git checkout stable && git pull --ff-only
+scripts/Prepare-NewHost.sh <newhost>
+```
+
+Expected: `Done. Scaffolded hosts/<newhost>/ ...` and a new WIP branch
+`wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is
+the **permanent** value for this host — it never changes.
+
+**What can go wrong here:**
+- *`error: working tree is dirty`*: commit or stash first; prepare refuses
+  to scaffold on top of unrelated changes.
+- *`error: must be on 'stable' branch`*: `git checkout stable` and re-run.
+- *`error: hosts/<newhost>/ already exists`*: pick another name, or delete
+  the stale directory if it was an abandoned attempt.
+
+### Step 3 — Point disk.nix at the right disk
+Look at the target's disks over SSH, then set the device:
+
+```bash
+ssh root@<target-ip> lsblk -o NAME,SIZE,MODEL,TYPE
+```
+
+Expected: the target's disks, e.g. `nvme0n1  931.5G  ...  disk`.
+
+Edit `hosts/<newhost>/disk.nix` and set `disk.main.device` to match
+(e.g. `/dev/nvme0n1`). Adjust partition sizes for the actual disk size if
+needed. Then review `hosts/<newhost>/configuration.nix` for anything
+obviously wrong for this machine (GPU block, timezone, stateVersion) —
+but remember: **only the disk layout must be right now**; everything else
+is an ordinary post-boot edit.
+
+Commit what you changed:
+
+```bash
+git add hosts/<newhost>/ && git commit -m "feat(host): configure <newhost> disk layout"
+```
+
+**What can go wrong here:**
+- *`ssh: connection refused`*: sshd starts automatically on the ISO, but
+  root needs the password from Step 1 — did `sudo passwd root` happen?
+- *Wrong device chosen*: this is the one destructive mistake available in
+  the whole flow. disko will erase whatever `disk.main.device` names,
+  without asking. Double-check against the `MODEL` and `SIZE` columns.
+
+### Step 4 — Install (the walk-away step)
+```bash
+cd ~/.nixotic
+nix run github:nix-community/nixos-anywhere -- \
+  --flake .#<newhost> \
+  --generate-hardware-config nixos-generate-config hosts/<newhost>/hardware-configuration.nix \
+  root@<target-ip>
+```
+
+What happens, unattended: nixos-anywhere runs `nixos-generate-config` on the
+target and writes the result into `hosts/<newhost>/hardware-configuration.nix`
+in this checkout; partitions the disk with disko; builds the system; copies it
+over; installs the bootloader; reboots the target into the finished system. Go
+for a walk. On a typical machine this takes 10–30 minutes.
+
+Expected final output: `installation finished!` followed by the reboot.
+
+**What can go wrong here:**
+- *Host key prompt*: answer `yes`; the ISO generates a fresh host key each
+  boot. If a previous attempt left a stale entry:
+  `ssh-keygen -R <target-ip>`.
+- *disko fails*: the target is still sitting on the live ISO, untouched or
+  partially partitioned — nothing is lost. Fix `disk.nix`, commit, re-run
+  the same command.
+- *Build is too heavy for cre8r*: add `--build-on-remote` to build on the
+  target instead.
+- *`error: flake ... is dirty`*: uncommitted changes; `git add` them —
+  flakes only see tracked files.
+
+### Step 5 — After the install
+```bash
+git add hosts/<newhost>/hardware-configuration.nix
+git commit -m "feat(host): persist generated hardware config for <newhost>"
+git reset --soft stable && git commit    # squash WIP into one clean commit
+git checkout stable
+git merge --ff-only @{-1}
+git branch --delete @{-1} 2>/dev/null || true
+git push origin stable
+```
+
+Then log into the new host (as `axl`) and give it its own checkout for
+ongoing updates:
+
+```bash
+nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git ~/.nixotic'
+```
+
+From here on, updates are the normal cycle: edit, `nh os switch`.
+
+Post-install tuning — packages, GPU drivers, NVIDIA PRIME bus IDs
+(`lspci` on the running host), keyboard layout — is ordinary configuration
+work on a live system. Nothing about it is special to a fresh install.
+
+**What can go wrong here:**
+- *New host won't resume from hibernation*: check that
+  `boot.resumeDevice` points at `/dev/disk/by-partlabel/disk-main-swap`
+  and that the label exists (`ls /dev/disk/by-partlabel/`). Hosts without
+  swap should not set `boot.resumeDevice` at all.
 
 
-## Exact Sequence
-Follow this sequence exactly on a brand-new machine:
+## One-Time: Bootstrap cre8r Itself
+`cre8r` is a minimal headless NixOS VM on the Proxmox host. It is installed
+exactly like any other host — except the driver is `ambul8r`, because cre8r
+does not exist yet. This is done once.
 
-1. Boot the NixOS installer ISO on the target machine.
-2. Log in as `nixos`.
-3. Bring up networking on the installer ISO.
-4. From the installer ISO, inspect the hardware you need to model:
-   `lsblk -o NAME,SIZE,MODEL,TYPE`, `lspci`, `ip a`.
-5. Leave the installer ISO running. Do not install generic NixOS.
-6. On a managed machine, run `nix run github:axler8r/nixotic#prepare -- <newhost>`.
-7. Edit `hosts/<newhost>/configuration.nix` and `hosts/<newhost>/disk.nix` so
-   they match the new machine.
-8. Push that host config to `origin/stable`.
-9. Go back to the installer ISO on the new machine.
-10. Enable flakes and verify the target disk one more time.
-11. Run `sudo -E nix run github:axler8r/nixotic#install -- <newhost>`.
-12. Wait for `nixos-install` to finish, then reboot.
-13. Log into the newly installed system. This is the first boot.
-14. Clone the repo onto the new host, persist the generated hardware config,
-    and reconcile the patched values back into `hosts/<newhost>/`.
-15. Run `sudo nixos-rebuild switch --flake .#<newhost>` once.
-16. Commit and push the reconciled files.
-17. From that point on, use `nh os switch` for normal updates.
+1. On Proxmox, create a VM: 2 vCPU, 4 GB RAM, 32 GB disk (VirtIO block),
+   UEFI (OVMF) firmware **with the EFI disk added**, and the NixOS ISO
+   attached as the CD. Boot it.
+2. In the Proxmox console for the VM: `sudo passwd root`, then `ip a` and
+   note the IP.
+3. On ambul8r, confirm the disk name the VM sees:
+
+   ```bash
+   ssh root@<vm-ip> lsblk -o NAME,SIZE,TYPE
+   ```
+
+   Expected: `vda  32G  disk`. If it shows `sda` instead (VirtIO SCSI),
+   change `device` in `hosts/cre8r/disk.nix` to `/dev/sda` and commit.
+4. Install from ambul8r:
+
+   ```bash
+   cd ~/.nixotic
+   nix run github:nix-community/nixos-anywhere -- \
+     --flake .#cre8r \
+     --generate-hardware-config nixos-generate-config hosts/cre8r/hardware-configuration.nix \
+     root@<vm-ip>
+   ```
+5. After reboot, remove the ISO from the VM in Proxmox. Log in as `axl`
+   over SSH (key-only), change the initial console password
+   (`passwd`), commit the generated hardware config, merge, push.
+6. Give cre8r its working checkout and an SSH key with GitHub access:
+
+   ```bash
+   ssh axl@<vm-ip>
+   nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git ~/.nixotic'
+   ssh-keygen -t ed25519 -C "axl@cre8r"
+   # add ~/.ssh/id_ed25519.pub to GitHub
+   ```
+
+**What can go wrong here:**
+- *VM boots to a UEFI shell after install*: the VM was created with
+  SeaBIOS. Recreate it with OVMF (UEFI) and an EFI disk —
+  `hosts/cre8r/configuration.nix` uses systemd-boot, which is UEFI-only.
+
+
+## Fallback: No Driver Machine Available
+If cre8r and every managed machine are unavailable (first machine ever, or
+total loss), any Linux machine that can run `nix` can act as the driver:
+install nix, clone the repo, and follow "Provision a New Host from cre8r"
+from Step 2. The steps are identical; `cre8r` is a convenience, not a
+requirement.
 
 
 ## WSL Hosts (illumin8r)
-
 WSL hosts use a completely different install path. There is no ISO, no disk
 layout, no `hardware-configuration.nix`, no ZFS, and no bootloader.
 `illumin8r` is always installed this way.
 
 ### Prerequisites (Windows side)
-
 1. Enable WSL2: `wsl --install` (or via Windows Features → Virtual Machine
    Platform + Windows Subsystem for Linux).
 2. Confirm WSL2 is the default version: `wsl --set-default-version 2`.
@@ -58,7 +225,6 @@ layout, no `hardware-configuration.nix`, no ZFS, and no bootloader.
    `nix-community/NixOS-WSL` GitHub releases page.
 
 ### Step 1 — Import the NixOS-WSL distribution
-
 From PowerShell or Windows Terminal:
 
 ```powershell
@@ -74,7 +240,6 @@ wsl -d NixOS
 The initial default user is `nixos`.
 
 ### Step 3 — Enable Nix flakes
-
 Inside the WSL instance:
 
 ```bash
@@ -83,7 +248,6 @@ echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.con
 ```
 
 ### Step 4 — Apply the nixotic configuration
-
 ```bash
 nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git /tmp/nixotic'
 sudo nixos-rebuild switch --flake /tmp/nixotic#illumin8r
@@ -93,7 +257,6 @@ This installs zsh, helix, git, tmux, tig, github-copilot-cli, and Docker,
 and sets `axl` as the default WSL user.
 
 ### Step 5 — Restart WSL
-
 From PowerShell:
 
 ```powershell
@@ -106,267 +269,17 @@ active. No reconciliation step is needed — there are no generated values to
 patch back.
 
 ### Step 6 — Move the repo into the user home
-
 ```bash
 cp -r /tmp/nixotic ~/.nixotic
 ```
 
 ### Ongoing updates
-
 From inside the WSL instance:
 
 ```bash
 cd ~/.nixotic
 git pull
 sudo nixos-rebuild switch --flake .#illumin8r
-```
-
----
-
-## Phase 1 — Define the New Host
-Run this on a managed machine, or on any machine with `nix` and network access.
-Using a managed machine is simpler because the repo and helper commands are
-already there.
-
-```bash
-export NIX_CONFIG="experimental-features = nix-command flakes"
-nix run github:axler8r/nixotic#prepare -- <newhost>
-```
-
-On a managed machine the zsh wrapper can be used instead:
-
-```bash
-New-NixoticHost <newhost>
-```
-
-The script:
-- Locates or clones `~/.nixotic`.
-- Copies `hosts/ambul8r/` as the template.
-- Generates a fresh placeholder `networking.hostId`.
-- Registers the host in `flake.nix`.
-- Runs `nix flake check --no-build`.
-- Commits on a new `wip/YYYYMMDD-XXXXXXX` branch.
-
-### Edit the scaffolded config
-Review `hosts/<newhost>/configuration.nix` and `hosts/<newhost>/disk.nix` and
-adjust them to match the new hardware before pushing:
-
-| File / key                        | Action                                                   |
-| --------------------------------- | -------------------------------------------------------- |
-| `disk.nix` → `disk.main.device`   | Verify against `lsblk` from the installer ISO            |
-| `disk.nix` partition sizes        | Tune for actual disk size                                |
-| `services.xserver.videoDrivers`   | Remove NVIDIA entries for Intel/AMD-only hosts           |
-| `hardware.nvidia.*` block         | Remove or rewrite for the actual GPU                     |
-| `hardware.nvidia.prime.*` bus IDs | Use `lspci` from the new machine; remove if no PRIME     |
-| `services.xserver.xkb.layout`     | Set keyboard layout if not `nz`                          |
-| `time.timeZone`                   | Update if not `Pacific/Auckland`                         |
-| `system.stateVersion`             | Set to the NixOS release being installed                 |
-| `users.users.axl.packages`        | Trim or extend for this host's role                      |
-| `networking.hostId`               | Placeholder; installer will patch from `/etc/machine-id` |
-| `boot.resumeDevice`               | Placeholder; installer will patch from swap UUID         |
-
-### Push to stable
-The installer only sees what is already published on `origin/stable`.
-Push is always manual:
-
-```bash
-cd ~/.nixotic
-Update-GitWIPBranchHistory
-Complete-GitWIPBranch
-git push origin stable
-```
-
-If you ran `prepare` on the installer ISO instead of a managed machine, move the
-commit to a managed machine first, then push from there:
-
-```bash
-# USB
-git -C ~/.nixotic format-patch stable..HEAD -o /mnt/usb/
-# on managed machine:
-git -C ~/.nixotic am /mnt/usb/*.patch
-Complete-GitWIPBranch
-git push origin stable
-
-# scp
-scp -r ~/.nixotic axl@<managed-machine>:/tmp/nixotic-newhost
-# on managed machine: cherry-pick or git am, then push
-```
-
-
-## Phase 2 — Boot the Installer ISO
-Run this on the new machine. The standard NixOS installer ISO (minimal or
-graphical) provides everything needed: `nix`, `git`, `parted`, `cryptsetup`,
-and `wpa_supplicant` or `nmtui`.
-
-### Boot the ISO
-Write the ISO to a USB stick and boot it on the new machine. Log in as `nixos`
-(passwordless sudo is available).
-
-For headless installs, start sshd so the session can be driven remotely:
-
-```bash
-sudo systemctl start sshd
-sudo passwd nixos
-ip a   # note the IP
-```
-
-### Bring up the network
-Ethernet with DHCP works automatically. Verify:
-
-```bash
-curl -fsSI https://github.com >/dev/null && echo ok
-```
-
-Wi-Fi (minimal ISO):
-
-```bash
-sudo systemctl start wpa_supplicant
-wpa_cli
-> add_network
-> set_network 0 ssid "<SSID>"
-> set_network 0 psk "<password>"
-> enable_network 0
-> quit
-```
-
-Wi-Fi (graphical ISO): use `nmtui`.
-
-### Collect hardware facts for the new host config
-Before running `prepare`, or before finalizing the edited host config, collect
-the values you need from the live environment:
-
-```bash
-lsblk -o NAME,SIZE,MODEL,TYPE
-lspci
-ip a
-```
-
-At this point the machine is still running only the live ISO. Nothing has been
-installed yet.
-
-
-## Phase 3 — Install From the ISO
-Run this on the installer ISO after the host config has been prepared, reviewed,
-and pushed to `origin/stable`.
-
-### Enable flakes
-The NixOS installer ISO does not enable flakes by default:
-
-```bash
-export NIX_CONFIG="experimental-features = nix-command flakes"
-```
-
-### Verify the target disk
-`disko` will destroy the target disk without further prompting. Confirm the
-device path matches `disk.main.device` in `hosts/<newhost>/disk.nix`:
-
-```bash
-lsblk -o NAME,SIZE,MODEL,TYPE
-```
-
-### Run the installer
-This is the first and only OS install step in the workflow:
-
-```bash
-sudo -E nix run github:axler8r/nixotic#install -- <newhost>
-```
-
-`-E` carries `NIX_CONFIG` into the root environment. The installer:
-
-1. Fetches the flake from `origin/stable` on GitHub.
-2. Enables `HOSTDATA/nix` in `disk.nix` so `/nix` is provisioned on ZFS.
-3. Partitions and formats the disk via `disko`.
-4. Generates `hardware-configuration.nix` from the live hardware.
-5. Patches `boot.resumeDevice` with the swap partition UUID.
-6. Patches `networking.hostId` from `/etc/machine-id`.
-7. Runs `nixos-install` and prompts for a root password.
-
-When it finishes, reboot. The next boot is the first boot of the installed
-system.
-
-> [!NOTE]
-> The installer patches happen inside `/tmp/nixotic`, which is discarded on
-> reboot. After first boot, those generated values must be copied back into the
-> repo checkout on disk.
-
-
-## Phase 4 — First Boot of the Installed System
-Run this on the newly installed host after rebooting out of the installer ISO.
-The live installer environment is gone.
-
-### 1. Clone the repository and create a WIP branch
-`git` may not be available yet in the base shell environment, so use a
-transient `nix-shell`:
-
-```bash
-nix-shell -p git --run '
-  git clone https://github.com/axler8r/nixotic.git ~/.nixotic
-  cd ~/.nixotic
-  git checkout stable
-  git pull --ff-only origin stable
-  git checkout -b "wip/$(date +%Y%m%d-%H%M%S)-firstboot"
-'
-```
-
-### 2. Persist the hardware configuration
-`hardware-configuration.nix` is generated from the live hardware during
-install. The repo holds only a placeholder before that point:
-
-```bash
-sudo cp /etc/nixos/hardware-configuration.nix \
-  ~/.nixotic/hosts/<newhost>/hardware-configuration.nix
-```
-
-### 3. Reconcile the installer-patched values
-The installer patched `boot.resumeDevice` and `networking.hostId` inside its
-temporary checkout under `/tmp/nixotic`. That checkout is gone after reboot, so
-update the committed host config to match the running system:
-
-```bash
-# Swap UUID
-SWAP_UUID="$(blkid -t TYPE=swap -o value -s UUID | head -1)"
-sed -i \
-  "s|boot\.resumeDevice = \"/dev/disk/by-uuid/[^\"]*\"|boot.resumeDevice = \"/dev/disk/by-uuid/${SWAP_UUID}\"|" \
-  ~/.nixotic/hosts/<newhost>/configuration.nix
-grep 'boot.resumeDevice' ~/.nixotic/hosts/<newhost>/configuration.nix
-
-# Host ID
-HOST_ID="$(head -c 8 /etc/machine-id)"
-sed -i \
-  "s|networking\.hostId = \"[^\"]*\"|networking.hostId = \"${HOST_ID}\"|" \
-  ~/.nixotic/hosts/<newhost>/configuration.nix
-grep 'networking.hostId' ~/.nixotic/hosts/<newhost>/configuration.nix
-```
-
-### 4. Run the first rebuild
-Apply the now-reconciled checkout:
-
-```bash
-cd ~/.nixotic
-sudo nixos-rebuild switch --flake .#<newhost>
-```
-
-This is the only time `nixos-rebuild` is used directly. All later updates use
-`nh`:
-
-```bash
-nh os switch
-```
-
-See [`docs/validation.md`](validation.md) for the full validation pipeline.
-
-### 5. Commit and push the reconciled files
-After the first rebuild, commit the real hardware config and the patched
-values:
-
-```bash
-cd ~/.nixotic
-git add hosts/<newhost>/hardware-configuration.nix \
-        hosts/<newhost>/configuration.nix
-git commit -m "fix(host): persist generated config for <newhost>"
-git checkout stable
-git merge --ff-only @{-1}
-git push origin stable
 ```
 
 
@@ -424,11 +337,11 @@ boot.zfs.forceImportRoot = false;
 boot.zfs.extraPools = [ "dpool" ];
 
 # ZFS refuses to import a pool last used by a different machine.
-# hostId is how it detects this. Patched at install time from /etc/machine-id.
-networking.hostId = "<patched-by-installer>";
+# hostId is how it detects this. Random permanent value set at scaffold time.
+networking.hostId = "<random-8-hex-chars>";
 
-# Hibernate target. Patched at install time from swap partition UUID.
-boot.resumeDevice = "/dev/disk/by-uuid/<patched-by-installer>";
+# Hibernate target. Deterministic disko partition label — known before install.
+boot.resumeDevice = "/dev/disk/by-partlabel/disk-main-swap";
 
 services.zfs = {
   autoScrub.enable = true;
@@ -453,8 +366,9 @@ services.zfs = {
 
 
 ### Adding New Datasets
-Edit the relevant `hosts/<hostname>/disk.nix` to add the dataset — disko
-creates it on the next fresh install. To add a dataset on a running system without reinstalling:
+Edit the relevant `hosts/<hostname>/disk.nix` to add the dataset — disko creates
+it on the next fresh install. To add a dataset on a running system without
+reinstalling:
 
 ```bash
 # Inherits mountpoint from parent (e.g., a new project under Projects/)
