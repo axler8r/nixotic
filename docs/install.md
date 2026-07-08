@@ -123,6 +123,14 @@ Expected final output: `installation finished!` followed by the reboot.
 - *disko fails*: the target is still sitting on the live ISO, untouched or
   partially partitioned — nothing is lost. Fix `disk.nix`, commit, re-run
   the same command.
+- *`error: The 'fileSystems' option does not specify your root file
+  system`*: the host's `disk.nix` sets `disko.enableConfig = false`, so
+  disko emits no `fileSystems`, and `nixos-generate-config` runs *before*
+  the disk is partitioned so it can't emit them either. The host must let
+  disko own the mounts — `disko.enableConfig = true` (the default).
+  `Prepare-NewHost.sh` sets this for scaffolded hosts; only a host whose
+  `hardware-configuration.nix` was hand-generated on a running machine
+  (e.g. `ambul8r`) may keep it `false`.
 - *Build is too heavy for cre8r*: add `--build-on-remote` to build on the
   target instead.
 - *`error: flake ... is dirty`*: uncommitted changes; `git add` them —
@@ -166,7 +174,13 @@ does not exist yet. This is done once.
 
 1. On Proxmox, create a VM: 2 vCPU, 4 GB RAM, 32 GB disk (VirtIO block),
    UEFI (OVMF) firmware **with the EFI disk added**, and the NixOS ISO
-   attached as the CD. Boot it.
+   attached as the CD. Boot it. Two settings are not optional and are the
+   two things most likely to be wrong:
+   - **BIOS must be OVMF (UEFI), not the default SeaBIOS.** systemd-boot is
+     UEFI-only; a SeaBIOS VM installs fine but never boots the result.
+   - **When adding the EFI disk, uncheck "Pre-Enroll keys".** That box is
+     ticked by default; enrolling keys turns on Secure Boot, which rejects
+     the unsigned NixOS ISO and systemd-boot with `Access Denied`.
 2. In the Proxmox console for the VM: `sudo passwd root`, then `ip a` and
    note the IP.
 3. On ambul8r, confirm the disk name the VM sees:
@@ -199,8 +213,20 @@ does not exist yet. This is done once.
    ```
 
 **What can go wrong here:**
-- *VM boots to a UEFI shell after install*: the VM was created with
-  SeaBIOS. Recreate it with OVMF (UEFI) and an EFI disk —
+- *Console hangs at `SeaBIOS ... Booting from Hard Disk...`*: the VM is on
+  legacy SeaBIOS firmware. The install succeeded, but systemd-boot is
+  UEFI-only so SeaBIOS finds nothing bootable and stalls forever — this is
+  not slowness, it will never boot. Stop the VM, set BIOS to OVMF (UEFI),
+  add an EFI disk with **Pre-Enroll keys unchecked**, and boot. No reinstall
+  is needed; the disk is already good.
+- *OVMF shows `Access Denied` loading the DVD-ROM and `No bootable option
+  or device was found`*: Secure Boot is enabled and rejecting the unsigned
+  NixOS ISO. Stop the VM, detach and remove the EFI disk, re-add it with
+  **Pre-Enroll keys unchecked**, put the CD first in the boot order, and
+  boot. The same applies to the installed system — systemd-boot is unsigned
+  and needs Secure Boot off.
+- *VM boots to a UEFI shell after install*: created without a proper
+  OVMF/EFI-disk setup. Recreate with OVMF (UEFI) and an EFI disk;
   `hosts/cre8r/configuration.nix` uses systemd-boot, which is UEFI-only.
 
 

@@ -1,15 +1,17 @@
 { ... }:
 
 {
-  # Partitioning declaration only — hardware-configuration.nix owns the
-  # fileSystems of the running system.
-  disko.enableConfig = false;
+  # No ZFS here, so let disko own the fileSystems: it derives
+  # fileSystems."/" and "/boot" from the mountpoints below. This is what
+  # satisfies the root-filesystem assertion during a fresh nixos-anywhere
+  # install, where nixos-generate-config runs before the disk is partitioned
+  # and therefore cannot emit fileSystems itself.
 
   disko.devices = {
     disk = {
       main = {
         type = "disk";
-        device = "/dev/vda";
+        device = "/dev/sda";
         content = {
           type = "gpt";
           partitions = {
@@ -20,7 +22,10 @@
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot";
-                mountOptions = [ "fmask=0077" "dmask=0077" ];
+                mountOptions = [
+                  "fmask=0077"
+                  "dmask=0077"
+                ];
               };
             };
             root = {
