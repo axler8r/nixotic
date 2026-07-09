@@ -1,0 +1,12 @@
+#compdef Prepare-NewHost
+
+_Prepare-NewHost() {
+  _arguments \
+    '(- *)--help[show help]' \
+    '1:hostname:' \
+    '--role[host role]:role:(workstation server)' \
+    '--profile[host class]:profile:(fixed portable)' \
+    '--no-commit[scaffold only; skip branch and commit]'
+}
+
+_Prepare-NewHost "$@"

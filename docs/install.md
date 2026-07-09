@@ -56,7 +56,7 @@ That is all the typing the new machine ever gets. Walk away from it.
 ```bash
 cd ~/.nixotic
 git checkout stable && git pull --ff-only
-scripts/Prepare-NewHost.sh <newhost> --role workstation|server --profile fixed|portable
+Prepare-NewHost <newhost> --role workstation|server --profile fixed|portable
 ```
 
 Choose `--profile fixed` for desktops, servers, and VMs (zram swap, no
@@ -140,7 +140,7 @@ Expected final output: `installation finished!` followed by the reboot.
   disko emits no `fileSystems`, and `nixos-generate-config` runs *before*
   the disk is partitioned so it can't emit them either. The host must let
   disko own the mounts — `disko.enableConfig = true` (the default).
-  `Prepare-NewHost.sh` sets this for scaffolded hosts; only a host whose
+  `Prepare-NewHost` sets this for scaffolded hosts; only a host whose
   `hardware-configuration.nix` was hand-generated on a running machine
   (e.g. `ambul8r`) may keep it `false`.
 - *Build is too heavy for cre8r*: add `--build-on-remote` to build on the

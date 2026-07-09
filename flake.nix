@@ -62,7 +62,7 @@
     in
     {
       nixosConfigurations = {
-        # prepare:hosts — Prepare-NewHost.sh inserts scaffolded hosts below this line.
+        # prepare:hosts — Prepare-NewHost inserts scaffolded hosts below this line.
         ambul8r = mkHost { hostPath = ./hosts/ambul8r/configuration.nix; };
 
         illumin8r = mkHost {
@@ -85,8 +85,8 @@
             rm -rf /tmp/nixotic-prepare
             cp -r ${self} /tmp/nixotic-prepare
             chmod -R u+w /tmp/nixotic-prepare
-            chmod +x /tmp/nixotic-prepare/scripts/Prepare-NewHost.sh
-            exec /tmp/nixotic-prepare/scripts/Prepare-NewHost.sh "$@"
+            chmod +x /tmp/nixotic-prepare/files/zsh/functions/Prepare-NewHost
+            exec /tmp/nixotic-prepare/files/zsh/functions/Prepare-NewHost "$@"
           '');
         };
       };

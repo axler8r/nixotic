@@ -1,0 +1,325 @@
+#! /usr/bin/env zsh
+
+# Prepare-NewHost: Scaffold a new NixOS host in the local nixotic checkout.
+
+setopt errexit nounset pipefail
+
+# Re-exec under nix-shell if git is missing (only once, guarded by sentinel).
+if [[ -z "${NIXOTIC_HAS_GIT:-}" ]] && ! command -v git > /dev/null 2>&1; then
+    typeset -a _reexec=("${0:A}" "$@")
+    export NIXOTIC_HAS_GIT=1
+    exec nix-shell -p git --run "${(j: :)${(q)_reexec}}"
+fi
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+_REPO_URL="https://github.com/axler8r/nixotic"
+_WORK_DIR="${HOME}/.nixotic"
+_ROLE="workstation"
+_NEWHOST=""
+_NO_COMMIT="false"
+_PROFILE="fixed"
+
+
+# Help -----------------------------------------------------------------------
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<EOF
+Usage: ${0:t} <hostname> [options]
+
+Scaffold a new NixOS host in the local nixotic checkout and commit it on
+a WIP branch. Does not push — push is always done manually.
+
+Options:
+    -h, --help                 Show this help message
+    --role workstation|server  Host role (default: workstation)
+    --profile fixed|portable   Host class (default: fixed)
+    --no-commit                Scaffold files but skip the WIP branch and commit
+
+Examples:
+    ${0:t} servr8r --role server
+    ${0:t} workst8r --profile portable
+EOF
+    exit 0
+fi
+
+
+# Arguments ------------------------------------------------------------------
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --role)
+            _ROLE="${2:?--role requires workstation|server}"
+            shift 2
+            ;;
+        --no-commit)
+            _NO_COMMIT="true"
+            shift
+            ;;
+        --profile)
+            _PROFILE="${2:?--profile requires fixed|portable}"
+            shift 2
+            ;;
+        --help|-h)
+            exec "${0}" --help
+            ;;
+        -*)
+            __ax_error "unknown option: $1"
+            exit 1
+            ;;
+        *)
+            if [[ -z "${_NEWHOST}" ]]; then
+                _NEWHOST="$1"
+            else
+                __ax_error "unexpected argument: $1"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "${_NEWHOST}" ]]; then
+    __ax_error "hostname is required"
+    __ax_info  "Usage: ${0:t} <hostname>"
+    exit 1
+fi
+
+if [[ "${_PROFILE}" != "fixed" && "${_PROFILE}" != "portable" ]]; then
+    __ax_error "--profile must be 'fixed' or 'portable' (got '${_PROFILE}')"
+    exit 1
+fi
+
+if [[ "${_ROLE}" != "workstation" && "${_ROLE}" != "server" ]]; then
+    __ax_error "--role must be 'workstation' or 'server' (got '${_ROLE}')"
+    exit 1
+fi
+
+
+# Preflight ------------------------------------------------------------------
+
+__ax_info "Checking prerequisites..."
+__ax_check_deps nix curl || exit 2
+
+if [[ -z "${NIX_CONFIG:-}" ]] || ! print -- "${NIX_CONFIG}" | grep -q "nix-command"; then
+    export NIX_CONFIG="experimental-features = nix-command flakes"
+fi
+
+if ! curl -fsSI https://github.com > /dev/null 2>&1; then
+    __ax_error "cannot reach https://github.com"
+    __ax_info  "Bring up the network first, then re-run."
+    exit 1
+fi
+
+
+# Checkout -------------------------------------------------------------------
+
+if [[ -d "${_WORK_DIR}/.git" ]]; then
+    __ax_info "Using existing checkout at ${_WORK_DIR}..."
+else
+    __ax_info "Cloning nixotic to ${_WORK_DIR}..."
+    git clone "${_REPO_URL}" "${_WORK_DIR}"
+fi
+
+cd "${_WORK_DIR}"
+
+
+# Guards (commit mode only) --------------------------------------------------
+
+if [[ "${_NO_COMMIT}" != "true" ]]; then
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        __ax_error "working tree is dirty; commit or stash changes first"
+        git status --short >&2
+        exit 1
+    fi
+
+    _CURRENT_BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+    if [[ "${_CURRENT_BRANCH}" != "stable" ]]; then
+        __ax_error "must be on 'stable' branch (currently on '${_CURRENT_BRANCH:-detached HEAD}')"
+        __ax_info  "Run: git checkout stable"
+        exit 1
+    fi
+fi
+
+
+# Guard: host must not already exist -----------------------------------------
+
+if [[ -d "hosts/${_NEWHOST}" ]]; then
+    __ax_error "hosts/${_NEWHOST}/ already exists"
+    __ax_info  "Remove it first, or choose a different hostname."
+    exit 1
+fi
+
+
+# Scaffold -------------------------------------------------------------------
+
+__ax_info "Scaffolding hosts/${_NEWHOST}/ as a ${_ROLE}..."
+
+mkdir -p "hosts/${_NEWHOST}"
+
+_ROLE_MODULE="workstation"
+_SSH_BLOCK=""
+if [[ "${_ROLE}" == "server" ]]; then
+    _ROLE_MODULE="base"
+    _SSH_BLOCK='
+  # Headless host — reachable over SSH from first boot, key-only.
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = false;
+      PermitRootLogin = "no";
+    };
+  };
+'
+fi
+
+_HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8 || true)"
+
+if [[ -z "${_HOST_ID}" ]]; then
+    __ax_error "failed to generate host ID"
+    exit 1
+fi
+
+cat > "hosts/${_NEWHOST}/configuration.nix" <<NIXEOF
+{ ... }:
+
+{
+  imports = [
+    ./hardware-configuration.nix
+    ./disk.nix
+    ../common/zfs-root.nix
+    ../common/${_ROLE_MODULE}.nix
+  ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  networking.hostName = "${_NEWHOST}";
+  networking.hostId = "${_HOST_ID}";  # random, permanent — ZFS needs stability
+${_SSH_BLOCK}
+  system.stateVersion = "25.11";  # NixOS release being installed; never change after install
+}
+NIXEOF
+
+if [[ "${_PROFILE}" == "portable" ]]; then
+    cat > "hosts/${_NEWHOST}/disk.nix" <<'NIXEOF'
+# Thin wrapper — the layout lives in hosts/common/zfs-root-disk.nix.
+# Set `device` to the target disk (see: ssh root@<ip> lsblk) and
+# `swapSizeGiB` to at least the machine's RAM (hibernation image).
+import ../common/zfs-root-disk.nix {
+  device      = "/dev/nvme0n1";
+  swap        = "hibernate";
+  swapSizeGiB = 64;
+}
+NIXEOF
+else
+    cat > "hosts/${_NEWHOST}/disk.nix" <<'NIXEOF'
+# Thin wrapper — the layout lives in hosts/common/zfs-root-disk.nix.
+# Set `device` to the target disk (see: ssh root@<ip> lsblk).
+import ../common/zfs-root-disk.nix {
+  device = "/dev/nvme0n1";
+  swap   = "zram";
+}
+NIXEOF
+fi
+
+cat > "hosts/${_NEWHOST}/hardware-configuration.nix" <<NIXEOF
+# Placeholder hardware configuration for ${_NEWHOST}
+#
+# Overwritten automatically during install by:
+#   nixos-anywhere --generate-hardware-config nixos-generate-config \\
+#       hosts/${_NEWHOST}/hardware-configuration.nix
+#
+# fileSystems are intentionally omitted: disko generates them from disk.nix
+# (disko.enableConfig = true). This placeholder only lets the flake evaluate
+# before the host exists; nixos-generate-config replaces it at install time.
+
+{ config, lib, pkgs, modulesPath, ... }:
+
+{
+  imports = [
+    (modulesPath + "/installer/scan/not-detected.nix")
+  ];
+
+  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ ];
+  boot.extraModulePackages = [ ];
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+}
+NIXEOF
+
+
+# Register in flake.nix ------------------------------------------------------
+
+if ! grep -q '# prepare:hosts' flake.nix; then
+    __ax_error "sentinel '# prepare:hosts' not found in flake.nix"
+    __ax_info  "Add the entry manually: ${_NEWHOST} = mkHost { hostPath = ./hosts/${_NEWHOST}/configuration.nix; };"
+    exit 1
+fi
+
+_FLAKE_ENTRY="        ${_NEWHOST} = mkHost { hostPath = ./hosts/${_NEWHOST}/configuration.nix; };"
+if [[ "${_ROLE}" == "server" ]]; then
+    _FLAKE_ENTRY="        ${_NEWHOST} = mkHost { hostPath = ./hosts/${_NEWHOST}/configuration.nix; role = \"server\"; };"
+fi
+
+sed -i "/# prepare:hosts/a\\${_FLAKE_ENTRY}" flake.nix
+
+
+# Stage ----------------------------------------------------------------------
+
+git add "hosts/${_NEWHOST}/" flake.nix
+
+
+# Validate -------------------------------------------------------------------
+
+__ax_info "Validating flake..."
+nix flake check --no-build
+
+
+# Commit ---------------------------------------------------------------------
+
+if [[ "${_NO_COMMIT}" == "true" ]]; then
+    __ax_info "Skipping commit (--no-commit)."
+else
+    _WIP_BRANCH="wip/$(date +%Y%m%d)-$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7 || true)"
+    git checkout -b "${_WIP_BRANCH}"
+    git add "hosts/${_NEWHOST}/" flake.nix
+    git commit -m "feat(host): scaffold ${_NEWHOST} as ${_ROLE}"
+    __ax_success "Committed to ${_WIP_BRANCH}."
+fi
+
+
+# Handoff --------------------------------------------------------------------
+
+__ax_success "Scaffolded hosts/${_NEWHOST}/ as a ${_ROLE}."
+
+cat <<EOF
+
+hostId set to: ${_HOST_ID} (random, permanent — ZFS needs stability, not machine-id derivation)
+
+The scaffold is thin: the role module (hosts/common/${_ROLE_MODULE}.nix) owns
+everything shareable. Review and edit hosts/${_NEWHOST}/configuration.nix:
+  boot.loader.*               adjust if not EFI / systemd-boot
+  time zone, locale, layout   override here if this host differs from base
+  system.stateVersion         set to the NixOS release being installed
+  nixpkgs.hostPlatform        set to aarch64-linux for ARM hosts
+  disk.nix: device            verify: ssh root@<target-ip> lsblk
+  disk.nix: swapSizeGiB       (portable only) set to at least the machine's RAM
+
+Hardware quirks (GPU driver, NVIDIA PRIME bus IDs, resume tweaks) are
+ordinary post-install edits on the running system.
+
+Install (target machine booted on the standard NixOS ISO, root password set):
+
+  cd ~/.nixotic
+  nix run github:nix-community/nixos-anywhere -- \\
+    --flake .#${_NEWHOST} \\
+    --generate-hardware-config nixos-generate-config hosts/${_NEWHOST}/hardware-configuration.nix \\
+    root@<target-ip>
+
+See docs/install.md for the full walkthrough. Push is manual, after the
+install succeeds: merge the WIP branch to stable (ff-only), then git push.
+EOF
