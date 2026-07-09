@@ -14,9 +14,9 @@ Three rules matter more than anything else:
    install succeeds.
 3. Nothing needs to be reconciled after installing. The hardware config is
    written into the local checkout *before* the install, `networking.hostId`
-   is a random permanent value chosen at scaffold time, and
-   `boot.resumeDevice` uses a disko partition label that is known before the
-   disk even exists.
+   is a random permanent value chosen at scaffold time, and on `portable`
+   hosts disko emits `boot.resumeDevice` from the swap partition — no
+   hand-set value, nothing to reconcile after the disk exists.
 
 
 ## Provision a New Host from cre8r
@@ -56,8 +56,13 @@ That is all the typing the new machine ever gets. Walk away from it.
 ```bash
 cd ~/.nixotic
 git checkout stable && git pull --ff-only
-scripts/Prepare-NewHost.sh <newhost>
+scripts/Prepare-NewHost.sh <newhost> --profile fixed|portable
 ```
+
+Choose `--profile fixed` for desktops, servers, and VMs (zram swap, no
+hibernation). Choose `--profile portable` for laptops (swap partition
+sized for hibernation, `boot.resumeDevice` set). The default is `fixed`
+when `--profile` is omitted.
 
 Expected: `Done. Scaffolded hosts/<newhost>/ ...` and a new WIP branch
 `wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is
@@ -79,12 +84,13 @@ ssh root@<target-ip> lsblk -o NAME,SIZE,MODEL,TYPE
 
 Expected: the target's disks, e.g. `nvme0n1  931.5G  ...  disk`.
 
-Edit `hosts/<newhost>/disk.nix` and set `disk.main.device` to match
-(e.g. `/dev/nvme0n1`). Adjust partition sizes for the actual disk size if
-needed. Then review `hosts/<newhost>/configuration.nix` for anything
-obviously wrong for this machine (GPU block, timezone, stateVersion) —
-but remember: **only the disk layout must be right now**; everything else
-is an ordinary post-boot edit.
+Edit `hosts/<newhost>/disk.nix` and set `device` to match
+(e.g. `/dev/nvme0n1`). For a `portable` host, also confirm that
+`swapSizeGiB` is set to at least the machine's RAM — the scaffold sets a
+default; adjust it to the actual RAM size. Then review
+`hosts/<newhost>/configuration.nix` for anything obviously wrong for this
+machine (GPU block, timezone, stateVersion) — but remember: **only the disk
+layout must be right now**; everything else is an ordinary post-boot edit.
 
 Commit what you changed:
 
@@ -161,10 +167,11 @@ Post-install tuning — packages, GPU drivers, NVIDIA PRIME bus IDs
 work on a live system. Nothing about it is special to a fresh install.
 
 **What can go wrong here:**
-- *New host won't resume from hibernation*: check that
-  `boot.resumeDevice` points at `/dev/disk/by-partlabel/disk-main-swap`
-  and that the label exists (`ls /dev/disk/by-partlabel/`). Hosts without
-  swap should not set `boot.resumeDevice` at all.
+- *New host won't resume from hibernation*: only `portable`-profile hosts
+  hibernate. disko sets `boot.resumeDevice` from the swap partition
+  automatically — verify it resolved in the generated
+  `hardware-configuration.nix` rather than hand-setting a partlabel. `fixed`
+  hosts have no swap and do not hibernate.
 
 
 ## One-Time: Bootstrap cre8r Itself
@@ -310,20 +317,42 @@ sudo nixos-rebuild switch --flake .#illumin8r
 
 
 ## Disk Layout
-The layout below is the `ambul8r` reference; each host declares its own in
-`hosts/<hostname>/disk.nix`. The authoritative declaration for `ambul8r` is
-[`hosts/ambul8r/disk.nix`](../hosts/ambul8r/disk.nix).
+New hosts use a ZFS-on-root layout declared in
+[`hosts/common/zfs-root-disk.nix`](../hosts/common/zfs-root-disk.nix). Two
+profiles share the same base:
 
-| Partition |  Size | Type | Purpose     |
-| --------- | ----: | ---- | ----------- |
-| nvme0n1p1 |    5G | vfat | /boot (EFI) |
-| nvme0n1p2 |  150G | ext4 | / (root)    |
-| nvme0n1p3 |   32G | swap | Hibernation |
-| nvme0n1p4 | ~766G | ZFS  | dpool       |
+**`fixed` — desktop / server / VM**
 
-Root and boot stay on ext4 so the ZFS pool can be wiped or transplanted to
-another machine without destroying the OS. The Nix store (`/nix`) lives on
-`HOSTDATA/nix` so store growth does not pressure the root partition.
+```
+┌──────────────┬───────────────────┐
+│ ESP  1G vfat │ ZFS pool  100%    │
+│ /boot        │ rpool             │
+└──────────────┴───────────────────┘
+```
+
+Swap is provided by zram (no partition). Hibernation is not supported.
+
+**`portable` — laptop**
+
+```
+┌──────────────┬───────────────────┬───────────────────┐
+│ ESP  1G vfat │ swap ≥ RAM        │ ZFS pool  100%    │
+│ /boot        │ resume device     │ rpool             │
+└──────────────┴───────────────────┴───────────────────┘
+```
+
+The swap partition is sized to at least the machine's RAM for hibernation.
+`boot.resumeDevice` is set by disko to the swap partition. ZFS zvol swap is
+deliberately avoided — hibernation through a zvol deadlocks.
+
+`/`, `/nix`, and `/var/lib/docker` are ZFS datasets on `rpool`, legacy-mounted
+by NixOS; the `USERDATA` datasets auto-mount at boot. There is no filesystem
+encryption, so the host boots fully unattended with no passphrase.
+
+**Existing hosts** (`ambul8r`, `cre8r`, `illumin8r`) keep their current layouts
+and will adopt ZFS-on-root only on a future reinstall. `ambul8r` in particular
+uses its own hand-generated `hardware-configuration.nix` with
+`disko.enableConfig = false`; that remains correct for its current layout.
 
 
 ## ZFS Pool Structure
@@ -331,64 +360,94 @@ The pool is split into `HOSTDATA` and `USERDATA` so that a machine rebuild —
 which wipes root — does not touch personal data. `USERDATA` datasets mount
 directly into the home directory and survive reinstalls.
 
+New hosts use `rpool` (ZFS-on-root convention). Existing hosts (`ambul8r`,
+`cre8r`) use `dpool` and keep their current pool structure until a future
+reinstall.
+
 ```
-dpool                                    mountpoint=none
-├── HOSTDATA                             mountpoint=none
-│   ├── nix                              /nix
-│   └── var/lib/docker                   /var/lib/docker
-└── USERDATA                             mountpoint=none
-    └── home/axl                         mountpoint=none
-        ├── Documents                    /home/axl/Documents
-        ├── Downloads                    /home/axl/Downloads
-        ├── Media                        /home/axl/Media
-        ├── Projects                     /home/axl/Projects
-        │   ├── AxlER8R                  /home/axl/Projects/AxlER8R
-        │   ├── GitHub                   /home/axl/Projects/GitHub
-        │   ├── GitLab                   /home/axl/Projects/GitLab
-        │   └── Sandbox                  /home/axl/Projects/Sandbox
-        └── Vaults                       /home/axl/Vaults
+rpool                          mountpoint=none
+├── ROOT                       mountpoint=none            boot-environment container
+│   └── nixos                  /                          persistent root
+├── HOSTDATA                   mountpoint=none
+│   ├── nix                    /nix    compression=zstd, atime=off, neededForBoot
+│   └── var/lib/docker         /var/lib/docker
+└── USERDATA                   mountpoint=none
+    └── home/axl               mountpoint=none
+        ├── Documents          /home/axl/Documents
+        ├── Downloads          /home/axl/Downloads
+        ├── Media              /home/axl/Media
+        ├── Projects           /home/axl/Projects
+        │   ├── AxlER8R
+        │   ├── GitHub
+        │   ├── GitLab
+        │   └── Sandbox
+        └── Vaults             /home/axl/Vaults
 ```
+
+`ROOT/nixos` is the persistent root (not impermanence). There is no filesystem
+encryption: every dataset is plain ZFS and mounts at boot, so the host reaches
+SSH/login fully unattended with no passphrase. When a secret needs encryption,
+create a LUKS vault on demand with
+[`New-Vault`](../files/zsh/functions/New-Vault) under `~/Vaults`.
 
 `Projects/` subdirectories are separate datasets so each can have its own
 snapshot schedule and quotas independently.
 
-Dataset ownership is set by `systemd.tmpfiles.rules` in each host's
-`configuration.nix`, which runs on every boot.
+Dataset ownership is set by `systemd.tmpfiles.rules` in
+[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix), which runs on
+every boot.
 
 
 ## Required NixOS Configuration
+ZFS-on-root hosts import [`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix)
+from their `configuration.nix`. That shared module owns all the common
+runtime settings:
+
 ```nix
 boot.supportedFilesystems = [ "zfs" "nfs" ];
 boot.zfs.forceImportRoot = false;
-boot.zfs.extraPools = [ "dpool" ];
-
-# ZFS refuses to import a pool last used by a different machine.
-# hostId is how it detects this. Random permanent value set at scaffold time.
-networking.hostId = "<random-8-hex-chars>";
-
-# Hibernate target. Deterministic disko partition label — known before install.
-boot.resumeDevice = "/dev/disk/by-partlabel/disk-main-swap";
 
 services.zfs = {
   autoScrub.enable = true;
   autoScrub.interval = "monthly";
   trim.enable = true;
 };
+
+systemd.tmpfiles.rules = [ /* USERDATA mountpoint ownership */ ];
 ```
+
+`boot.zfs.extraPools` is **not used** for new hosts. The root pool `rpool` is
+imported automatically by the initrd; no explicit pool list is needed.
+
+Each host's `configuration.nix` still sets the host-specific values that
+`zfs-root.nix` deliberately leaves out:
+
+```nix
+# ZFS refuses to import a pool last used by a different machine.
+# hostId is how it detects this. Random permanent value set at scaffold time.
+networking.hostId = "<random-8-hex-chars>";
+```
+
+For a `portable` host, disko emits `boot.resumeDevice` automatically from the
+swap partition — you do not hand-set it. `fixed` hosts have no swap and
+do not hibernate.
 
 
 ## ZFS Operations
+The pool name is `rpool` on new ZFS-on-root hosts. Existing hosts
+(`ambul8r`, `cre8r`) use `dpool` — substitute accordingly.
+
 ### Common Commands
-| Command                                              | Purpose                 |
-| ---------------------------------------------------- | ----------------------- |
-| `zpool status`                                       | Check pool health       |
-| `zpool scrub dpool`                                  | Manual scrub            |
-| `zfs list`                                           | List datasets and usage |
-| `zfs list -t snapshot`                               | List snapshots          |
-| `zfs snapshot dpool/USERDATA/home/axl/Projects@name` | Create snapshot         |
-| `zfs rollback dpool/USERDATA/home/axl/Projects@name` | Restore snapshot        |
-| `zfs destroy dpool/path@snapshot`                    | Delete snapshot         |
-| `systemctl hibernate`                                | Hibernate laptop        |
+| Command                                               | Purpose                 |
+| ----------------------------------------------------- | ----------------------- |
+| `zpool status`                                        | Check pool health       |
+| `zpool scrub rpool`                                   | Manual scrub            |
+| `zfs list`                                            | List datasets and usage |
+| `zfs list -t snapshot`                                | List snapshots          |
+| `zfs snapshot rpool/USERDATA/home/axl/Projects@name`  | Create snapshot         |
+| `zfs rollback rpool/USERDATA/home/axl/Projects@name`  | Restore snapshot        |
+| `zfs destroy rpool/path@snapshot`                     | Delete snapshot         |
+| `systemctl hibernate`                                 | Hibernate laptop        |
 
 
 ### Adding New Datasets
@@ -398,11 +457,11 @@ reinstalling:
 
 ```bash
 # Inherits mountpoint from parent (e.g., a new project under Projects/)
-sudo zfs create dpool/USERDATA/home/axl/Projects/NewProject
+sudo zfs create rpool/USERDATA/home/axl/Projects/NewProject
 sudo chown axl:users /home/axl/Projects/NewProject
 
 # Top-level dataset with an explicit mountpoint
-sudo zfs create -o mountpoint=/home/axl/NewFolder dpool/USERDATA/home/axl/NewFolder
+sudo zfs create -o mountpoint=/home/axl/NewFolder rpool/USERDATA/home/axl/NewFolder
 sudo chown axl:users /home/axl/NewFolder
 ```
 
