@@ -56,13 +56,19 @@ That is all the typing the new machine ever gets. Walk away from it.
 ```bash
 cd ~/.nixotic
 git checkout stable && git pull --ff-only
-scripts/Prepare-NewHost.sh <newhost> --profile fixed|portable
+scripts/Prepare-NewHost.sh <newhost> --role workstation|server --profile fixed|portable
 ```
 
 Choose `--profile fixed` for desktops, servers, and VMs (zram swap, no
 hibernation). Choose `--profile portable` for laptops (swap partition
 sized for hibernation, `boot.resumeDevice` set). The default is `fixed`
 when `--profile` is omitted.
+
+Choose `--role workstation` (the default) for a GNOME machine — it gets the
+full ambul8r experience: the workstation role module, Stylix, and the desktop
+Home Manager profile. Choose `--role server` for a CLI-only machine — it gets
+the base module, no Stylix, and the headless Home Manager profile. Until a
+dedicated server role module exists, servers scaffold on `base.nix` plus a hardened openssh block written into the host file (key-only, no root login).
 
 Expected: `Done. Scaffolded hosts/<newhost>/ ...` and a new WIP branch
 `wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is
@@ -89,7 +95,7 @@ Edit `hosts/<newhost>/disk.nix` and set `device` to match
 `swapSizeGiB` is set to at least the machine's RAM — the scaffold sets a
 default; adjust it to the actual RAM size. Then review
 `hosts/<newhost>/configuration.nix` for anything obviously wrong for this
-machine (GPU block, timezone, stateVersion) — but remember: **only the disk
+machine (role import, timezone, stateVersion) — but remember: **only the disk
 layout must be right now**; everything else is an ordinary post-boot edit.
 
 Commit what you changed:
@@ -165,6 +171,10 @@ From here on, updates are the normal cycle: edit, `nh os switch`.
 Post-install tuning — packages, GPU drivers, NVIDIA PRIME bus IDs
 (`lspci` on the running host), keyboard layout — is ordinary configuration
 work on a live system. Nothing about it is special to a fresh install.
+
+For a future ML workstation, the post-install additions are: NVIDIA drivers
+and CUDA, `hardware.nvidia-container-toolkit.enable = true` for Docker GPU
+access, and generous zram or swap for large models.
 
 **What can go wrong here:**
 - *New host won't resume from hibernation*: only `portable`-profile hosts

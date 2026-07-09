@@ -12,7 +12,7 @@ source "${SCRIPT_DIR}/lib/preflight.sh"
 
 REPO_URL="https://github.com/axler8r/nixotic"
 WORK_DIR="${HOME}/.nixotic"
-TEMPLATE="ambul8r"
+ROLE="workstation"
 NEWHOST=""
 NO_COMMIT=false
 PROFILE="fixed"
@@ -28,13 +28,13 @@ Scaffold a new NixOS host in the local nixotic checkout and commit it on
 a WIP branch. Does not push — push is always done manually.
 
 options:
-  --from <template>       Host to copy as template (default: ambul8r)
-  --no-commit             Scaffold files but skip the WIP branch and commit
-  --profile fixed|portable  Host class (default: fixed)
+  --role workstation|server  Host role (default: workstation)
+  --no-commit                Scaffold files but skip the WIP branch and commit
+  --profile fixed|portable   Host class (default: fixed)
 
 example:
-  nix run github:axler8r/nixotic#prepare -- servr8r
-  $(basename "$0") servr8r --from ambul8r
+  nix run github:axler8r/nixotic#prepare -- servr8r --role server
+  $(basename "$0") workst8r --profile portable
 EOF
     exit 0
 fi
@@ -44,7 +44,7 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --from)       TEMPLATE="${2:?--from requires a hostname}"; shift 2 ;;
+        --role)       ROLE="${2:?--role requires workstation|server}"; shift 2 ;;
         --no-commit)  NO_COMMIT=true; shift ;;
         --profile)    PROFILE="${2:?--profile requires fixed|portable}"; shift 2 ;;
         --help|-h)    exec "$0" --help ;;
@@ -67,6 +67,11 @@ fi
 
 if [[ "${PROFILE}" != "fixed" && "${PROFILE}" != "portable" ]]; then
     echo "error: --profile must be 'fixed' or 'portable' (got '${PROFILE}')" >&2
+    exit 1
+fi
+
+if [[ "${ROLE}" != "workstation" && "${ROLE}" != "server" ]]; then
+    echo "error: --role must be 'workstation' or 'server' (got '${ROLE}')" >&2
     exit 1
 fi
 
@@ -119,21 +124,58 @@ if [[ -d "hosts/${NEWHOST}" ]]; then
 fi
 
 
-# Guard: template must exist ---------------------------------------------
-
-if [[ ! -d "hosts/${TEMPLATE}" ]]; then
-    echo "error: template host 'hosts/${TEMPLATE}/' not found" >&2
-    exit 1
-fi
-
-
 # Scaffold -----------------------------------------------------------------
 
-echo "==> Scaffolding hosts/${NEWHOST}/ from ${TEMPLATE}..."
+echo "==> Scaffolding hosts/${NEWHOST}/ as a ${ROLE}..."
 
 mkdir -p "hosts/${NEWHOST}"
 
-cp "hosts/${TEMPLATE}/configuration.nix" "hosts/${NEWHOST}/configuration.nix"
+if [[ "${ROLE}" == "workstation" ]]; then
+    ROLE_MODULE="workstation"
+    SSH_BLOCK=""
+else
+    ROLE_MODULE="base"  # until hosts/common/server.nix exists
+    SSH_BLOCK='
+  # Headless host — reachable over SSH from first boot, key-only.
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = false;
+      PermitRootLogin = "no";
+    };
+  };
+'
+fi
+
+NEW_HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8 || true)"
+
+if [[ -z "${NEW_HOST_ID}" ]]; then
+    echo "error: failed to generate host ID" >&2
+    exit 1
+fi
+
+# Thin host config — the role module owns everything shareable; hardware
+# quirks (GPU, resume device, extra pools) are ordinary post-install edits.
+cat > "hosts/${NEWHOST}/configuration.nix" <<NIXEOF
+{ ... }:
+
+{
+  imports = [
+    ./hardware-configuration.nix
+    ./disk.nix
+    ../common/zfs-root.nix
+    ../common/${ROLE_MODULE}.nix
+  ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  networking.hostName = "${NEWHOST}";
+  networking.hostId = "${NEW_HOST_ID}";  # random, permanent — ZFS needs stability
+${SSH_BLOCK}
+  system.stateVersion = "25.11";  # NixOS release being installed; never change after install
+}
+NIXEOF
 
 # Generate a thin disk.nix wrapper that imports the shared parameterised layout.
 if [[ "${PROFILE}" == "portable" ]]; then
@@ -187,56 +229,6 @@ cat > "hosts/${NEWHOST}/hardware-configuration.nix" <<NIXEOF
 NIXEOF
 
 
-# Patch hostName and hostId ----------------------------------------------
-
-NEW_HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8 || true)"
-
-if [[ -z "${NEW_HOST_ID}" ]]; then
-    echo "error: failed to generate host ID" >&2
-    exit 1
-fi
-
-sed -i \
-    "s|networking\.hostName = \"[^\"]*\"|networking.hostName = \"${NEWHOST}\"|" \
-    "hosts/${NEWHOST}/configuration.nix"
-
-if grep -q 'networking\.hostId' "hosts/${NEWHOST}/configuration.nix"; then
-    sed -i \
-        "s|networking\.hostId = \"[^\"]*\"|networking.hostId = \"${NEW_HOST_ID}\"|" \
-        "hosts/${NEWHOST}/configuration.nix"
-else
-    # Template did not have hostId; insert it after the hostName line.
-    sed -i \
-        "/networking\.hostName/a\\  networking.hostId = \"${NEW_HOST_ID}\";  # from: head -c 8 /etc/machine-id" \
-        "hosts/${NEWHOST}/configuration.nix"
-fi
-
-# zfs-root.nix now owns these; remove the template's inline copies and the
-# section comments that would otherwise be left dangling above them. Also drop
-# template blocks that assume the old dpool layout: the docker unit's ordering
-# on zfs-import-dpool.service (which does not exist on a zfs-on-root host, where
-# rpool is imported by the initrd) and the services.zfs / tmpfiles blocks the
-# shared module now owns.
-sed -i \
-    -e '/# Hibernation support/d' \
-    -e '/# ZFS and NFS support/d' \
-    -e '/boot\.supportedFilesystems/d' \
-    -e '/boot\.zfs\.forceImportRoot/d' \
-    -e '/boot\.zfs\.extraPools/d' \
-    -e '/boot\.resumeDevice/d' \
-    -e '/after = \[ "zfs-import-dpool.service" \];/d' \
-    -e '/requires = \[ "zfs-import-dpool.service" \];/d' \
-    -e '/# ZFS services/d' \
-    -e '/^  services\.zfs = {/,/^  };/d' \
-    -e '/systemd\.tmpfiles\.rules = \[/,/^  \];/d' \
-    "hosts/${NEWHOST}/configuration.nix"
-
-# Import the shared runtime module next to ./disk.nix.
-sed -i \
-    's|^\(\s*\)\./disk\.nix|\1./disk.nix\n\1../common/zfs-root.nix|' \
-    "hosts/${NEWHOST}/configuration.nix"
-
-
 # Register in flake.nix --------------------------------------------------
 
 if ! grep -q '# prepare:hosts' flake.nix; then
@@ -245,8 +237,13 @@ if ! grep -q '# prepare:hosts' flake.nix; then
     exit 1
 fi
 
-sed -i "/# prepare:hosts/a\\        ${NEWHOST} = mkHost { hostPath = ./hosts/${NEWHOST}/configuration.nix; };" \
-    flake.nix
+if [[ "${ROLE}" == "server" ]]; then
+    FLAKE_ENTRY="        ${NEWHOST} = mkHost { hostPath = ./hosts/${NEWHOST}/configuration.nix; role = \"server\"; };"
+else
+    FLAKE_ENTRY="        ${NEWHOST} = mkHost { hostPath = ./hosts/${NEWHOST}/configuration.nix; };"
+fi
+
+sed -i "/# prepare:hosts/a\\${FLAKE_ENTRY}" flake.nix
 
 
 # Stage new files so Nix can see them (flake evaluates only tracked paths) ---
@@ -268,7 +265,7 @@ else
     WIP_BRANCH="wip/$(date +%Y%m%d)-$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7 || true)"
     git checkout -b "${WIP_BRANCH}"
     git add "hosts/${NEWHOST}/" flake.nix
-    git commit -m "feat(host): scaffold ${NEWHOST} from ${TEMPLATE}"
+    git commit -m "feat(host): scaffold ${NEWHOST} as ${ROLE}"
     echo ""
     echo "==> Committed to ${WIP_BRANCH}."
 fi
@@ -278,21 +275,20 @@ fi
 
 cat <<EOF
 
-Done. Scaffolded hosts/${NEWHOST}/ from ${TEMPLATE}.
+Done. Scaffolded hosts/${NEWHOST}/ as a ${ROLE}.
 hostId set to: ${NEW_HOST_ID} (random, permanent — ZFS needs stability, not machine-id derivation)
 
-Review and edit hosts/${NEWHOST}/configuration.nix:
-  networking.hostName         already set to "${NEWHOST}"
+The scaffold is thin: the role module (hosts/common/${ROLE_MODULE}.nix) owns
+everything shareable. Review and edit hosts/${NEWHOST}/configuration.nix:
   boot.loader.*               adjust if not EFI / systemd-boot
-  services.xserver.videoDrivers  remove NVIDIA block if host has no NVIDIA GPU
-  hardware.nvidia.*           remove or rewrite for the actual GPU
-  services.xserver.xkb.layout set keyboard layout if not "nz"
-  time.timeZone               update if not "Pacific/Auckland"
+  time zone, locale, layout   override here if this host differs from base
   system.stateVersion         set to the NixOS release being installed
-  users.users.axl.packages    trim/extend for this host's role
   nixpkgs.hostPlatform        set to aarch64-linux for ARM hosts
   disk.nix: device            verify: ssh root@<target-ip> lsblk
   disk.nix: swapSizeGiB       (portable only) set to at least the machine's RAM
+
+Hardware quirks (GPU driver, NVIDIA PRIME bus IDs, resume tweaks) are
+ordinary post-install edits on the running system.
 
 Install (target machine booted on the standard NixOS ISO, root password set):
 

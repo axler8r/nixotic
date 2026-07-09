@@ -30,7 +30,17 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
-      mkHost = { hostPath, enableStylix ? true, homeConfig ? ./home/desktop.nix }:
+      # role selects the whole experience: "workstation" = Stylix +
+      # home/desktop.nix, "server" = no Stylix + home/headless.nix.
+      # homeConfig overrides the home profile only (e.g. WSL).
+      mkHost = { hostPath, role ? "workstation", homeConfig ? null }:
+        let
+          isWorkstation = role == "workstation";
+          home =
+            if homeConfig != null then homeConfig
+            else if isWorkstation then ./home/desktop.nix
+            else ./home/headless.nix;
+        in
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { inherit inputs; };
@@ -42,9 +52,9 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.backupCommand = "backup-$(date +%Y%m%d%H%M%S)";
-              home-manager.users.axl = import homeConfig;
+              home-manager.users.axl = import home;
             }
-          ] ++ nixpkgs.lib.optionals enableStylix [
+          ] ++ nixpkgs.lib.optionals isWorkstation [
             stylix.nixosModules.stylix
             ./stylix.nix
           ];
@@ -56,19 +66,15 @@
         ambul8r = mkHost { hostPath = ./hosts/ambul8r/configuration.nix; };
 
         illumin8r = mkHost {
-          hostPath     = ./hosts/illumin8r/configuration.nix;
-          enableStylix = false;
-          homeConfig   = ./home/wsl.nix;
+          hostPath   = ./hosts/illumin8r/configuration.nix;
+          role       = "server";
+          homeConfig = ./home/wsl.nix;
         };
 
         cre8r = mkHost {
-          hostPath     = ./hosts/cre8r/configuration.nix;
-          enableStylix = false;
-          homeConfig   = ./home/headless.nix;
+          hostPath = ./hosts/cre8r/configuration.nix;
+          role     = "server";
         };
-
-        # ML workstation (TODO: configure when ready)
-        # infer8r = mkHost { hostPath = ./hosts/infer8r/configuration.nix; };
       };
 
       apps.${system} = {

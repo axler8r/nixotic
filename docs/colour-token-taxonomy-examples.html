@@ -531,7 +531,7 @@ pre {
       <span class="key">"cores"</span><span class="pun">:</span>   <span class="lit">16</span>
     <span class="pun">},</span>
     <span class="pun">{</span>
-      <span class="key">"name"</span><span class="pun">:</span>    <span class="lit">"infer8r"</span><span class="pun">,</span>
+      <span class="key">"name"</span><span class="pun">:</span>    <span class="lit">"cre8r"</span><span class="pun">,</span>
       <span class="key">"arch"</span><span class="pun">:</span>    <span class="lit">"x86_64"</span><span class="pun">,</span>
       <span class="key">"desktop"</span><span class="pun">:</span> <span class="lit">false</span><span class="pun">,</span>
       <span class="key">"gpu"</span><span class="pun">:</span>     <span class="lit">null</span>
@@ -571,7 +571,7 @@ pre {
 <span class="key">cores</span>   <span class="op">=</span> <span class="lit">16</span>
 
 <span class="hdr">[[hosts]]</span>
-<span class="key">name</span>    <span class="op">=</span> <span class="lit">"infer8r"</span>
+<span class="key">name</span>    <span class="op">=</span> <span class="lit">"cre8r"</span>
 <span class="key">arch</span>    <span class="op">=</span> <span class="lit">"x86_64"</span>
 <span class="key">desktop</span> <span class="op">=</span> <span class="lit">false</span>
 
@@ -614,7 +614,7 @@ pre {
     <span class="key">desktop</span><span class="pun">:</span> <span class="lit">true</span>
     <span class="key">theme</span><span class="pun">:</span>   <span class="ali">*solarized</span>
 
-  <span class="pun">-</span> <span class="key">name</span><span class="pun">:</span>    <span class="lit">infer8r</span>
+  <span class="pun">-</span> <span class="key">name</span><span class="pun">:</span>    <span class="lit">cre8r</span>
     <span class="key">arch</span><span class="pun">:</span>    <span class="ali">!!str</span> <span class="lit">x86_64</span>
     <span class="key">desktop</span><span class="pun">:</span> <span class="lit">false</span>
     <span class="key">gpu</span><span class="pun">:</span>     <span class="lit">null</span>
@@ -653,7 +653,7 @@ pre {
     <span class="sep">|</span> <span class="cmd">tee</span> <span class="str">"<span class="sub">$repo</span>/build.log"</span>
 <span class="pun">}</span>
 
-<span class="kw">for</span> <span class="arg">host</span> <span class="kw">in</span> <span class="str">ambul8r</span> <span class="str">infer8r</span><span class="pun">;</span> <span class="kw">do</span>
+<span class="kw">for</span> <span class="arg">host</span> <span class="kw">in</span> <span class="str">ambul8r</span> <span class="str">cre8r</span><span class="pun">;</span> <span class="kw">do</span>
   <span class="cmd">nixos-rebuild</span> <span class="arg">--flake</span> <span class="str">".#<span class="sub">$host</span>"</span> <span class="arg">switch</span>
 <span class="kw">done</span>
 </pre>
@@ -697,7 +697,7 @@ pre {
       <span class="pun">}</span>
 <span class="pun">}</span>
 
-<span class="fn">build-hosts</span> <span class="pun">[</span><span class="lit">"ambul8r"</span> <span class="lit">"infer8r"</span><span class="pun">]</span> <span class="arg">--jobs</span> <span class="lit">4</span>
+<span class="fn">build-hosts</span> <span class="pun">[</span><span class="lit">"ambul8r"</span> <span class="lit">"cre8r"</span><span class="pun">]</span> <span class="arg">--jobs</span> <span class="lit">4</span>
 </pre>
   <div class="legend">
     <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>int/float/bool/string literals = cyan (corrected from blue)</span>
