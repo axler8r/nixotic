@@ -1,0 +1,140 @@
+#! /usr/bin/env zsh
+
+# Resize-Vault: Grow a LUKS encrypted vault's file, container, and ext4 filesystem
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+# Defaults
+local _vault_input=""
+local _size=""
+
+
+# Options ----------------------------------------------------------------------
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} <vault-name> --size SIZE
+
+Grow a LUKS encrypted vault's underlying file, container, and ext4 filesystem.
+Vault must be dismounted before resizing. Shrinking is not supported.
+
+Options:
+    -h, --help    Show this help message
+    --size SIZE   New total target size (e.g., 5G) — must be larger than current size
+
+Arguments:
+    vault-name    Vault name (e.g., mydata) or full path to vault file
+
+Examples:
+    ${0:t} mydata --size 5G
+    ${0:t} ~/Vaults/.mydata.vault --size 10G
+EOF
+    return 0
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --size)
+            [[ $# -ge 2 ]] || { __ax_error "Missing value for --size"; return 1; }
+            _size="$2"
+            shift 2
+            ;;
+        *)        _vault_input="$1"; shift ;;
+    esac
+done
+
+
+# Main -------------------------------------------------------------------------
+__ax_require_arg "$_vault_input" "vault name" || { __ax_error "Usage: ${0:t} <vault-name> --size SIZE"; return 1; }
+__ax_require_arg "$_size" "--size" || { __ax_error "Usage: ${0:t} <vault-name> --size SIZE"; return 1; }
+__ax_check_deps fallocate cryptsetup resize2fs e2fsck blkid stat numfmt || return 2
+
+
+# Driver -----------------------------------------------------------------------
+function resize_vault() {
+    local vault_input=${1}
+    local target_size=${2}
+
+    local vault_file=""
+    local vault_name=""
+
+    # Detect if input is a path (contains /) or a vault name
+    if [[ "${vault_input}" == */* ]]; then
+        vault_file="${vault_input/#\~/$HOME}"
+        vault_name="${vault_file:t:r:s/^\.//}"  # Extract name, remove leading dot
+    else
+        vault_name="${vault_input}"
+        vault_file="${HOME}/Vaults/.${vault_name}.vault"
+    fi
+
+    # Check if vault file exists
+    if [[ ! -f "${vault_file}" ]]; then
+        __ax_error "Vault file not found: ${vault_file}"
+        return 1
+    fi
+
+    local mapper_name="${vault_name}"
+
+    # Vault must be dismounted before resizing
+    if [[ -e "/dev/mapper/${mapper_name}" ]]; then
+        __ax_error "Vault is currently mounted. Dismount first with:"
+        echo "  dismount-vault ${vault_name}"
+        return 1
+    fi
+
+    # Compute current and target sizes in bytes
+    local current_bytes target_bytes
+    current_bytes=$(stat --format=%s "${vault_file}") || return 1
+    target_bytes=$(numfmt --from=iec "${target_size}") || {
+        __ax_error "Invalid size: ${target_size}"
+        return 1
+    }
+
+    if (( target_bytes <= current_bytes )); then
+        __ax_error "Resize-Vault does not support shrinking (current: $(numfmt --to=iec ${current_bytes}), requested: ${target_size})"
+        return 1
+    fi
+
+    echo "Growing vault file: ${vault_file} to ${target_size}"
+    fallocate --length "${target_size}" "${vault_file}" || return 1
+
+    echo "Opening encrypted vault..."
+    sudo cryptsetup open --type luks "${vault_file}" "${mapper_name}" || return 1
+
+    local fs_type
+    fs_type=$(sudo blkid --output value --match-tag TYPE "/dev/mapper/${mapper_name}")
+    if [[ "${fs_type}" != "ext4" ]]; then
+        __ax_error "Resize-Vault only supports ext4 filesystems (found: ${fs_type:-unknown})"
+        sudo cryptsetup close "${mapper_name}"
+        return 1
+    fi
+
+    echo "Resizing LUKS container..."
+    sudo cryptsetup resize "${mapper_name}" || {
+        sudo cryptsetup close "${mapper_name}"
+        return 1
+    }
+
+    echo "Checking filesystem (required before growing metadata_csum/64bit ext4)..."
+    sudo e2fsck -f "/dev/mapper/${mapper_name}"
+    if (( $? > 1 )); then
+        __ax_error "Filesystem check failed — container was resized but filesystem was not grown"
+        sudo cryptsetup close "${mapper_name}"
+        return 1
+    fi
+
+    echo "Growing ext4 filesystem..."
+    sudo resize2fs "/dev/mapper/${mapper_name}" || {
+        sudo cryptsetup close "${mapper_name}"
+        return 1
+    }
+
+    echo "Closing vault..."
+    sudo cryptsetup close "${mapper_name}"
+
+    echo "Vault resized successfully: ${vault_file} is now ${target_size}"
+    echo "Mount with: mount-vault ${vault_name}"
+}
+
+
+resize_vault "${_vault_input}" "${_size}"

@@ -5,7 +5,6 @@ _New-Vault() {
     '(- *)--help[show help]' \
     '1:vault name:' \
     '--size[vault size (e.g. 1G, 5G)]:size:' \
-    '--filesystem[filesystem type]:filesystem:(ext4 btrfs xfs)' \
     '--location[vault file directory]:directory:_directories'
 }
 

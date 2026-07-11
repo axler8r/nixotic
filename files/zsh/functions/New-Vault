@@ -8,7 +8,6 @@ source "${0:h}/../lib/validation.zsh"
 # Defaults
 local _vault_name=""
 local _size="1G"
-local _filesystem="ext4"
 local _location="${HOME}/Vaults"
 
 
@@ -24,13 +23,12 @@ Mount points are created at ${HOME}/Vaults/<name> by default.
 Options:
     -h, --help          Show this help message
     --size SIZE         Vault size (default: 1G, minimum: 100M, examples: 1G, 5G, 10G)
-    --filesystem TYPE   Filesystem type (default: ext4)
     --location DIR      Directory to store vault file (default: ${HOME}/Vaults)
 
 Examples:
     ${0:t} mydata
     ${0:t} secrets --size 1G
-    ${0:t} backup --size 5G --filesystem ext4
+    ${0:t} backup --size 5G
     ${0:t} external --location /mnt/storage
 EOF
     return 0
@@ -38,9 +36,16 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --size)         _size="$2"; shift 2 ;;
-        --filesystem)   _filesystem="$2"; shift 2 ;;
-        --location)     _location="$2"; shift 2 ;;
+        --size)
+            [[ $# -ge 2 ]] || { __ax_error "Missing value for --size"; return 1; }
+            _size="$2"
+            shift 2
+            ;;
+        --location)
+            [[ $# -ge 2 ]] || { __ax_error "Missing value for --location"; return 1; }
+            _location="$2"
+            shift 2
+            ;;
         *)              _vault_name="$1"; shift ;;
     esac
 done
@@ -55,55 +60,54 @@ __ax_check_deps fallocate cryptsetup mkdir rm || return 2
 function new_vault() {
     local vault_name=${1}
     local size=${2}
-    local filesystem=${3}
-    local location=${4}
-    
+    local location=${3}
+
     local vault_file="${location}/.${vault_name}.vault"
     local mapper_name="${vault_name}"
-    
+
     # Create vault directory if it doesn't exist
     if [[ ! -d "${location}" ]]; then
         echo "Creating vault directory: ${location}"
         mkdir --parents "${location}" || return 1
     fi
-    
+
     # Check if vault already exists
     if [[ -f "${vault_file}" ]]; then
         __ax_error "Vault already exists: ${vault_file}"
         return 1
     fi
-    
+
     echo "Creating vault: ${vault_file} (${size})"
-    
+
     # Allocate space for vault file
     fallocate --length "${size}" "${vault_file}" || return 1
-    
+
     echo "Encrypting vault with LUKS..."
     cryptsetup luksFormat --verify-passphrase "${vault_file}" || {
         rm --force "${vault_file}"
         return 1
     }
-    
+
     echo "Opening encrypted vault..."
     sudo cryptsetup open --type luks "${vault_file}" "${mapper_name}" || {
         rm --force "${vault_file}"
         return 1
     }
-    
-    echo "Creating ${filesystem} filesystem..."
-    sudo mkfs.${filesystem} -L "${vault_name}" "/dev/mapper/${mapper_name}" || {
+
+    echo "Creating ext4 filesystem..."
+    sudo mkfs.ext4 -L "${vault_name}" "/dev/mapper/${mapper_name}" || {
         sudo cryptsetup close "${mapper_name}"
         rm --force "${vault_file}"
         return 1
     }
-    
+
     echo "Closing vault..."
     sudo cryptsetup close "${mapper_name}"
-    
+
     echo "Vault created successfully: ${vault_file}"
     echo "Mount with: mount-vault ${vault_file}"
 }
 
 
-new_vault "${_vault_name}" "${_size}" "${_filesystem}" "${_location}"
+new_vault "${_vault_name}" "${_size}" "${_location}"
 
