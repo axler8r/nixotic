@@ -1,27 +1,44 @@
 # Installing Nixotic
-Covers provisioning a new host with nixos-anywhere from the `cre8r` driver
-VM, the one-time bootstrap of `cre8r` itself, and the WSL install path.
-Also covers ZFS disk layout and ongoing ZFS operations.
+Covers provisioning a new _Nixotic_ host with nixos-anywhere and the WSL install
+path. Also covers ZFS disk layout and ongoing ZFS operations.
 
 
 ## Read This First
+In this guide, the **Nixotic Source** is the machine running the install: it has
+`nix`, SSH access to the target, and a local `~/.nixotic` checkout. That source
+can be any managed Nixotic host, a dedicated source VM, or in a fallback case
+any Linux machine that can run `nix`.
+
 Three rules matter more than anything else:
-1. New machines are installed **from another machine** (normally `cre8r`),
-   never by typing on the new machine itself. The new machine only ever
-   boots the stock NixOS ISO and waits.
+1. New machines are installed **from another machine**, never by typing on the
+   new machine itself. The new machine only ever boots the stock NixOS ISO and
+   mostly waits.
 2. Nothing needs to be pushed before installing. nixos-anywhere reads the
-   **local checkout** at `~/.nixotic`, WIP branch and all. Push after the
-   install succeeds.
+   **local checkout** at `~/.nixotic`, WIP branch and all. Add, commit and push
+   after the install succeeds.
 3. Nothing needs to be reconciled after installing. The hardware config is
    written into the local checkout *before* the install, `networking.hostId`
    is a random permanent value chosen at scaffold time, and on `portable`
    hosts disko emits `boot.resumeDevice` from the swap partition — no
    hand-set value, nothing to reconcile after the disk exists.
 
+> [!NOTE] Steps
+> ---
+> _**On the New Host**_
+> 1. Boot the target from any NixOS ISO.
+> 1. Set the root password.
+> 1. Get the IP address.
+> ---
+> _**On the Nixotic Source**_
+> 1. Run `Prepare-NewHost` on the source.
+> 1. Configure the target disk.
+> 1. Commit the target configuration.
+> 1. Install the target with _nixos-anywhere_.
 
-## Provision a New Host from cre8r
+
+## Provision a New Host from a Nixotic Source
 Total hands-on time at the new machine: about two minutes. Everything else
-happens at `cre8r` (or any managed machine — the steps are identical).
+happens on the Nixotic Source.
 
 ### Step 1 — Boot the target on the NixOS ISO
 Write the standard NixOS ISO (minimal is fine) to a USB stick and boot the
@@ -52,7 +69,7 @@ Expected: `ok`.
 
 That is all the typing the new machine ever gets. Walk away from it.
 
-### Step 2 — Scaffold the host (on cre8r)
+### Step 2 — Scaffold the host
 ```bash
 cd ~/.nixotic
 git checkout stable && git pull --ff-only
@@ -65,10 +82,11 @@ sized for hibernation, `boot.resumeDevice` set). The default is `fixed`
 when `--profile` is omitted.
 
 Choose `--role workstation` (the default) for a GNOME machine — it gets the
-full ambul8r experience: the workstation role module, Stylix, and the desktop
+full workstation experience: the workstation role module, Stylix, and the desktop
 Home Manager profile. Choose `--role server` for a CLI-only machine — it gets
 the base module, no Stylix, and the headless Home Manager profile. Until a
-dedicated server role module exists, servers scaffold on `base.nix` plus a hardened openssh block written into the host file (key-only, no root login).
+dedicated server role module exists, servers scaffold on `base.nix` plus a
+hardened openssh block written into the host file (key-only, no root login).
 
 Expected: `Done. Scaffolded hosts/<newhost>/ ...` and a new WIP branch
 `wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is
@@ -143,8 +161,8 @@ Expected final output: `installation finished!` followed by the reboot.
   `Prepare-NewHost` sets this for scaffolded hosts; only a host whose
   `hardware-configuration.nix` was hand-generated on a running machine
   (e.g. `ambul8r`) may keep it `false`.
-- *Build is too heavy for cre8r*: add `--build-on-remote` to build on the
-  target instead.
+- *Build is too heavy for the Nixotic Source*: add `--build-on-remote` to build
+  on the target instead.
 - *`error: flake ... is dirty`*: uncommitted changes; `git add` them —
   flakes only see tracked files.
 
@@ -184,10 +202,10 @@ access, and generous zram or swap for large models.
   hosts have no swap and do not hibernate.
 
 
-## One-Time: Bootstrap cre8r Itself
-`cre8r` is a minimal headless NixOS VM on the Proxmox host. It is installed
-exactly like any other host — except the driver is `ambul8r`, because cre8r
-does not exist yet. This is done once.
+## Optional: Bootstrap a Dedicated Nixotic Source VM
+A dedicated Nixotic Source can be a minimal headless NixOS VM on the Proxmox
+host. It is installed exactly like any other host from an existing Nixotic
+Source, such as `ambul8r`. This can be done more than once.
 
 1. On Proxmox, create a VM: 2 vCPU, 4 GB RAM, 32 GB disk (VirtIO block),
    UEFI (OVMF) firmware **with the EFI disk added**, and the NixOS ISO
@@ -200,32 +218,34 @@ does not exist yet. This is done once.
      the unsigned NixOS ISO and systemd-boot with `Access Denied`.
 2. In the Proxmox console for the VM: `sudo passwd root`, then `ip a` and
    note the IP.
-3. On ambul8r, confirm the disk name the VM sees:
+3. On the existing Nixotic Source, confirm the disk name the VM sees:
 
    ```bash
    ssh root@<vm-ip> lsblk -o NAME,SIZE,TYPE
    ```
 
    Expected: `vda  32G  disk`. If it shows `sda` instead (VirtIO SCSI),
-   change `device` in `hosts/cre8r/disk.nix` to `/dev/sda` and commit.
-4. Install from ambul8r:
+   change `device` in `hosts/<nixotic_source>/disk.nix` to `/dev/sda` and
+   commit.
+4. Install from the existing Nixotic Source:
 
    ```bash
    cd ~/.nixotic
    nix run github:nix-community/nixos-anywhere -- \
-     --flake .#cre8r \
-     --generate-hardware-config nixos-generate-config hosts/cre8r/hardware-configuration.nix \
+     --flake .#<nixotic_source> \
+     --generate-hardware-config nixos-generate-config hosts/<nixotic_source>/hardware-configuration.nix \
      root@<vm-ip>
    ```
 5. After reboot, remove the ISO from the VM in Proxmox. Log in as `axl`
    over SSH (key-only), change the initial console password
    (`passwd`), commit the generated hardware config, merge, push.
-6. Give cre8r its working checkout and an SSH key with GitHub access:
+6. Give `<nixotic_source>` its working checkout and an SSH key with GitHub
+   access:
 
    ```bash
    ssh axl@<vm-ip>
    nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git ~/.nixotic'
-   ssh-keygen -t ed25519 -C "axl@cre8r"
+   ssh-keygen -t ed25519 -C "axl@<nixotic_source>"
    # add ~/.ssh/id_ed25519.pub to GitHub
    ```
 
@@ -244,14 +264,14 @@ does not exist yet. This is done once.
   and needs Secure Boot off.
 - *VM boots to a UEFI shell after install*: created without a proper
   OVMF/EFI-disk setup. Recreate with OVMF (UEFI) and an EFI disk;
-  `hosts/cre8r/configuration.nix` uses systemd-boot, which is UEFI-only.
+  `hosts/<nixotic_source>/configuration.nix` uses systemd-boot, which is UEFI-only.
 
 
 ## Fallback: No Driver Machine Available
-If cre8r and every managed machine are unavailable (first machine ever, or
-total loss), any Linux machine that can run `nix` can act as the driver:
-install nix, clone the repo, and follow "Provision a New Host from cre8r"
-from Step 2. The steps are identical; `cre8r` is a convenience, not a
+If no managed Nixotic Source is available (first machine ever, or total loss),
+any Linux machine that can run `nix` can act as the source: install nix, clone
+the repo, and follow "Provision a New Host from a Nixotic Source" from Step 2.
+The steps are identical; a dedicated source VM is a convenience, not a
 requirement.
 
 
@@ -370,16 +390,16 @@ The pool is split into `HOSTDATA` and `USERDATA` so that a machine rebuild —
 which wipes root — does not touch personal data. `USERDATA` datasets mount
 directly into the home directory and survive reinstalls.
 
-New hosts use `rpool` (ZFS-on-root convention). Existing hosts (`ambul8r`,
-`cre8r`) use `dpool` and keep their current pool structure until a future
-reinstall.
+New hosts use `rpool` (ZFS-on-root convention). `ambul8r` uses `dpool` and keeps
+its current pool structure until a future reinstall. `cre8r` currently uses an
+ext4 root layout.
 
 ```
 rpool                          mountpoint=none
-├── ROOT                       mountpoint=none            boot-environment container
-│   └── nixos                  /                          persistent root
+├── ROOT                       mountpoint=none      boot-environment container
+│   └── nixos                  /                    persistent root
 ├── HOSTDATA                   mountpoint=none
-│   ├── nix                    /nix    compression=zstd, atime=off, neededForBoot
+│   ├── nix                    /nix                 compression=zstd, atime=off, neededForBoot
 │   └── var/lib/docker         /var/lib/docker
 └── USERDATA                   mountpoint=none
     └── home/axl               mountpoint=none
@@ -444,8 +464,8 @@ do not hibernate.
 
 
 ## ZFS Operations
-The pool name is `rpool` on new ZFS-on-root hosts. Existing hosts
-(`ambul8r`, `cre8r`) use `dpool` — substitute accordingly.
+The pool name is `rpool` on new ZFS-on-root hosts. `ambul8r` uses `dpool` —
+substitute accordingly. `cre8r` currently has no ZFS pool.
 
 ### Common Commands
 | Command                                               | Purpose                 |
