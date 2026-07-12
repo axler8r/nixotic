@@ -10,31 +10,9 @@
 #             Supply a <message> in <verb> <detail> format.
 #             When in doubt, use 'wip'.
 #
-# ----------- BODY FORMAT ----------------------------------------
-#             Always include a body. One blank line between subject
-#             and body. Choose subheadings from the list below.
-#             One blank line between subheadings. List items use
-#             2-space indent, lowercase, no trailing period.
-#             Use — (em dash U+2014) to add context: "  - item — why"
-#
-#             Example:
-#               feat(shell): split foo into focused scripts
-#
-#               retire:
-#                 - foo — replaced by bar and baz
-#
-#               add:
-#                 - bar — handles the x case
-#                 - baz — handles the y case
-#
-# ----------- SUBHEADINGS ----------------------------------------
-#             add:        new behaviour, capabilities, or files
-#             modify:     changes to existing behaviour
-#             retire:     behaviour or files removed
-#             deprecate:  marked for future removal
-#             defect:     bug fixes
-#             style:      formatting, naming, cosmetic changes
-#             refactor:   restructuring without behaviour change
+#             Always include a body, separated from the subject by one
+#             blank line. For subheadings and nested-bullet body format,
+#             see the writing-git-commits skill.
 #
 # ----------- MAJOR --------------------------------------------------
 # feat!       refactor, retire…

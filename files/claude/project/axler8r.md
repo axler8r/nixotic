@@ -34,5 +34,4 @@ Specs and plans live in GitHub issues, not local files.
 
 - Subject: `<type>(#<n>): <verb> <message>` — issue number in context where applicable; max 100 characters. This overrides the global `<type>[(<context>)]` format.
 - Body: always present, separated from subject by one blank line.
-- Subheadings: `add:` `modify:` `retire:` `deprecate:` `defect:` `style:` `refactor:` — blank line between subheadings.
-- List items: `  - lowercase description` — no trailing period; use `—` (em dash U+2014) for context.
+- Use the `writing-git-commits` skill for subheadings and body format.

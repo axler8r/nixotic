@@ -56,8 +56,7 @@ Artifact location: `.superpowers/` (gitignored).
 ## Git Commit Messages
 - Follow conventional commits.
 - Use `files/git/gitcommit` as the source for type, scope/context, and subject format.
-- Use subheadings if needed: `add:`, `deprecate:`, `retire:`, `modify:`, `defect:`, `style:`, `refactor:`
-- Use lists; list each change.
+- Use the `writing-git-commits` skill for subheadings and body format.
 - Descriptions must not exceed 100 characters.
 
 
