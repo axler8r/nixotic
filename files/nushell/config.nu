@@ -295,3 +295,9 @@ source ~/.config/nushell/aliases.nu
 
 # Starship prompt
 use ~/.cache/starship/init.nu
+
+# Single-cell vi-mode indicators appended by Nushell after the Starship prompt.
+$env.PROMPT_INDICATOR = ""
+$env.PROMPT_INDICATOR_VI_NORMAL = ""
+$env.PROMPT_INDICATOR_VI_INSERT = ""
+
