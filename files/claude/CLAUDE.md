@@ -29,6 +29,8 @@ This host is NixOS — a lean, declarative system where tools are not necessaril
 
 ## Workflow
 
+- Use repo-local `.scratchpad/claude` files for Claude and Superpowers plans,
+  specs, SDD reports, review notes, and other durable working artifacts.
 - Create plan. Use `superpowers:writing-plans`.
 - Generate/update code.
   - Use `superpowers:executing-plans` or `superpowers:subagent-driven-development` for implementation.

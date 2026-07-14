@@ -7,6 +7,7 @@
     ./bat.nix
     ./btop.nix
     ./claude.nix
+    ./codex.nix
     ./eza.nix
     ./fastfetch.nix
     ./fd.nix

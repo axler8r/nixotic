@@ -28,6 +28,11 @@ If you are touching theming, read `docs/colour-token-taxonomy.md` first and trea
 3. I give you feedback or tell you to proceed.
 
 
+## Scratchpad
+Use repo-local `.scratchpad/copilot` files for Copilot notes, drafts, plans, and
+other durable working artifacts that should not be committed.
+
+
 ## Code Standards
 - ZSH functions use PowerShell approved verbs.
 - ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`).
