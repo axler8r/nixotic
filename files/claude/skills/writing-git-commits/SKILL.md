@@ -14,7 +14,7 @@ packing a fact and an em-dash rationale onto one line, which stops scaling
 once a subject has more than one fact to report.
 
 For subject-line format and type selection (`<type>[(<context>)]: <message>`,
-the MAJOR/MINOR/PATCH/NONE/IGNORE table), see `files/git/gitcommit` — this
+the MAJOR/MINOR/PATCH/NONE/IGNORE table), see `${HOME}/.gitcommit` — this
 skill covers the body only.
 
 ## Subheadings

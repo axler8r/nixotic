@@ -10,7 +10,7 @@ This project manages desired state configuration for my computers using:
 - **NixOS flake** with Home Manager as a module.
 - **Hosts**: two roles — workstation (GNOME) and server (CLI only). `ambul8r` (workstation: laptop, NVIDIA), `illumin8r` (server: WSL dev container host), `cre8r` (server: provisioning helper VM).
 - **Desktop**: GNOME and only GNOME.
-- **Shell**: ZSH with custom functions in `files/zsh/functions/`.
+- **Shell**: ZSH with custom functions in `files/zsh/functions/` (repo-relative — edited here; `~/.zsh/functions/` is the generated copy).
 - **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/colour-token-taxonomy.md`.
 
 
@@ -37,7 +37,7 @@ Repo-local `.scratchpad/copilot` is shared, gitignored scratch space:
 
 ## Code Standards
 - ZSH functions use PowerShell approved verbs.
-- ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`).
+- ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`, repo-relative — edited alongside the functions it governs).
 - Use `command -v` not `which` for command detection.
 - No conditional guards for Home Manager tools (they're always present).
 - Let Stylix manage GNOME and desktop chrome only.
@@ -54,7 +54,7 @@ You can:
 
 ## Git Commit Messages
 - Commit messages follow conventional commits.
-- Use `files/git/gitcommit` as the source for type, scope/context, and subject format.
+- Use `${HOME}/.gitcommit` as the source for type, scope/context, and subject format.
 - Create messages with the following subheadings if needed:
   - `add:`, `deprecate:`, `retire:`, `modify:`, `defect:`, `style:`, `refactor:`
 - Use lists

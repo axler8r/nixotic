@@ -64,7 +64,7 @@ Before concluding work:
 
 ## Git Commit Messages
 
-- Use `files/git/gitcommit` as the source for commit types and context format.
+- Use `${HOME}/.gitcommit` as the source for commit types and context format.
 - Subject: `<type>[(<context>)]: <verb> <message>` — max 100 characters; lowercase throughout except identifiers and proper nouns.
 - Body: always present, separated from subject by one blank line.
 - For subheadings and nested-bullet body format, use the `writing-git-commits` skill.
