@@ -29,8 +29,10 @@ If you are touching theming, read `docs/colour-token-taxonomy.md` first and trea
 
 
 ## Scratchpad
-Use repo-local `.scratchpad/copilot` files for Copilot notes, drafts, plans, and
-other durable working artifacts that should not be committed.
+Repo-local `.scratchpad/copilot` is shared, gitignored scratch space:
+- `.scratchpad/copilot/plans/<yyyymmddHHMM>-<slug>-plan.md` for implementation plans.
+- `.scratchpad/copilot/specs/<yyyymmddHHMM>-<slug>-spec.md` for design specs.
+- `.scratchpad/copilot/tasks/` for task checklists and review notes.
 
 
 ## Code Standards

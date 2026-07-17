@@ -21,14 +21,15 @@ The default phase order is:
 
 Use repo-local `.scratchpad/codex` files as branch-local durable state:
 
-- `.scratchpad/codex/specs/<slug>.md` for ideation, scope, decisions, and design notes.
-- `.scratchpad/codex/plans/<slug>.md` for the implementation plan and acceptance criteria.
+- `.scratchpad/codex/specs/<yyyymmddHHMM>-<slug>-spec.md` for ideation, scope, decisions, and design notes.
+- `.scratchpad/codex/plans/<yyyymmddHHMM>-<slug>-plan.md` for the implementation plan and acceptance criteria.
 - `.scratchpad/codex/tasks/<slug>.md` for the executable task checklist.
 - `.scratchpad/codex/tasks/<slug>-review.md` for review findings, checks, and merge notes.
 
 Prefer the templates in `~/.codex/templates/` when creating new artifacts. Derive
 `<slug>` from the branch or work title using lowercase words separated by
-hyphens.
+hyphens. Existing files under `.scratchpad/codex/` keep their current names —
+this pattern applies to new files only.
 
 ### Phase Protocol
 

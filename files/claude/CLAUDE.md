@@ -29,8 +29,16 @@ This host is NixOS — a lean, declarative system where tools are not necessaril
 
 ## Workflow
 
-- Use repo-local `.scratchpad/claude` files for Claude and Superpowers plans,
-  specs, SDD reports, review notes, and other durable working artifacts.
+- Repo-local `.scratchpad/` is shared, gitignored scratch space for AI tools
+  working in a repo (Claude Code, Codex, GitHub Copilot). Each tool uses its
+  own subtree: `.scratchpad/<provider>/{plans,specs,<task-tracker>}`.
+- Claude's subtree is `.scratchpad/claude/`:
+  - `plans/` — implementation plans
+  - `specs/` — design specs
+  - `sdd/` — spec-driven-development reports: task briefs, review diffs, progress notes
+- Name new plans `<yyyymmddHHMM>-<slug>-plan.md` and new specs
+  `<yyyymmddHHMM>-<slug>-spec.md` (4-digit year, lowercase hyphenated slug).
+  Leave existing files under their current names.
 - Create plan. Use `superpowers:writing-plans`.
 - Generate/update code.
   - Use `superpowers:executing-plans` or `superpowers:subagent-driven-development` for implementation.

@@ -18,13 +18,6 @@ Familiarize yourself with the project structure and files.
 If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as the source of truth.
 
 
-## Superpowers
-Artifact location: `.superpowers/` (gitignored).
-- Specs: `.superpowers/specs/`
-- Plans: `.superpowers/plans/`
-- SDDs: `.superpowers/sdd/`
-
-
 ## File Naming
 - All files in `files/` must be visible in the repository (no leading dot), even if they are mapped to hidden paths in the build.
 - The dotfile mapping is handled in `home/files.nix` or equivalent Nix configuration, not in the filename.
