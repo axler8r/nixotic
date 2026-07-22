@@ -1,0 +1,46 @@
+#! /usr/bin/env zsh
+
+# Open-File: Fuzzy-find one or more files and open them in Helix
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [path]
+
+Fuzzy-find files under [path] (default: current directory) with fzf,
+multi-select, and open the selection in Helix.
+
+Arguments:
+    [path]        Directory to search (default: .)
+
+Examples:
+    ${0:t}
+    ${0:t} ~/projects
+EOF
+    return 0
+fi
+
+__ax_check_deps fzf hx || return 2
+
+local _path="${1:-.}"
+__ax_require_dir "$_path" || return 1
+
+local _selection
+if [[ -x "$(command -v fzf-tmux)" ]]; then
+    _selection=$(cd "$_path" && fzf-tmux --height 40% --reverse --preview "bat --color=always {}" -m)
+else
+    _selection=$(cd "$_path" && fzf -m)
+fi
+
+[[ -n "$_selection" ]] || return 0
+
+local -a _lines _files
+local _line
+_lines=("${(@f)_selection}")
+for _line in "${_lines[@]}"; do
+    _files+=("$_path/$_line")
+done
+
+hx "${_files[@]}"

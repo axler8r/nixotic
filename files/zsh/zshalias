@@ -46,6 +46,8 @@ compdef _tail Read-Log
 [[ -x $(command -v fzf-tmux) ]] && \
     alias fzf=' fzf-tmux --height 40% --reverse --preview "bat --color=always {}" '
 
+alias fx=' Open-File '
+
 man() {
     local __AX_WIDTH="$(( COLUMNS > 93 ? 90 : COLUMNS - 3 ))"
     for arg in "$@"; do

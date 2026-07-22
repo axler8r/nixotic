@@ -23,6 +23,7 @@ Functions use **PascalCase Verb-Noun** naming (PowerShell-style):
 | `ConvertTo-` | Transform format             | `ConvertTo-PdfDocument`           |
 | `Show-`      | Display interactively        | `Show-GitHubLicense`              |
 | `Find-`      | Search for resources         | `Find-DockerImages`               |
+| `Open-`      | Launch a resource in its associated application | `Open-File`     |
 | `Confirm-`   | Verify/validate              | `Confirm-GitUntrackedCache`       |
 | `Reset-`     | Restore defaults             | `Reset-GnomeSettings`             |
 | `Resolve-`   | Determine/lookup             | `Resolve-GitRepositoryPath`       |
