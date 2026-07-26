@@ -69,6 +69,10 @@
     # Media
     ffmpeg
     mpv
+
+    # Documents
+    meowpdf
+    typst
   ];
 
   home.sessionVariables = {

@@ -60,6 +60,9 @@
       background_opacity = lib.mkForce "0.98";
       wayland_titlebar_color = "background";
 
+      # Remote control (used by Start-TypstPreview to build pane layouts)
+      allow_remote_control = "yes";
+
       # Tab bar
       tab_bar_style = "powerline";
     };

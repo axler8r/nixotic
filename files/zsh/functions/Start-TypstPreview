@@ -1,0 +1,55 @@
+#!/usr/bin/env zsh
+
+# Start-TypstPreview: Select, preview and edit a Typst file
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t}
+
+Fuzzy-find a .typ file under the current directory with fzf, compile it
+with Typst, then build a 3-pane kitty layout in the current tab:
+  - left pane: meowpdf, showing the compiled PDF (hot-reloads on rebuild)
+  - top-right pane (120 cells wide, ~80% height): hx, editing the file
+  - bottom-right pane (~20% height): typst watch, recompiling on save
+
+Must be run from inside an empty kitty tab (no other panes yet).
+
+Options:
+    -h, --help    Show this help message
+
+Examples:
+    ${0:t}
+EOF
+    return 0
+fi
+
+__ax_check_deps fd fzf hx jq kitty meowpdf typst || return 2
+
+local _selection
+if [[ -x "$(command -v fzf-tmux)" ]]; then
+    _selection=$(fd -e typ . | fzf-tmux --height 40% --reverse --preview "bat --color=always {}")
+else
+    _selection=$(fd -e typ . | fzf --preview "bat --color=always {}")
+fi
+
+[[ -n "$_selection" ]] || return 0
+
+local _file="$_selection"
+
+typst compile "$_file" || { __ax_error "typst compile failed for $_file"; return 1 }
+
+kitty @ goto-layout splits
+
+kitty @ launch --location=vsplit --cwd="$PWD" zsh -ic "hx ${(qq)_file}"
+
+local _columns
+_columns=$(kitty @ ls | jq '[.. | objects | select(.is_focused? == true and has("columns")) | .columns] | first')
+local _delta=$(( 120 - _columns ))
+(( _delta != 0 )) && kitty @ resize-window --axis=horizontal --increment="$_delta"
+
+kitty @ launch --location=hsplit --bias=20 --cwd="$PWD" zsh -ic "typst watch ${(qq)_file}"
+
+exec meowpdf "${_file:r}.pdf"
