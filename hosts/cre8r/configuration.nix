@@ -13,7 +13,7 @@
   networking.hostName = "cre8r";
 
   # Console fallback for the Proxmox VM console; change after first login.
-  users.users.axl.initialPassword = "cre8r-initial";
+  users.users.axl.initialPassword = "Ch4ng3Me!";
 
   services.openssh = {
     enable = true;

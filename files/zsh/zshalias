@@ -1,18 +1,8 @@
 #!/usr/bin/env zsh
-#
-# Shell Aliases Configuration
-# See: .zsh/functions/CONVENTIONS.md for complete naming conventions
-#
-# Naming Pattern:
-#   - PascalCase: autoloaded function names (e.g., Get-IpAddress)
-#   - lowercase: idiomatic shortcuts (e.g., myip, lsdimg)
-#   - Prefixes: d=docker, z=zfs, g=git, k=kitty, t=tmux
 
 # Navigation
 alias ..=' cd .. '
 alias ...=' cd ../../ '
-alias ....=' cd ../../../ '
-alias .....=' cd ../../../../ '
 alias popd=' popd -q '
 alias pushd=' pushd -q '
 alias stack=' dirs -v '
@@ -20,16 +10,13 @@ alias stack=' dirs -v '
 # Utilities
 alias df=' df --human-readable --exclude-type=squashfs --exclude-type=tmpfs --exclude-type=devtmpfs --print-type '
 alias now=" date +'%Y-%m-%d %H:%M:%S' "
-alias lsip=' Get-IpAddress '
-alias lstermdim=' Get-TerminalDimensions '
-alias lswinkey=' Get-WindowsKey '
 
 # Git workflow
-alias update-gitstablebranch=' Update-GitStableBranch '
-alias new-gitwipbranch=' New-GitWIPBranch '
-alias update-gitwipbranchhistory=' Update-GitWIPBranchHistory '
-alias complete-gitwipbranch=' Complete-GitWIPBranch '
-alias remove-gitwipbranch=' Remove-GitWIPBranch '
+alias gcw=' Complete-GitWIPBranch '
+alias grw=' Remove-GitWIPBranch '
+alias guh=' Update-GitWIPBranchHistory '
+alias gus=' Update-GitStableBranch '
+alias gwb=' New-GitWIPBranch '
 
 # Editor variants (light theme)
 alias manw='MANWIDTH="" command man '
@@ -39,7 +26,7 @@ alias hx=' hx '
 # Help and logs (bat guaranteed by Home Manager)
 alias help=' Get-Help '
 alias h=' Get-Help '
-alias taillog=' Read-Log '
+alias follow=' Read-Log '
 alias bat=' bat --paging=auto '
 compdef _tail Read-Log
 
@@ -60,15 +47,6 @@ man() {
     mandoc -T utf8 -O width="${__AX_WIDTH}" ${(f)__AX_PAGE} | col -b | bat --style=plain --language=man
 }
 
-# Docker (d prefix)
-if [[ -x $(command -v docker) ]] {
-    alias dconnect=' docker exec --interactive --tty zsh-ubuntu zsh '
-
-    # Azure
-    alias dazcli=' Start-DockerAzureCli '
-    alias dazpwsh=' Start-DockerAzurePowerShell '
-}
-
 # ZFS (z prefix)
 if [[ -x $(command -v zfs) ]] {
     alias lszsnap=' Get-ZfsSnapshots '
@@ -82,8 +60,6 @@ alias tokei=' tokei --exclude .github --exclude .git --sort code '
 alias tree=' tree --dirsfirst '
 
 # Optional tools (guard needed)
-[[ -x $(command -v cargo) ]] && alias cargo=' cargo '
-[[ -x $(command -v ncdu) ]] && alias ncdu=' ncdu --exclude ".git" '
 [[ -x $(command -v nvidia-settings) ]] && alias lscuda=' nvidia-settings -q CUDACores -t '
 
 
@@ -94,6 +70,7 @@ alias -s {pdf,ps}=evince
 alias -g B="| bat --paging=auto - "
 alias -g C="| wc --lines - "
 alias -g G="| grep "
+alias -g H="| hx - "
 alias -g L="| less --line-numbers "
 alias -g R="| rg "
 alias -g S="| sed --expression "
