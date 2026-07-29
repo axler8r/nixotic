@@ -21,6 +21,11 @@
     btop.enable = false;
   };
 
+  # Stylix sets home.pointerCursor.{name,package,size} implicitly via
+  # stylix.cursor; explicit enable is required as of home-manager's
+  # deprecation of implicit cursor-config generation.
+  home.pointerCursor.enable = true;
+
   # GTK icon theme - Papirus-Light for Solarized Light theme
   gtk = {
     enable = true;
