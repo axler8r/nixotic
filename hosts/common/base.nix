@@ -19,26 +19,17 @@
     LC_TIME = "en_DK.UTF-8";
   };
 
-  users.users.axl = {
-    isNormalUser = true;
-    description = "Axl";
-    extraGroups = [ "wheel" ];
-    shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEtuDV/jvCTj5Hxs55fQFJDZR1Jo+v9YdLzUPXJ918Pr axl@ambul8r"
-    ];
-  };
-
-  nixpkgs.config.allowUnfree = true;
+  # System
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    auto-optimise-store = true;
-
     # Build performance
     max-jobs = "auto";
     cores = 0;
 
-    # Additional binary caches
+    auto-optimise-store = true;
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     substituters = [
       "https://cache.nixos.org"
       "https://nix-community.cachix.org"
@@ -48,6 +39,25 @@
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
   };
+  nixpkgs.config.allowUnfree = true;
+
+  environment.shells = with pkgs; [ zsh ];
+  environment.systemPackages = with pkgs; [
+    file
+  ];
+
+  users.users.axl = {
+    isNormalUser = true;
+    description = "Axl";
+    extraGroups = [ "wheel" ];
+    shell = pkgs.zsh;
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEtuDV/jvCTj5Hxs55fQFJDZR1Jo+v9YdLzUPXJ918Pr"
+    ];
+  };
+
+  programs.zsh.enable = true;
+  programs.nix-ld.enable = true; # Run non-NixOS binaries
   programs.nh = {
     enable = true;
     clean = {
@@ -57,15 +67,7 @@
     };
   };
 
-  environment.shells = with pkgs; [ zsh ];
-  programs.zsh.enable = true;
-  programs.nix-ld.enable = true;  # Run non-NixOS binaries
-
   security.sudo.extraConfig = ''
     Defaults timestamp_timeout=15
   '';
-
-  environment.systemPackages = with pkgs; [
-    file
-  ];
 }
