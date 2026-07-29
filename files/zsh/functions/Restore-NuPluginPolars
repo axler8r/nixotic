@@ -1,0 +1,88 @@
+#! /usr/bin/env zsh
+
+# Restore-NuPluginPolars: Drop the ethnum workaround once nixpkgs ships the fix
+
+setopt errexit nounset pipefail
+
+source "${0:h}/../lib/output.zsh"
+source "${0:h}/../lib/validation.zsh"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat << EOF
+Usage: ${0:t} [--force]
+
+nu_plugin_polars (via nushellPlugins.polars in home/desktop.nix) fails to
+build because it vendors nushell's Cargo.lock, which pinned ethnum 1.5.2 —
+broken by a rustc >=1.97 change (see NixOS/nixpkgs#546343). home/desktop.nix
+carries a local workaround: a patched rebuild (nuPluginPolarsFixed) that
+bumps ethnum to 1.5.3.
+
+This checks whether the currently locked nixpkgs now vendors ethnum
+>= 1.5.3 in nushell's own Cargo.lock. If so, it removes the workaround
+from home/desktop.nix and deletes the patch file, restoring the plain
+nushellPlugins.polars entry. Leaves everything untouched otherwise.
+
+Options:
+    -h, --help    Show this help message
+    --force       Apply the revert even if the version can't be confirmed
+EOF
+    exit 0
+fi
+
+__ax_check_deps nix sed grep || exit 2
+
+typeset _force_flag=false
+[[ "${1:-}" == "--force" ]] && _force_flag=true
+
+typeset _repo="${HOME}/.nixotic"
+typeset _desktop_nix="${_repo}/home/desktop.nix"
+typeset _patch="${_repo}/home/patches/nu-plugin-polars-update-ethnum.patch"
+typeset _min_version="1.5.3"
+
+__ax_require_file "${_desktop_nix}" || exit 1
+
+if ! grep --quiet '^# BEGIN nu-plugin-polars-ethnum-workaround' "${_desktop_nix}"; then
+    __ax_info "No workaround present in ${_desktop_nix#${_repo}/} — nothing to do."
+    exit 0
+fi
+
+# 1. Check if the dependency is at the right level ---------------------------
+autoload -Uz is-at-least
+
+typeset _nushell_src _cargo_lock _found_version
+# nix build (not eval) — eval only predicts the output path, it doesn't
+# guarantee the content is still present on disk if it was GC'd since the
+# last build.
+_nushell_src="$(nix build --no-link --print-out-paths "path:${_repo}#nixosConfigurations.ambul8r.pkgs.nushell.src" 2> /dev/null)" \
+    || { __ax_error "Could not build nushell.src from the flake."; exit 1 }
+
+_cargo_lock="${_nushell_src}/Cargo.lock"
+__ax_require_file "${_cargo_lock}" || exit 1
+
+_found_version="$(grep --after-context=1 '^name = "ethnum"$' "${_cargo_lock}" | sed --quiet 's/^version = "\(.*\)"$/\1/p')"
+__ax_require_arg "${_found_version}" "ethnum version in nushell's Cargo.lock" || exit 1
+
+__ax_info "nixpkgs vendors ethnum ${_found_version} (need >= ${_min_version})"
+
+if ! is-at-least "${_min_version}" "${_found_version}"; then
+    if [[ "${_force_flag}" != true ]]; then
+        __ax_warn "Upstream fix not in yet — leaving the workaround in place."
+        exit 3
+    fi
+    __ax_warn "Version check failed, but --force was given — reverting anyway."
+fi
+
+# 2. Fix home/desktop.nix -----------------------------------------------------
+sed --in-place \
+    --expression='/^# BEGIN nu-plugin-polars-ethnum-workaround/,/^# END nu-plugin-polars-ethnum-workaround/d' \
+    --expression='s/^    nuPluginPolarsFixed$/    nushellPlugins.polars/' \
+    "${_desktop_nix}"
+
+# 3. Delete the patch file ----------------------------------------------------
+if [[ -f "${_patch}" ]]; then
+    rm -f "${_patch}"
+    rmdir "${_patch:h}" 2> /dev/null || true
+fi
+
+__ax_success "Reverted ${_desktop_nix#${_repo}/} and removed the ethnum patch."
+__ax_info "Review the diff, then build (nh os build) and commit."
