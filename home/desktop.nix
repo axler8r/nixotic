@@ -20,7 +20,10 @@ let
     cargoHash = "sha256-Cpv58bqpx1o0Dz2AykqzFY+PQE/Updr5MusQflpEF74=";
     doCheck = false;
 
-    nativeBuildInputs = [ pkgs.pkg-config ] ++ pkgs.lib.optionals pkgs.stdenv.cc.isClang [ pkgs.rustPlatform.bindgenHook ];
+    nativeBuildInputs = [
+      pkgs.pkg-config
+    ]
+    ++ pkgs.lib.optionals pkgs.stdenv.cc.isClang [ pkgs.rustPlatform.bindgenHook ];
     buildInputs = [ pkgs.openssl ];
 
     buildAndTestSubdir = "crates/nu_plugin_polars";
@@ -97,7 +100,7 @@ in
     # Nushell plugins
     nushellPlugins.gstat
     nushellPlugins.highlight
-    nuPluginPolarsFixed
+    # nuPluginPolarsFixed
     nushellPlugins.query
 
     # Media
