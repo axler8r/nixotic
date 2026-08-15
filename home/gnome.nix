@@ -15,6 +15,7 @@
     gnome-power-manager
     gnome-tweaks
     gparted
+    gnome-firmware
     bustle
     gnome-secrets
     meld
@@ -248,6 +249,7 @@
           "org.gnome.Connections.desktop"
           "org.gnome.Terminal.desktop"
           "org.gnome.DiskUtility.desktop"
+          "org.gnome.Firmware.desktop"
           "org.gnome.PowerStats.desktop"
         ];
       };
