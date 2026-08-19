@@ -30,9 +30,9 @@ same result.
 
 ```mermaid
 flowchart TD
-    Command["Prepare-NewHost <hostname>\n--role workstation\n--profile fixed|portable"]
+    Command["Prepare-NewHost &lt;hostname&gt;\n--role workstation\n--profile fixed|portable"]
     Guards["Preflight guards\nclean stable branch, nix, curl,\nGitHub reachable, host does not exist"]
-    HostDir["hosts/<hostname>/"]
+    HostDir["hosts &lt;hostname&gt;"]
     Config["configuration.nix"]
     Disk["disk.nix"]
     Hardware["hardware-configuration.nix\nplaceholder"]
