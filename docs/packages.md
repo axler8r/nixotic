@@ -3,10 +3,10 @@ Where to declare packages in a NixOS + Home Manager configuration.
 
 NixOS owns the system — services, root access, shared state. Home Manager owns
 the user environment — dotfiles, shell tools, typed configuration. Packages sit
-at different levels because some need system integration (D-Bus, polkit, MIME
-associations) that Home Manager cannot provide, while others are pure user tools
-that have no business touching the system layer. The four locations reflect that
-boundary.
+at different levels because some need system integration (D-Bus system
+services, polkit, setuid helpers) that Home Manager cannot provide, while
+others are pure user tools that have no business touching the system layer.
+The four locations reflect that boundary.
 
 
 ## Decision Flowchart
@@ -14,7 +14,7 @@ boundary.
 flowchart TD
     Start([Need a package?]) --> Q1{All users?<br/>Root access?}
     Q1 -->|Yes| Sys[environment.systemPackages<br/>`hosts/*/configuration.nix`]
-    Q1 -->|No| Q2{GNOME, D-Bus<br/>integration?}
+    Q1 -->|No| Q2{Needs polkit/setuid/<br/>system D-Bus service?}
     Q2 -->|Yes| User[users.users.axl.packages<br/>`hosts/*/configuration.nix`]
     Q2 -->|No| Q3{Home Manager<br/>module exists?}
     Q3 -->|Yes| Prog[programs.&lt;name&gt;.enable<br/>`home/*.nix`]
@@ -46,14 +46,16 @@ Examples:
 **Location:** `hosts/*/configuration.nix`  
 **Use for:** User-specific packages needing system integration
 
-This tier exists because some apps (browsers, apps using polkit or D-Bus)
-need to be visible at the system level for things like MIME handler registration
-and desktop integration to work — `home.packages` installs into the user profile
-only, which is not enough.
+This tier exists for packages that need genuine system-level integration —
+polkit actions, D-Bus system services, setuid helpers — that Home Manager
+cannot provide from the user profile alone. Browsers do not inherently need
+this: Firefox, ungoogled-chromium, and Brave all install fine via
+`home.packages` and resolve correctly for MIME/desktop-file discovery. No
+package in this repo currently requires this tier.
 
 Examples:
-- Browsers: `brave`
-- Apps requiring system services or D-Bus integration
+- Apps requiring system services or D-Bus integration not satisfiable from
+  the user profile
 
 ### 3. `home.packages`
 **Location:** `home/desktop.nix` or `home/gnome.nix` (GUI apps)  
@@ -65,7 +67,7 @@ Examples in `home/desktop.nix`:
 - Media: `ffmpeg`, `mpv`
 
 Examples in `home/gnome.nix`:
-- Browsers: `firefox`, `ungoogled-chromium`
+- Browsers: `brave`, `firefox`, `ungoogled-chromium`
 - GUI apps: `obsidian`, `celluloid`, `gparted`
 - GNOME extensions
 

@@ -3,6 +3,7 @@
 {
   # GNOME Shell extensions and utilities
   home.packages = with pkgs; [
+    brave
     celluloid
     dconf-editor
     eyedropper

@@ -78,10 +78,6 @@
       "networkmanager"
       "docker"
     ];
-    packages = with pkgs; [
-      # Browsers
-      brave
-    ];
   };
 
   virtualisation.docker = {
