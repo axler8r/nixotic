@@ -11,7 +11,6 @@
     firefox
     gnome-terminal
     ungoogled-chromium
-    gnome-nettool
     gnome-podcasts
     gnome-power-manager
     gnome-tweaks
@@ -230,7 +229,6 @@
         name = "Monitor";
         apps = [
           "btop.desktop"
-          "gnome-nettool.desktop"
           "io.missioncenter.MissionCenter.desktop"
           "org.freedesktop.Bustle.desktop"
           "org.gnome.Logs.desktop"

@@ -64,7 +64,6 @@
     iftop
     iotop
     nethogs
-    net-tools
     plocate
   ];
   fonts.packages = with pkgs; [
