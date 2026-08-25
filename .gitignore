@@ -1,5 +1,7 @@
 *.code-workspace
+.direnv/
+.scratchpad/
+cache.db
 nhbuild
 result
 tags
-.scratchpad/

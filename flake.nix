@@ -52,6 +52,7 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.backupCommand = "backup-$(date +%Y%m%d%H%M%S)";
+              home-manager.extraSpecialArgs = { inherit self; };
               home-manager.users.axl = import home;
             }
           ] ++ nixpkgs.lib.optionals isWorkstation [
@@ -89,6 +90,53 @@
             exec /tmp/nixotic-prepare/files/zsh/functions/Prepare-NewHost "$@"
           '');
         };
+      };
+
+      # Each function's Nim source file is named without a hyphen (e.g.
+      # GetAttribute.nim) because Nim's `import` requires a valid identifier,
+      # but the installed binary keeps the hyphenated PascalCase Verb-Noun
+      # name (e.g. Get-Attribute) that aliases and PATH lookups expect. That
+      # mapping is spelled out explicitly per function below rather than
+      # derived from the filename — there's only one entry today, and a
+      # generic source-name -> binary-name transform isn't safe in general
+      # (e.g. "ConvertTo-H264Video" has two capitalized words before the
+      # hyphen, so a mechanical "insert hyphen before capitals" reversal
+      # would misplace it). Add one line here per future migration.
+      packages.${system}.nim-functions = pkgs.stdenv.mkDerivation {
+        pname = "nixotic-nim-functions";
+        version = "0.1.0";
+        src = ./files/nim;
+        nativeBuildInputs = [ pkgs.nim ];
+        buildPhase = ''
+          runHook preBuild
+          mkdir -p $out/bin
+          nim c -d:release --nimcache:.nimcache -o:"$out/bin/Get-Attribute" functions/GetAttribute.nim
+          runHook postBuild
+        '';
+        dontInstall = true;
+      };
+
+      checks.${system}.nim-functions-tests = pkgs.stdenv.mkDerivation {
+        pname = "nixotic-nim-functions-tests";
+        version = "0.1.0";
+        src = ./files/nim;
+        nativeBuildInputs = [ pkgs.nim pkgs.attr ];
+        buildPhase = ''
+          runHook preBuild
+          for f in lib/tests/*.nim functions/tests/*.nim; do
+            nim c -r --nimcache:.nimcache -o:"$TMPDIR/$(basename "$f" .nim)" "$f"
+          done
+          runHook postBuild
+        '';
+        installPhase = ''
+          mkdir -p $out
+          touch $out/tests-passed
+        '';
+      };
+
+      devShells.${system}.default = pkgs.mkShell {
+        name = "nixotic-nim";
+        packages = [ pkgs.nim pkgs.attr ];
       };
     };
 }

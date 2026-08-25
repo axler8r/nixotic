@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, self, ... }:
 
 let
   solarized = {
@@ -192,5 +192,6 @@ in
       mkdir -p $out/share/zsh/site-functions
       cp ${../files/zsh/completions}/_* $out/share/zsh/site-functions/
     '')
+    self.packages.${pkgs.system}.nim-functions
   ];
 }
