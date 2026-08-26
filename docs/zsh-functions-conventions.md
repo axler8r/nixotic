@@ -7,7 +7,7 @@ Functions use **PascalCase Verb-Noun** naming (PowerShell-style):
 | Verb         | Purpose                      | Example                           |
 | ------------ | ---------------------------- | --------------------------------- |
 | `Get-`       | Retrieve/display information | `Get-Help`, `Get-IpAddress`       |
-| `Set-`       | Configure/modify state       | `Set-Attribute`                   |
+| `Set-`       | Configure/modify state       | `Set-TrailingNewline`             |
 | `New-`       | Create a new resource        | `New-Function`, `New-Vault`       |
 | `Remove-`    | Delete a resource            | `Remove-Vault`                    |
 | `Start-`     | Begin a process/container    | `Start-DockerJupyterNotebook`     |

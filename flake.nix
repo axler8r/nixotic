@@ -30,6 +30,25 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
+      # Each function's Nim source file is named without a hyphen (e.g.
+      # GetAttribute.nim) because Nim's `import` requires a valid identifier,
+      # but the installed binary keeps the hyphenated PascalCase Verb-Noun
+      # name (e.g. Get-Attribute) that aliases and PATH lookups expect. That
+      # mapping is spelled out explicitly per function below rather than
+      # derived from the filename, because a generic source-name ->
+      # binary-name transform isn't safe in general (e.g. "ConvertTo-H264Video"
+      # has two capitalized words before the hyphen, so a mechanical "insert
+      # hyphen before capitals" reversal would misplace it). Add one entry
+      # here per future migration — the build guard in packages.${system}.nim-functions
+      # below fails loudly if a functions/*.nim file is ever added without a
+      # matching entry.
+      nimFunctionBinaries = {
+        "Get-Attribute" = "GetAttribute.nim";
+        "Get-Attributes" = "GetAttributes.nim";
+        "Set-Attribute" = "SetAttribute.nim";
+        "Remove-Attribute" = "RemoveAttribute.nim";
+      };
+
       # role selects the whole experience: "workstation" = Stylix +
       # home/desktop.nix, "server" = no Stylix + home/headless.nix.
       # homeConfig overrides the home profile only (e.g. WSL).
@@ -92,16 +111,6 @@
         };
       };
 
-      # Each function's Nim source file is named without a hyphen (e.g.
-      # GetAttribute.nim) because Nim's `import` requires a valid identifier,
-      # but the installed binary keeps the hyphenated PascalCase Verb-Noun
-      # name (e.g. Get-Attribute) that aliases and PATH lookups expect. That
-      # mapping is spelled out explicitly per function below rather than
-      # derived from the filename — there's only one entry today, and a
-      # generic source-name -> binary-name transform isn't safe in general
-      # (e.g. "ConvertTo-H264Video" has two capitalized words before the
-      # hyphen, so a mechanical "insert hyphen before capitals" reversal
-      # would misplace it). Add one line here per future migration.
       packages.${system}.nim-functions = pkgs.stdenv.mkDerivation {
         pname = "nixotic-nim-functions";
         version = "0.1.0";
@@ -110,7 +119,24 @@
         buildPhase = ''
           runHook preBuild
           mkdir -p $out/bin
-          nim c -d:release --nimcache:.nimcache -o:"$out/bin/Get-Attribute" functions/GetAttribute.nim
+
+          wired="${pkgs.lib.concatStringsSep " " (builtins.attrValues nimFunctionBinaries)}"
+          for f in functions/*.nim; do
+            base="$(basename "$f")"
+            case " $wired " in
+              *" $base "*) ;;
+              *)
+                echo "error: functions/$base has no entry in nimFunctionBinaries (flake.nix)" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList
+            (binName: srcFile:
+              ''nim c -d:release --nimcache:.nimcache -o:"$out/bin/${binName}" functions/${srcFile}'')
+            nimFunctionBinaries)}
+
           runHook postBuild
         '';
         dontInstall = true;

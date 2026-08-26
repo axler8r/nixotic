@@ -34,3 +34,19 @@ suite "validation.requireXattrName":
 
   test "succeeds on a valid name":
     check requireXattrName("user.comment") == true
+
+suite "validation.requireWritablePathTarget":
+  test "fails when path does not exist":
+    check requireWritablePathTarget("/definitely/not/a/real/path/xyz123") == false
+
+  test "succeeds for a writable existing directory":
+    check requireWritablePathTarget(getTempDir()) == true
+
+  test "fails when path exists but is not writable":
+    let tmp = getTempDir() / "test_require_writable_readonly"
+    writeFile(tmp, "x")
+    setFilePermissions(tmp, {fpUserRead})
+    let ok = requireWritablePathTarget(tmp)
+    setFilePermissions(tmp, {fpUserRead, fpUserWrite})
+    removeFile(tmp)
+    check ok == false

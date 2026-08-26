@@ -8,20 +8,20 @@ proc run*(
   errp: File = stderr
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-Attribute [opts] <attribute> <path>
+    outp.writeLine """Usage: Remove-Attribute [opts] <attribute> <path>
 
-Get an attribute on a file or directory.
+Remove an attribute on a file or directory.
 
 Options:
     -h, --help    Show this help message
 
 Arguments:
-    <attribute>  The attribute to get.
+    <attribute>  The attribute to remove.
     <path>       The path to the file or directory.
 
 Examples:
-    Get-Attribute comment /path/to/file
-    Get-Attribute app.name /path/to/directory"""
+    Remove-Attribute comment /path/to/file
+    Remove-Attribute app.name /path/to/directory"""
     return 0
 
   var attribute = ""
@@ -47,12 +47,12 @@ Examples:
 
   if not requireArg(attribute, "attribute", errp): return 1
   if not requireArg(path, "path", errp): return 1
-  if not checkDeps(["getfattr"], errp): return 2
-  if not requirePathTarget(path, errp): return 1
+  if not checkDeps(["setfattr"], errp): return 2
+  if not requireWritablePathTarget(path, errp): return 1
   if not requireXattrName(attribute, errp): return 1
 
-  let process = startProcess(findExe("getfattr"),
-                              args = @["--name", "user." & attribute, path],
+  let process = startProcess(findExe("setfattr"),
+                              args = @["--remove", "user." & attribute, path],
                               options = {poParentStreams})
   result = process.waitForExit()
   process.close()

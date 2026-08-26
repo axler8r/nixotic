@@ -135,6 +135,7 @@ in
     sessionVariables = {
       HISTSIZE = "5000";
       SAVEHIST = "2500";
+      NIXOTIC_NIM_FUNCTIONS_BIN = "${self.packages.${pkgs.system}.nim-functions}/bin";
     };
   };
 

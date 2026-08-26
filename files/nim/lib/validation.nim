@@ -1,4 +1,4 @@
-import std/[os, strutils]
+import std/[os, posix, strutils]
 import output
 
 proc requireArg*(value: string, name: string, errp: File = stderr): bool =
@@ -25,6 +25,14 @@ proc requirePathTarget*(path: string, errp: File = stderr): bool =
     return false
   if not (fileExists(path) or dirExists(path)):
     error("Path is not a file or directory.", errp)
+    return false
+  true
+
+proc requireWritablePathTarget*(path: string, errp: File = stderr): bool =
+  if not requirePathTarget(path, errp):
+    return false
+  if access(path.cstring, W_OK) != 0:
+    error("Path is not writable.", errp)
     return false
   true
 

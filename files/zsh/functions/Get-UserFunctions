@@ -55,6 +55,25 @@ _extract_function_description() {
     echo "$description"
 }
 
+_extract_nim_function_description() {
+    local bin_path="$1"
+    [[ -x "$bin_path" ]] || { echo ""; return; }
+
+    local description="" seen_usage=false line
+    while IFS= read -r line; do
+        if [[ "$seen_usage" == false ]]; then
+            [[ "$line" == Usage:* ]] && seen_usage=true
+            continue
+        fi
+        if [[ -n "$line" ]]; then
+            description="$line"
+            break
+        fi
+    done < <("$bin_path" --help 2>/dev/null)
+
+    echo "$description"
+}
+
 _is_powershell_style() {
     local func_name="$1"
     # PowerShell style: starts with uppercase letter
@@ -72,18 +91,10 @@ _is_symlink() {
     [[ -L "$func_file" ]]
 }
 
-_list_function_files() {
+_collect_zsh_function_files() {
     local functions_dir="$1"
-    local filter="$2"  # "powershell", "linux", or "all"
+    [[ -d "$functions_dir" ]] || return 0
 
-    if [[ ! -d "$functions_dir" ]]; then
-        return 1
-    fi
-
-    local -a powershell_funcs
-    local -a linux_funcs
-
-    # Collect and categorize all functions
     for func_file in "${functions_dir}"/*(-.:t); do
         if [[ "$func_file" =~ ^[A-Za-z]+-[A-Za-z0-9-]+$ ]]; then
             local description=$(_extract_function_description "${functions_dir}/${func_file}")
@@ -106,8 +117,34 @@ _list_function_files() {
             fi
         fi
     done
+}
 
-    # Output based on filter
+_collect_nim_function_files() {
+    local nim_dir="$1"
+    [[ -n "$nim_dir" && -d "$nim_dir" ]] || return 0
+
+    for func_file in "${nim_dir}"/*(-.N:t); do
+        if [[ "$func_file" =~ ^[A-Za-z]+-[A-Za-z0-9-]+$ ]]; then
+            local description=$(_extract_nim_function_description "${nim_dir}/${func_file}")
+
+            if [[ -z "$description" ]]; then
+                description="(no description)"
+            fi
+
+            local formatted_line="${func_file}|${description} (compiled)"
+
+            if _is_powershell_style "$func_file"; then
+                powershell_funcs+=("$formatted_line")
+            elif _is_linux_style "$func_file"; then
+                linux_funcs+=("$formatted_line")
+            fi
+        fi
+    done
+}
+
+_render_function_tables() {
+    local filter="$1"  # "powershell", "linux", or "all"
+
     case "$filter" in
         powershell)
             echo ""
@@ -155,38 +192,70 @@ done
 if [[ -n "$_raw_flag" ]] || [[ ! -t 1 ]]; then
     local _functions_dir
     _functions_dir="$(_get_functions_dir)"
-    for func_file in "$_functions_dir"/[A-Z]*; do
-        [[ -f "$func_file" ]] || continue
-        local _fname="${func_file:t}"
-        if [[ -n "$_powershell_flag" ]]; then
-            [[ "$_fname" =~ ^[A-Z][a-z]+-[A-Z] ]] || continue
-        elif [[ -n "$_linux_flag" ]]; then
-            [[ "$_fname" =~ ^[a-z]+-[a-z] ]] || continue
+    {
+        for func_file in "$_functions_dir"/[A-Z]*; do
+            [[ -f "$func_file" ]] || continue
+            local _fname="${func_file:t}"
+            if [[ -n "$_powershell_flag" ]]; then
+                [[ "$_fname" =~ ^[A-Z][a-z]+-[A-Z] ]] || continue
+            elif [[ -n "$_linux_flag" ]]; then
+                [[ "$_fname" =~ ^[a-z]+-[a-z] ]] || continue
+            fi
+            print -- "$_fname"
+        done
+
+        if [[ -n "${NIXOTIC_NIM_FUNCTIONS_BIN:-}" && -d "${NIXOTIC_NIM_FUNCTIONS_BIN}" ]]; then
+            for func_file in "${NIXOTIC_NIM_FUNCTIONS_BIN}"/[A-Z]*(N); do
+                [[ -f "$func_file" ]] || continue
+                local _fname="${func_file:t}"
+                if [[ -n "$_powershell_flag" ]]; then
+                    [[ "$_fname" =~ ^[A-Z][a-z]+-[A-Z] ]] || continue
+                elif [[ -n "$_linux_flag" ]]; then
+                    [[ "$_fname" =~ ^[a-z]+-[a-z] ]] || continue
+                fi
+                print -- "$_fname"
+            done
         fi
-        print -- "$_fname"
-    done | sort
+    } | sort
     unfunction _get_functions_dir
     unfunction _extract_function_description
+    unfunction _extract_nim_function_description
     unfunction _is_powershell_style
     unfunction _is_linux_style
     unfunction _is_symlink
-    unfunction _list_function_files
+    unfunction _collect_zsh_function_files
+    unfunction _collect_nim_function_files
+    unfunction _render_function_tables
     return 0
 fi
 
 # Main -------------------------------------------------------------------------
 __ax_check_deps readlink sort || return 2
 local _functions_dir=$(_get_functions_dir)
+local _nim_functions_dir="${NIXOTIC_NIM_FUNCTIONS_BIN:-}"
 
-echo "User Functions (from ${_functions_dir}):"
+local -a powershell_funcs
+local -a linux_funcs
+_collect_zsh_function_files "$_functions_dir"
+_collect_nim_function_files "$_nim_functions_dir"
+
+local _header="User Functions (from ${_functions_dir}"
+if [[ -n "$_nim_functions_dir" && -d "$_nim_functions_dir" ]]; then
+    _header+=", plus compiled functions from ${_nim_functions_dir}"
+fi
+_header+=")"
+echo "${_header}:"
 echo "========================================="
-_list_function_files "$_functions_dir" "$_filter"
+_render_function_tables "$_filter"
 
 
 # Cleanup ----------------------------------------------------------------------
 unfunction _get_functions_dir
 unfunction _extract_function_description
+unfunction _extract_nim_function_description
 unfunction _is_powershell_style
 unfunction _is_linux_style
 unfunction _is_symlink
-unfunction _list_function_files
+unfunction _collect_zsh_function_files
+unfunction _collect_nim_function_files
+unfunction _render_function_tables

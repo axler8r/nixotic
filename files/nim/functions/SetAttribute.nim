@@ -8,23 +8,25 @@ proc run*(
   errp: File = stderr
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-Attribute [opts] <attribute> <path>
+    outp.writeLine """Usage: Set-Attribute [opts] <attribute> <value> <path>
 
-Get an attribute on a file or directory.
+Set an attribute on a file or directory.
 
 Options:
     -h, --help    Show this help message
 
 Arguments:
-    <attribute>  The attribute to get.
+    <attribute>  The attribute to set.
+    <value>      The value to set the attribute to.
     <path>       The path to the file or directory.
 
 Examples:
-    Get-Attribute comment /path/to/file
-    Get-Attribute app.name /path/to/directory"""
+    Set-Attribute comment "This is a test" /path/to/file
+    Set-Attribute app.name "MyApp" /path/to/directory"""
     return 0
 
   var attribute = ""
+  var value = ""
   var path = ""
   var i = 0
   while i < args.len:
@@ -38,6 +40,8 @@ Examples:
       return 1
     elif attribute.len == 0:
       attribute = arg
+    elif value.len == 0:
+      value = arg
     elif path.len == 0:
       path = arg
     else:
@@ -46,13 +50,15 @@ Examples:
     inc i
 
   if not requireArg(attribute, "attribute", errp): return 1
+  if not requireArg(value, "value", errp): return 1
   if not requireArg(path, "path", errp): return 1
-  if not checkDeps(["getfattr"], errp): return 2
-  if not requirePathTarget(path, errp): return 1
+  if not checkDeps(["setfattr"], errp): return 2
+  if not requireWritablePathTarget(path, errp): return 1
   if not requireXattrName(attribute, errp): return 1
 
-  let process = startProcess(findExe("getfattr"),
-                              args = @["--name", "user." & attribute, path],
+  let process = startProcess(findExe("setfattr"),
+                              args = @["--name", "user." & attribute,
+                                       "--value", value, path],
                               options = {poParentStreams})
   result = process.waitForExit()
   process.close()
