@@ -128,11 +128,13 @@ Ported so far:
 | `__ax_require_path_target` | `validation.requirePathTarget*(path, errp): bool` |
 | `__ax_require_xattr_name` | `validation.requireXattrName*(attribute, errp): bool` |
 | `__ax_require_writable_path_target` | `validation.requireWritablePathTarget*(path, errp): bool` |
+| `__ax_info` | `output.info*(msg: string, errp: File = stderr)` |
+| `__ax_success` | `output.success*(msg: string, errp: File = stderr)` |
+| `__ax_require_file` | `validation.requireFile*(path, errp): bool` |
 
 **Not yet ported** (add when the first function that needs one migrates):
-`__ax_warn`, `__ax_info`, `__ax_success`, `__ax_verbose`, `__ax_confirm`,
-`__ax_table`, `__ax_require_file`, `__ax_require_dir`, `__ax_require_root`,
-`__ax_require_extension`.
+`__ax_warn`, `__ax_verbose`, `__ax_confirm`, `__ax_table`, `__ax_require_dir`,
+`__ax_require_root`, `__ax_require_extension`.
 
 Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style),
 scoped by module import rather than a shared prefix — `output.error(...)`,

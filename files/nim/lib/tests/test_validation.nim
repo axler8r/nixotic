@@ -35,6 +35,20 @@ suite "validation.requireXattrName":
   test "succeeds on a valid name":
     check requireXattrName("user.comment") == true
 
+suite "validation.requireFile":
+  test "fails when the file does not exist":
+    check requireFile("/definitely/not/a/real/path/xyz123") == false
+
+  test "fails when the path is a directory, not a file":
+    check requireFile(getTempDir()) == false
+
+  test "succeeds for an existing file":
+    let tmp = getTempDir() / "test_require_file_exists"
+    writeFile(tmp, "x")
+    let ok = requireFile(tmp)
+    removeFile(tmp)
+    check ok == true
+
 suite "validation.requireWritablePathTarget":
   test "fails when path does not exist":
     check requireWritablePathTarget("/definitely/not/a/real/path/xyz123") == false

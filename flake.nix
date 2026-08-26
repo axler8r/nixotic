@@ -47,6 +47,10 @@
         "Get-Attributes" = "GetAttributes.nim";
         "Set-Attribute" = "SetAttribute.nim";
         "Remove-Attribute" = "RemoveAttribute.nim";
+        "Get-Verb" = "GetVerb.nim";
+        "Show-Verb" = "ShowVerb.nim";
+        "Sync-FileIndex" = "SyncFileIndex.nim";
+        "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
@@ -146,7 +150,7 @@
         pname = "nixotic-nim-functions-tests";
         version = "0.1.0";
         src = ./files/nim;
-        nativeBuildInputs = [ pkgs.nim pkgs.attr ];
+        nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git ];
         buildPhase = ''
           runHook preBuild
           for f in lib/tests/*.nim functions/tests/*.nim; do
@@ -162,7 +166,7 @@
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = [ pkgs.nim pkgs.attr ];
+        packages = [ pkgs.nim pkgs.attr pkgs.git ];
       };
     };
 }

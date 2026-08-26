@@ -17,6 +17,12 @@ proc checkDeps*(cmds: openArray[string], errp: File = stderr): bool =
     return false
   true
 
+proc requireFile*(path: string, errp: File = stderr): bool =
+  if not fileExists(path):
+    error("File not found: " & path, errp)
+    return false
+  true
+
 proc requirePathTarget*(path: string, errp: File = stderr): bool =
   try:
     discard getFileInfo(path)

@@ -1,0 +1,138 @@
+import std/os
+import "../lib/output"
+import "../lib/validation"
+
+const verbTable = [
+  ("Add", "Common", "Adds a resource to a container, or attaches an item to another item"),
+  ("Clear", "Common", "Removes all the resources from a container but does not delete the container"),
+  ("Close", "Common", "Changes the state of a resource to make it inaccessible, unavailable, or unusable"),
+  ("Copy", "Common", "Copies a resource to another name or to another container"),
+  ("Enter", "Common", "Specifies an action that allows the user to move into a resource"),
+  ("Exit", "Common", "Sets the current environment or context to the most recently used context"),
+  ("Find", "Common", "Looks for an object in a container that is unknown, implied, optional, or specified"),
+  ("Format", "Common", "Arranges objects in a specified form or layout"),
+  ("Get", "Common", "Specifies an action that retrieves a resource"),
+  ("Hide", "Common", "Makes a resource undetectable"),
+  ("Join", "Common", "Combines resources into one resource"),
+  ("Lock", "Common", "Secures a resource"),
+  ("Move", "Common", "Moves a resource from one location to another"),
+  ("New", "Common", "Creates a resource"),
+  ("Open", "Common", "Changes the state of a resource to make it accessible, available, or usable"),
+  ("Optimize", "Common", "Increases the effectiveness of a resource"),
+  ("Push", "Common", "Adds an item to the top of a stack"),
+  ("Pop", "Common", "Removes an item from the top of a stack"),
+  ("Redo", "Common", "Resets a resource to the state that was undone"),
+  ("Remove", "Common", "Deletes a resource from a container"),
+  ("Rename", "Common", "Changes the name of a resource"),
+  ("Reset", "Common", "Sets a resource back to its original state"),
+  ("Resize", "Common", "Changes the size of a resource"),
+  ("Search", "Common", "Creates a reference to a resource in a container"),
+  ("Select", "Common", "Locates a resource in a container"),
+  ("Set", "Common", "Replaces data on an existing resource or creates a resource that contains some data"),
+  ("Show", "Common", "Makes a resource visible to the user"),
+  ("Skip", "Common", "Bypasses one or more resources or points in a sequence"),
+  ("Split", "Common", "Separates parts of a resource"),
+  ("Step", "Common", "Moves to the next point or resource in a sequence"),
+  ("Switch", "Common", "Specifies an action that alternates between two resources, such as to change between two locations, responsibilities, or states"),
+  ("Undo", "Common", "Sets a resource to its previous state"),
+  ("Unlock", "Common", "Releases a resource that was locked"),
+  ("Watch", "Common", "Continually inspects or monitors a resource for changes"),
+  ("Connect", "Communications", "Creates a link between a source and a destination"),
+  ("Disconnect", "Communications", "Breaks the link between a source and a destination"),
+  ("Read", "Communications", "Acquires information from a source"),
+  ("Receive", "Communications", "Accepts information sent from a source"),
+  ("Send", "Communications", "Delivers information to a destination"),
+  ("Write", "Communications", "Adds information to a target"),
+  ("Backup", "Data", "Stores data by replicating it"),
+  ("Checkpoint", "Data", "Creates a snapshot of the current state of the data or of its configuration"),
+  ("Compare", "Data", "Evaluates the data from one resource against the data from another resource"),
+  ("Compress", "Data", "Compacts the data of a resource"),
+  ("Convert", "Data", "Changes the data from one representation to another when the cmdlet supports bidirectional conversion or when the cmdlet supports conversion between multiple data types"),
+  ("ConvertFrom", "Data", "Converts one primary type of input (the cmdlet noun indicates the input) to one or more supported output types"),
+  ("ConvertTo", "Data", "Converts from one or more types of input to a primary output type (the cmdlet noun indicates the output type)"),
+  ("Dismount", "Data", "Detaches a named entity from a location"),
+  ("Edit", "Data", "Modifies existing data by adding or removing content"),
+  ("Expand", "Data", "Restores the data of a resource that has been compressed to its original state"),
+  ("Export", "Data", "Encapsulates the primary input into a persistent data store, such as a file, or into an interchange format"),
+  ("Group", "Data", "Arranges or associates one or more resources"),
+  ("Import", "Data", "Creates a resource from data that is stored in a persistent data store (such as a file) or in an interchange format"),
+  ("Initialize", "Data", "Prepares a resource for use, and sets it to a default state"),
+  ("Limit", "Data", "Applies constraints to a resource"),
+  ("Merge", "Data", "Creates a single resource from multiple resources"),
+  ("Mount", "Data", "Attaches a named entity to a location"),
+  ("Out", "Data", "Sends data out of the environment"),
+  ("Publish", "Data", "Makes a resource available to others"),
+  ("Restore", "Data", "Sets a resource to a predefined state, such as a state set by Checkpoint"),
+  ("Save", "Data", "Preserves data to avoid loss"),
+  ("Sync", "Data", "Assures that two or more resources are in the same state"),
+  ("Unpublish", "Data", "Makes a resource unavailable to others"),
+  ("Update", "Data", "Brings a resource up-to-date to maintain its state, accuracy, conformance, or compliance"),
+  ("Debug", "Diagnostic", "Examines a resource to diagnose operational problems"),
+  ("Measure", "Diagnostic", "Identifies resources that are consumed by a specified operation, or retrieves statistics about a resource"),
+  ("Ping", "Diagnostic", "Use the Test verb"),
+  ("Repair", "Diagnostic", "Restores a resource to a usable condition"),
+  ("Resolve", "Diagnostic", "Maps a shorthand representation of a resource to a more complete representation"),
+  ("Test", "Diagnostic", "Verifies the operation or consistency of a resource"),
+  ("Trace", "Diagnostic", "Tracks the activities of a resource"),
+  ("Approve", "Lifecycle", "Confirms or agrees to the status of a resource or process"),
+  ("Assert", "Lifecycle", "Affirms the state of a resource"),
+  ("Build", "Lifecycle", "Creates an artifact (usually a binary or document) out of some set of input files (usually source code or declarative documents)"),
+  ("Complete", "Lifecycle", "Concludes an operation"),
+  ("Confirm", "Lifecycle", "Acknowledges, verifies, or validates the state of a resource or process"),
+  ("Deny", "Lifecycle", "Refuses, objects, blocks, or opposes the state of a resource or process"),
+  ("Deploy", "Lifecycle", "Sends an application, website, or solution to a remote target[s] in such a way that a consumer of that solution can access it after deployment is complete"),
+  ("Disable", "Lifecycle", "Configures a resource to an unavailable or inactive state"),
+  ("Enable", "Lifecycle", "Configures a resource to an available or active state"),
+  ("Install", "Lifecycle", "Places a resource in a location, and optionally initializes it"),
+  ("Invoke", "Lifecycle", "Performs an action, such as running a command or a method"),
+  ("Register", "Lifecycle", "Creates an entry for a resource in a repository such as a database"),
+  ("Request", "Lifecycle", "Asks for a resource or asks for permissions"),
+  ("Restart", "Lifecycle", "Stops an operation and then starts it again"),
+  ("Resume", "Lifecycle", "Starts an operation that has been suspended"),
+  ("Start", "Lifecycle", "Initiates an operation"),
+  ("Stop", "Lifecycle", "Discontinues an activity"),
+  ("Submit", "Lifecycle", "Presents a resource for approval"),
+  ("Suspend", "Lifecycle", "Pauses an activity"),
+  ("Uninstall", "Lifecycle", "Removes a resource from an indicated location"),
+  ("Unregister", "Lifecycle", "Removes the entry for a resource from a repository"),
+  ("Wait", "Lifecycle", "Pauses an operation until a specified event occurs"),
+  ("Use", "Other", "Uses or includes a resource to do something"),
+  ("Block", "Security", "Restricts access to a resource"),
+  ("Grant", "Security", "Allows access to a resource"),
+  ("Protect", "Security", "Safeguards a resource from attack or loss"),
+  ("Revoke", "Security", "Specifies an action that does not allow access to a resource"),
+  ("Unblock", "Security", "Removes restrictions to a resource"),
+  ("Unprotect", "Security", "Removes safeguards from a resource that were added to prevent it from attack or loss"),
+]
+
+proc run*(
+  args: seq[string],
+  outp: File = stdout,
+  errp: File = stderr
+): int =
+  if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
+    outp.writeLine """Usage: Show-Verb <verb>
+
+Show the group and description of a PowerShell-style approved verb.
+
+Arguments:
+    verb    Verb to describe (e.g., Add, Get, Remove)
+
+Examples:
+    Show-Verb Add
+    Show-Verb Get"""
+    return 0
+
+  let verb = if args.len > 0: args[0] else: ""
+  if not requireArg(verb, "verb", errp): return 1
+
+  for entry in verbTable:
+    if entry[0] == verb:
+      outp.writeLine(entry[0] & " (" & entry[1] & "): " & entry[2])
+      return 0
+
+  error("Unknown verb: " & verb, errp)
+  1
+
+when isMainModule:
+  quit(run(commandLineParams()))
