@@ -58,6 +58,7 @@
         "Get-DefaultBrowser" = "GetDefaultBrowser.nim";
         "Update-DevEnvironment" = "UpdateDevEnvironment.nim";
         "Write-Executable" = "WriteExecutable.nim";
+        "Enter-NixShell" = "EnterNixShell.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
