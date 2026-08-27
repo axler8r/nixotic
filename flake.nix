@@ -53,6 +53,8 @@
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
         "Get-Help" = "GetHelp.nim";
         "Update-DockerImage" = "UpdateDockerImage.nim";
+        "Remove-DockerDanglingImages" = "RemoveDockerDanglingImages.nim";
+        "Remove-DockerDanglingVolumes" = "RemoveDockerDanglingVolumes.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
