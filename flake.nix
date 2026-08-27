@@ -51,6 +51,7 @@
         "Show-Verb" = "ShowVerb.nim";
         "Sync-FileIndex" = "SyncFileIndex.nim";
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
+        "Get-Help" = "GetHelp.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
