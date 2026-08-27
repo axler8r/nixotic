@@ -3,6 +3,7 @@ import std/[os, terminal]
 const
   ansiRed = "\e[31m"
   ansiGreen = "\e[32m"
+  ansiYellow = "\e[33m"
   ansiReset = "\e[0m"
 
 proc colorEnabled*(f: File): bool =
@@ -25,3 +26,9 @@ proc success*(msg: string, errp: File = stderr) =
     errp.writeLine(ansiGreen & "Success:" & ansiReset & " " & msg)
   else:
     errp.writeLine("Success: " & msg)
+
+proc warn*(msg: string, errp: File = stderr) =
+  if colorEnabled(errp):
+    errp.writeLine(ansiYellow & "Warning:" & ansiReset & " " & msg)
+  else:
+    errp.writeLine("Warning: " & msg)

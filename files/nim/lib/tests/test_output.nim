@@ -31,6 +31,16 @@ suite "output.success":
     removeFile(tmp)
     check content == "Success: done\n"
 
+suite "output.warn":
+  test "writes a plain-text prefixed message to a non-tty file":
+    let tmp = getTempDir() / "test_output_warn.txt"
+    let f = open(tmp, fmWrite)
+    warn("careful", f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    check content == "Warning: careful\n"
+
 suite "output.colorEnabled":
   test "is false for a plain file (never a tty)":
     let tmp = getTempDir() / "test_output_colorenabled.txt"

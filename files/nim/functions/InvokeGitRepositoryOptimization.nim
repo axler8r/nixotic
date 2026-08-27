@@ -1,0 +1,80 @@
+import std/[os, osproc]
+import "../lib/output"
+import "../lib/validation"
+
+const usage = "Usage: Invoke-GitRepositoryOptimization [--log <path>] <dir>... - Optimize git repositories"
+
+const gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
+  "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
+
+proc filterGitDirs*(dirs: seq[string]): seq[string] =
+  ## An entry survives if it both exists as a directory AND contains a
+  ## `.git` subdirectory — mirrors the zsh original's
+  ## `[[ -d "$_dir" && -d "$_dir/.git" ]]` filter.
+  result = @[]
+  for dir in dirs:
+    if dirExists(dir) and dirExists(dir / ".git"):
+      result.add(dir)
+
+proc run*(
+  args: seq[string],
+  outp: File = stdout,
+  errp: File = stderr
+): int =
+  # First help check: a literal `--help` short-circuits before ANYTHING
+  # else, including checkDeps — does NOT match `-h`. This is a faithful
+  # port of a real asymmetry in the zsh original, not a redesign.
+  if args.len > 0 and args[0] == "--help":
+    outp.writeLine(usage)
+    return 0
+
+  if not checkDeps(["git", "parallel"], errp): return 2
+
+  var logPath = ""
+  var dirs: seq[string] = @[]
+  var i = 0
+  while i < args.len:
+    let arg = args[i]
+    case arg
+    of "--log":
+      inc i
+      let next = if i < args.len: args[i] else: ""
+      if not requireArg(next, "log path", errp): return 1
+      logPath = next
+    of "-h", "--help":
+      outp.writeLine(usage)
+      return 0
+    else:
+      if arg.len > 0 and arg[0] == '-':
+        error("Unknown option: " & arg, errp)
+        return 1
+      else:
+        dirs.add(arg)
+    inc i
+
+  let firstDir = if dirs.len > 0: dirs[0] else: ""
+  if not requireArg(firstDir, "directory", errp):
+    outp.writeLine("Usage: Invoke-GitRepositoryOptimization [--log <path>] <dir>...")
+    return 1
+
+  let gitDirs = filterGitDirs(dirs)
+
+  if gitDirs.len == 0:
+    warn("No git repositories found in the provided directories.", errp)
+    return 0
+
+  var parallelArgs = @["--jobs", "4", "--progress"]
+  if logPath.len > 0:
+    parallelArgs.add("--joblog")
+    parallelArgs.add(logPath)
+  parallelArgs.add(gcCommand)
+  parallelArgs.add(":::")
+  for dir in gitDirs:
+    parallelArgs.add(dir)
+
+  var p = startProcess("parallel", args = parallelArgs, options = {poUsePath, poParentStreams})
+  result = p.waitForExit()
+  p.close()
+
+when isMainModule:
+  quit(run(commandLineParams()))
