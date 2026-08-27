@@ -60,6 +60,13 @@ Examples:
   if not checkDeps(["bat"], errp): return 2
 
   var cmdProc = startProcess(cmdName, args = cmdArgs, options = {poUsePath})
+  # NOTE: readAll() drains stdout to completion before touching stderr. If
+  # the queried command interleaves large amounts of both (well past the
+  # ~64KB pipe buffer) while we're still blocked reading stdout, this can
+  # deadlock — osproc has no per-stream inherit/capture mix to avoid it
+  # without a full concurrent-drain (e.g. a reader thread per stream), which
+  # is more machinery than this task needs. --help output is bounded in
+  # practice, so this is an accepted, not fully general-purpose, limitation.
   let cmdStdout = cmdProc.outputStream.readAll()
   let cmdStderr = cmdProc.errorStream.readAll()
   discard cmdProc.waitForExit()
@@ -74,9 +81,13 @@ Examples:
   # bat auto-detects colour from its OWN stdout being a tty; since we pipe
   # bat's stdout back through us (to relay it via outp) rather than handing
   # bat the real terminal fd, that auto-detection would see a pipe and
-  # disable colour. We already know the true destination (outp) is a tty at
-  # this point, so force colour explicitly.
-  var batProc = startProcess(findExe("bat"), args = @["--color=always", "--plain", "--language=help"], options = {poUsePath})
+  # disable colour regardless of NO_COLOR. We already know the true
+  # destination (outp) is a tty at this point (checked above), so defer to
+  # output.colorEnabled for the NO_COLOR-aware decision instead of forcing
+  # colour unconditionally — this keeps NO_COLOR honoured per the project's
+  # output contract (docs/nim-functions-conventions.md).
+  let colorArg = if colorEnabled(outp): "--color=always" else: "--color=never"
+  var batProc = startProcess(findExe("bat"), args = @[colorArg, "--plain", "--language=help"], options = {poUsePath})
   batProc.inputStream.write(cmdStdout)
   batProc.inputStream.close()
   outp.write(batProc.outputStream.readAll())
