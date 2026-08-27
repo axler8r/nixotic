@@ -161,7 +161,7 @@
         pname = "nixotic-nim-functions-tests";
         version = "0.1.0";
         src = ./files/nim;
-        nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg ];
+        nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix ];
         buildPhase = ''
           runHook preBuild
           for f in lib/tests/*.nim functions/tests/*.nim; do
@@ -177,7 +177,7 @@
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg ];
+        packages = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix ];
       };
     };
 }
