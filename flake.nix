@@ -59,6 +59,7 @@
         "Update-DevEnvironment" = "UpdateDevEnvironment.nim";
         "Write-Executable" = "WriteExecutable.nim";
         "Enter-NixShell" = "EnterNixShell.nim";
+        "ConvertTo-VideoHorizontal" = "ConvertToVideoHorizontal.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
