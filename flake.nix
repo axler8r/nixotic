@@ -56,6 +56,7 @@
         "Remove-DockerDanglingImages" = "RemoveDockerDanglingImages.nim";
         "Remove-DockerDanglingVolumes" = "RemoveDockerDanglingVolumes.nim";
         "Get-DefaultBrowser" = "GetDefaultBrowser.nim";
+        "Update-DevEnvironment" = "UpdateDevEnvironment.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
