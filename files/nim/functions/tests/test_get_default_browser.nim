@@ -35,25 +35,26 @@ suite "Get-DefaultBrowser run":
   test "a stray positional arg is silently ignored, not treated as an unknown option":
     # Unlike Get-Help, this function's flag loop never `break`s on the
     # first non-flag arg -- "foo" here must not trip the unknown-option
-    # path (exit 1). What happens after is either a successful query
-    # (exit 0) or a checkDeps failure (exit 2) depending on whether
-    # xdg-mime is on $PATH in this sandbox -- both are acceptable outcomes
-    # here; only exit 1 / an "Unknown option" message would indicate a bug.
+    # path (exit 1). `xdg-utils` is now a nativeBuildInput/devShell package
+    # (flake.nix), so `checkDeps(["xdg-mime"])` is guaranteed to succeed
+    # here, and `run()` never inspects the queried process's own exit code
+    # -- it only captures stdout -- so this deterministically reaches the
+    # final `return 0`, independent of whatever desktop-file config (or
+    # lack thereof) `xdg-mime` finds. Verified directly: `xdg-mime query
+    # default x-scheme-handler/http` exits 0 with empty output even under
+    # a fully clean HOME/XDG_DATA_DIRS with no mimeapps.list at all.
     let tmp = getTempDir() / "test_get_default_browser_stray.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["foo"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code != 1
+    check code == 0
     check not content.contains("Unknown option")
 
-  # The live xdg-mime query path (checkDeps success, actual handler values)
-  # is not asserted on here: it depends on a live desktop session /
-  # mimeapps.list configuration that this sandbox doesn't reliably provide,
-  # consistent with the conventions doc's accepted gaps for un-mockable
-  # subprocess passthrough. Whether checkDeps itself can be forced to fail
-  # (asserting exit 2) depends on whether xdg-mime is genuinely absent from
-  # $PATH in a given run -- it is present via /run/current-system/sw/bin in
-  # this interactive sandbox, so that specific assertion is intentionally
-  # left out rather than pinned to an environment-dependent outcome.
+  # The live xdg-mime query path's actual handler *values* are still not
+  # asserted on: those depend on a live desktop session / mimeapps.list
+  # configuration this sandbox doesn't reliably provide, consistent with
+  # the conventions doc's accepted gaps for un-mockable subprocess
+  # passthrough. Only the exit code and absence of an "Unknown option"
+  # message are pinned above.
