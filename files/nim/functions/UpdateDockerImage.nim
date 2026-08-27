@@ -1,0 +1,79 @@
+import std/[osproc, strutils]
+import "../lib/output"
+import "../lib/validation"
+
+proc filterImages*(lines: seq[string]): seq[string] =
+  ## Mirrors the zsh original's `sed '/^vsc/d; /^axler8r/d; /<none>/d;
+  ## /devcontainer/d'`: the first two rules are anchored-prefix matches, the
+  ## last two are unanchored substring matches. Blank lines are dropped too
+  ## (mirrors splitting `docker image list` output on newlines).
+  result = @[]
+  for line in lines:
+    if line.len == 0: continue
+    if line.startsWith("vsc"): continue
+    if line.startsWith("axler8r"): continue
+    if line.contains("<none>"): continue
+    if line.contains("devcontainer"): continue
+    result.add(line)
+
+proc run*(
+  args: seq[string],
+  outp: File = stdout,
+  errp: File = stderr
+): int =
+  if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
+    outp.writeLine """Usage: Update-DockerImage [image...]
+
+Pull Docker images to their latest versions. With no arguments, updates all
+installed images (excluding devcontainer, vsc, and local axler8r images).
+
+Options:
+    -h, --help    Show this help message
+
+Arguments:
+    image         One or more image names (repo:tag)
+
+Examples:
+    Update-DockerImage
+    Update-DockerImage nginx:latest postgres:16
+    Get-DockerImages --raw | awk -F'|' 'NR>1{print $1":"$2}' | xargs Update-DockerImage"""
+    return 0
+
+  if not checkDeps(["docker"], errp): return 2
+
+  var images: seq[string]
+
+  if args.len > 0:
+    images = args
+  else:
+    let listing = execProcess(
+      "docker",
+      args = @["image", "list", "--format={{.Repository}}:{{.Tag}}"],
+      options = {poUsePath}
+    )
+    images = filterImages(listing.splitLines())
+
+  if images.len == 0:
+    info("No images to update.", errp)
+    return 0
+
+  # Sequential, one `docker pull` per image, matching `xargs -L1`'s default
+  # non-parallel behaviour. Each pull inherits the real stdout/stderr so
+  # progress streams live, matching the zsh original's passthrough. The zsh
+  # original doesn't check exit codes (no `-x`, no `|| return` in the loop),
+  # so a failed pull doesn't abort the remaining ones; we track failures only
+  # to fold into our own exit code, which the original left unspecified.
+  var anyFailed = false
+  for image in images:
+    var p = startProcess("docker", args = @["pull", image], options = {poUsePath, poParentStreams})
+    let code = p.waitForExit()
+    p.close()
+    if code != 0:
+      anyFailed = true
+
+  outp.write("\n")
+
+  result = if anyFailed: 1 else: 0
+
+when isMainModule:
+  quit(run(commandLineParams()))

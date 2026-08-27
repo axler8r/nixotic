@@ -52,6 +52,7 @@
         "Sync-FileIndex" = "SyncFileIndex.nim";
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
         "Get-Help" = "GetHelp.nim";
+        "Update-DockerImage" = "UpdateDockerImage.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
