@@ -62,6 +62,7 @@
         "ConvertTo-VideoHorizontal" = "ConvertToVideoHorizontal.nim";
         "Invoke-GitRepositoryOptimization" = "InvokeGitRepositoryOptimization.nim";
         "Update-GitRepository" = "UpdateGitRepository.nim";
+        "Get-ZfsSnapshots" = "GetZfsSnapshots.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
