@@ -1,4 +1,4 @@
-import std/[osproc, strutils]
+import std/[os, osproc, strutils]
 import "../lib/output"
 import "../lib/validation"
 
