@@ -177,3 +177,27 @@ exit 0
       "-c:v", "h264_qsv", "-preset", "fast",
       "-c:a", "aac", "-b:a", "128k", output
     ]
+
+  test "contract: a failing software fallback still returns 0 (faithful zsh quirk)":
+    # The zsh original has no `return` inside the if/elif/else chain, so it
+    # always falls through to "Video flip complete" and reports success even
+    # when the software fallback itself failed. This pins that quirk against
+    # regression: with every ffmpeg invocation failing (exitCode 1), all
+    # four probes/fallback still run and `run` still returns 0.
+    let dir = getTempDir() / "contract_convert_video_all_fail"
+    removeDir(dir)
+    createDir(dir)
+    let input = dir / "in.mp4"
+    writeFile(input, "")
+    let output = dir / "out.mp4"
+    let rec = newRecordingRunner(exitCode = 1)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    let code = run(@[input, output], f, f, rec.runner)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 4
+    check content.contains("All hardware acceleration methods failed")
+    check content.contains("Video flip complete")

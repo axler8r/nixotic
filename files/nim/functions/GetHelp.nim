@@ -4,6 +4,13 @@ import "../lib/output"
 import "../lib/process"
 import "../lib/validation"
 
+proc batArgs*(colored: bool): seq[string] =
+  ## The argv passed to `bat` for the highlighted-help pipeline, factored
+  ## out so a test can assert it directly without a real tty (`isatty`
+  ## gates the call site below, which a test-harness File never satisfies).
+  @[(if colored: "--color=always" else: "--color=never"),
+    "--plain", "--language=help"]
+
 proc run*(
   args: seq[string],
   outp: File = stdout,
@@ -75,9 +82,8 @@ Examples:
   # output.colorEnabled for the NO_COLOR-aware decision instead of forcing
   # colour unconditionally — this keeps NO_COLOR honoured per the project's
   # output contract (docs/nim-functions-conventions.md).
-  let colorArg = if colorEnabled(outp): "--color=always" else: "--color=never"
   let highlighted = runner.capture(
-    "bat", @[colorArg, "--plain", "--language=help"], queried.output)
+    "bat", batArgs(colorEnabled(outp)), queried.output)
   outp.write(highlighted.output)
   errp.write(highlighted.error)
   result = highlighted.exitCode

@@ -1,9 +1,12 @@
-# These tests need `git` and `parallel` on $PATH at test-compile-time — see
-# flake.nix's nim-functions-tests nativeBuildInputs. The `parallel`
-# invocation (pull + submodule update) is characterized below against a fake
-# `parallel` on a fixture $PATH (see testing.writeFakeExe/withPath) and
-# pinned exactly by the contract test using a RecordingRunner -- real git
-# network operations are never run by either.
+# Every test below that reaches checkDeps stubs `git` and `parallel` on a
+# fixture $PATH via testing.writeFakeExe/withPath, so this file is
+# environment-independent and cannot silently skip regardless of whether
+# this sandbox has the real binaries — see flake.nix's nim-functions-tests
+# nativeBuildInputs for where they'd come from if a stub were ever missing.
+# The `parallel` invocation (pull + submodule update) is characterized below
+# against a fake `parallel` that records its argv, and pinned exactly by the
+# contract test using a RecordingRunner -- real git network operations are
+# never run by either.
 import std/[unittest, os, strutils]
 import "../UpdateGitRepository"
 import "../../lib/testing"
@@ -12,8 +15,6 @@ proc mkTmpDir(name: string): string =
   result = getTempDir() / name
   removeDir(result)
   createDir(result)
-
-let depsPresent = findExe("git").len > 0 and findExe("parallel").len > 0
 
 suite "Update-GitRepository run":
   test "-h/--help prints usage and returns 0, checked before checkDeps":
@@ -28,23 +29,31 @@ suite "Update-GitRepository run":
       check content.contains("Usage: Update-GitRepository")
 
   test "empty result (no args, no git dirs found) uses info, not warn, and returns 0":
-    if depsPresent:
-      let dir = mkTmpDir("ugr_no_git_dirs")
-      let oldDir = getCurrentDir()
-      setCurrentDir(dir)
-      let tmp = getTempDir() / "test_ugr_no_git_dirs_out.txt"
-      let f = open(tmp, fmWrite)
-      let code = run(@[], f, f)
-      f.close()
-      setCurrentDir(oldDir)
-      let content = readFile(tmp)
-      removeFile(tmp)
-      removeDir(dir)
-      check code == 0
-      check content.contains("Info: No git repositories found.")
-      check not content.contains("Warning:")
-    else:
-      echo "skipping: git/parallel not present in this sandbox"
+    # git/parallel are stubbed on a fixture $PATH via withPath so checkDeps
+    # passes regardless of this sandbox's real binaries; neither stub is
+    # ever run, since an empty scan returns before `parallel` is reached.
+    let depsDir = getTempDir() / "deps_ugr_no_git_dirs"
+    removeDir(depsDir)
+    createDir(depsDir)
+    writeFakeExe(depsDir, "git", "")
+    writeFakeExe(depsDir, "parallel", "")
+    let dir = mkTmpDir("ugr_no_git_dirs")
+    let oldDir = getCurrentDir()
+    setCurrentDir(dir)
+    let tmp = getTempDir() / "test_ugr_no_git_dirs_out.txt"
+    let f = open(tmp, fmWrite)
+    var code: int
+    withPath(depsDir):
+      code = run(@[], f, f)
+    f.close()
+    setCurrentDir(oldDir)
+    let content = readFile(tmp)
+    removeFile(tmp)
+    removeDir(dir)
+    removeDir(depsDir)
+    check code == 0
+    check content.contains("Info: No git repositories found.")
+    check not content.contains("Warning:")
 
   test "characterization: parallel receives the pull+submodule-update command per repo":
     let dir = getTempDir() / "char_update_git_repository"

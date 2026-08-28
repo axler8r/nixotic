@@ -166,9 +166,12 @@ exit 0
     check zombieChildren() == newSeq[string]()
 
   test "runInherited with a nil environment gives the child this process's own":
-    # Enter-NixShell relies on this when it migrates: it passes no env and
-    # expects the child to see the parent's. Distinct from the custom-env
-    # test above, which only proves a nil-env child can execute at all.
+    # This is what every other runInherited call site relies on: all of
+    # them pass no `env` argument (Enter-NixShell is the one exception --
+    # EnterNixShell.nim:70 builds and passes an explicit table), so each
+    # expects its child to see the parent's real environment via this nil
+    # default. Distinct from the custom-env test above, which only proves a
+    # nil-env child can execute at all.
     let dir = getTempDir() / "test_process_inheritenv"
     removeDir(dir)
     createDir(dir)

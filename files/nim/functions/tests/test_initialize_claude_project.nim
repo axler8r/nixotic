@@ -1,5 +1,7 @@
-# These tests need `git` on $PATH at test-compile-time to set up real
-# repositories/remotes — see flake.nix's nim-functions-tests nativeBuildInputs.
+# These tests need `git` on $PATH at runtime: several fixtures shell out to
+# a real `git init`/`git remote add` (via runGit below) to build the
+# repositories/remotes that run() then inspects — see flake.nix's
+# nim-functions-tests nativeBuildInputs.
 import std/[unittest, os, osproc, strutils]
 import "../InitializeClaudeProject"
 import "../../lib/testing"

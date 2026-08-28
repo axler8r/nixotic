@@ -133,3 +133,15 @@ exit 0
     check rec.calls[0].kind == "inherited"
     check rec.calls[0].cmd == "git"
     check rec.calls[0].args == @["--help"]
+
+suite "batArgs":
+  # The bat branch itself (run()'s highlighted-help pipeline) is only
+  # reachable when isatty(outp) is true, which no test-harness File
+  # satisfies -- see the "non-TTY passthrough" test above. batArgs is
+  # extracted so the argv it builds for that unreachable-from-tests branch
+  # can still be pinned directly, for both colour states.
+  test "colored builds --color=always":
+    check batArgs(true) == @["--color=always", "--plain", "--language=help"]
+
+  test "not colored builds --color=never":
+    check batArgs(false) == @["--color=never", "--plain", "--language=help"]

@@ -218,6 +218,16 @@ not a fault — a caller that must know the payload arrived in full has to
 arrange its own acknowledgement, because `capture` itself never raises for
 this.
 
+One divergence from `osproc`'s `execProcess` is invisible to the argv-pinning
+tests and worth knowing if `capture`/`runQuiet` grow a new consumer:
+`execProcess` used to append a trailing newline to output that lacked one,
+while `capture`'s `output`/`error` are the child's bytes verbatim. Today
+this is correctly absorbed at all four consumers — `UpdateDockerImage.nim`'s
+`filterImages` and `RemoveDockerDanglingImages.nim`/
+`RemoveDockerDanglingVolumes.nim`'s `parseDockerList` all drop empty lines,
+and `GetDefaultBrowser.nim` strips its result — but a future consumer must
+not assume a trailing newline is there.
+
 ## Error handling and the exit-code contract
 
 | Exit code | Meaning |
@@ -302,7 +312,7 @@ sense in which a dependency is present or absent "at compile time." Point
 code `2` with a `Missing commands: ...` message on stderr —
 `functions/tests/test_get_zfs_snapshots.nim` and
 `test_convert_to_video_horizontal.nim` cover this branch for real. It is
-not untestable; five test files that once carried a comment claiming
+not untestable; six test files that once carried a comment claiming
 otherwise have since been rewritten to prove it.
 
 Some test cases still need a genuinely-present tool for a value beyond

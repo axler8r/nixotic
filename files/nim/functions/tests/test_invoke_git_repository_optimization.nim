@@ -1,9 +1,12 @@
-# These tests need `git` and `parallel` on $PATH at test-compile-time — see
-# flake.nix's nim-functions-tests nativeBuildInputs. The `parallel`
-# invocation (the gc/fetch/fsck chain) is characterized below against a fake
-# `parallel` on a fixture $PATH (see testing.writeFakeExe/withPath) and
-# pinned exactly by the contract test using a RecordingRunner -- real git
-# maintenance commands are never run by either.
+# Every test below that reaches checkDeps stubs `git` and `parallel` on a
+# fixture $PATH via testing.writeFakeExe/withPath, so this file is
+# environment-independent and cannot silently skip regardless of whether
+# this sandbox has the real binaries — see flake.nix's nim-functions-tests
+# nativeBuildInputs for where they'd come from if a stub were ever missing.
+# The `parallel` invocation (the gc/fetch/fsck chain) is characterized below
+# against a fake `parallel` that records its argv, and pinned exactly by the
+# contract test using a RecordingRunner -- real git maintenance commands are
+# never run by either.
 import std/[unittest, os, strutils]
 import "../InvokeGitRepositoryOptimization"
 import "../../lib/testing"
@@ -12,8 +15,6 @@ proc mkTmpDir(name: string): string =
   result = getTempDir() / name
   removeDir(result)
   createDir(result)
-
-let depsPresent = findExe("git").len > 0 and findExe("parallel").len > 0
 
 suite "Invoke-GitRepositoryOptimization run":
   test "--help short-circuits before checkDeps, returns 0":
@@ -27,53 +28,86 @@ suite "Invoke-GitRepositoryOptimization run":
     check content.contains("Usage: Invoke-GitRepositoryOptimization")
 
   test "-h does NOT short-circuit before checkDeps (asymmetry vs --help)":
-    if depsPresent:
-      # git/parallel are present in this sandbox, so checkDeps succeeds and
-      # -h reaches the option loop's own -h|--help handling, which also
-      # returns 0 — proving the two help paths are separate, not unified.
-      let tmp = getTempDir() / "test_igro_help_dash_h.txt"
-      let f = open(tmp, fmWrite)
-      let code = run(@["-h"], f, f)
-      f.close()
-      let content = readFile(tmp)
-      removeFile(tmp)
-      check code == 0
-      check content.contains("Usage: Invoke-GitRepositoryOptimization")
-    else:
-      echo "skipping -h asymmetry assertion: git/parallel not present in this sandbox"
+    # git/parallel are stubbed on a fixture $PATH via withPath, so checkDeps
+    # succeeds regardless of this sandbox's real binaries and -h reaches
+    # the option loop's own -h|--help handling, which also returns 0 --
+    # proving the two help paths are separate, not unified. Neither stub is
+    # ever actually run: -h returns before run() reaches `parallel`.
+    let dir = getTempDir() / "deps_igro_dash_h"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let tmp = getTempDir() / "test_igro_help_dash_h.txt"
+    let f = open(tmp, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["-h"], f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    removeDir(dir)
+    check code == 0
+    check content.contains("Usage: Invoke-GitRepositoryOptimization")
 
   test "missing directory arg fails with exit 1":
-    if depsPresent:
-      check run(@[]) == 1
-    else:
-      echo "skipping: git/parallel not present in this sandbox"
+    # git/parallel are stubbed on a fixture $PATH so checkDeps passes and
+    # the missing-arg check below it is what's under test; neither stub is
+    # ever run.
+    let dir = getTempDir() / "deps_igro_missing_dir"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    var code: int
+    withPath(dir):
+      code = run(@[])
+    removeDir(dir)
+    check code == 1
 
   test "unknown option fails with exit 1":
-    if depsPresent:
-      check run(@["--bogus"]) == 1
-    else:
-      echo "skipping: git/parallel not present in this sandbox"
+    let dir = getTempDir() / "deps_igro_unknown_opt"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    var code: int
+    withPath(dir):
+      code = run(@["--bogus"])
+    removeDir(dir)
+    check code == 1
 
   test "--log with no path following it fails with exit 1":
-    if depsPresent:
-      check run(@["--log"]) == 1
-    else:
-      echo "skipping: git/parallel not present in this sandbox"
+    let dir = getTempDir() / "deps_igro_log_no_path"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    var code: int
+    withPath(dir):
+      code = run(@["--log"])
+    removeDir(dir)
+    check code == 1
 
   test "empty git-dir filter result warns and returns 0 without invoking parallel":
-    if depsPresent:
-      let dir = mkTmpDir("igro_no_git_dirs")
-      let tmp = getTempDir() / "test_igro_no_git_dirs_out.txt"
-      let f = open(tmp, fmWrite)
-      let code = run(@[dir], f, f)
-      f.close()
-      let content = readFile(tmp)
-      removeFile(tmp)
-      removeDir(dir)
-      check code == 0
-      check content.contains("No git repositories found in the provided directories.")
-    else:
-      echo "skipping: git/parallel not present in this sandbox"
+    let dir = getTempDir() / "deps_igro_no_git_dirs"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let repoArg = mkTmpDir("igro_no_git_dirs")
+    let tmp = getTempDir() / "test_igro_no_git_dirs_out.txt"
+    let f = open(tmp, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[repoArg], f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    removeDir(repoArg)
+    removeDir(dir)
+    check code == 0
+    check content.contains("No git repositories found in the provided directories.")
 
   test "characterization: parallel receives jobs/progress flags and the gc command":
     let dir = getTempDir() / "char_invoke_git_repository_optimization"
