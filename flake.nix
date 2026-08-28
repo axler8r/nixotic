@@ -158,22 +158,58 @@
         dontInstall = true;
       };
 
-      checks.${system}.nim-functions-tests = pkgs.stdenv.mkDerivation {
-        pname = "nixotic-nim-functions-tests";
-        version = "0.1.0";
-        src = ./files/nim;
-        nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv ];
-        buildPhase = ''
-          runHook preBuild
-          for f in lib/tests/*.nim functions/tests/*.nim; do
-            nim c -r --nimcache:.nimcache -o:"$TMPDIR/$(basename "$f" .nim)" "$f"
-          done
-          runHook postBuild
-        '';
-        installPhase = ''
-          mkdir -p $out
-          touch $out/tests-passed
-        '';
+      checks.${system} = {
+        nim-functions-tests = pkgs.stdenv.mkDerivation {
+          pname = "nixotic-nim-functions-tests";
+          version = "0.1.0";
+          src = ./files/nim;
+          nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv ];
+          buildPhase = ''
+            runHook preBuild
+            for f in lib/tests/*.nim functions/tests/*.nim; do
+              nim c -r --nimcache:.nimcache -o:"$TMPDIR/$(basename "$f" .nim)" "$f"
+            done
+            runHook postBuild
+          '';
+          installPhase = ''
+            mkdir -p $out
+            touch $out/tests-passed
+          '';
+        };
+
+        nim-functions-smoke =
+          pkgs.runCommand "nixotic-nim-functions-smoke"
+            { nativeBuildInputs = [ self.packages.${system}.nim-functions ]; }
+            ''
+              expected="${pkgs.lib.concatStringsSep " " (builtins.attrNames nimFunctionBinaries)}"
+              actual="$(cd ${self.packages.${system}.nim-functions}/bin && echo *)"
+
+              for name in $expected; do
+                case " $actual " in
+                  *" $name "*) ;;
+                  *) echo "error: $name declared in nimFunctionBinaries but not built" >&2
+                     exit 1 ;;
+                esac
+              done
+
+              for name in $actual; do
+                case " $expected " in
+                  *" $name "*) ;;
+                  *) echo "error: $name built but not declared in nimFunctionBinaries" >&2
+                     exit 1 ;;
+                esac
+              done
+
+              for name in $expected; do
+                bin="${self.packages.${system}.nim-functions}/bin/$name"
+                if ! "$bin" --help > /dev/null 2>&1; then
+                  echo "error: $name --help exited non-zero" >&2
+                  exit 1
+                fi
+              done
+
+              touch $out
+            '';
       };
 
       devShells.${system}.default = pkgs.mkShell {
