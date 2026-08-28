@@ -1,6 +1,7 @@
-import std/[os, osproc, streams, terminal]
+import std/[os, terminal]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc run*(
@@ -49,35 +50,21 @@ Examples:
   let cmdArgs = (if rest.len > 1: rest[1 .. ^1] else: newSeq[string]()) & @["--help"]
 
   if rawFlag or not isatty(outp):
-    # This branch connects the queried command's own stdout/stderr directly
-    # to the real terminal (poParentStreams) rather than to outp/errp, so it
-    # can't be redirected through the test hook — this matches the zsh
-    # original, which also doesn't respect any captured stream here.
-    var p = startProcess(cmdName, args = cmdArgs, options = {poUsePath, poParentStreams})
-    result = p.waitForExit()
-    p.close()
-    return result
+    # Connects the queried command's own stdout/stderr directly to the real
+    # terminal rather than to outp/errp, so this branch can't be redirected
+    # through the test hook — this matches the zsh original, which also
+    # doesn't respect any captured stream here.
+    return defaultRunner.runInherited(cmdName, cmdArgs)
 
   if not checkDeps(["bat"], errp): return 2
 
-  var cmdProc = startProcess(cmdName, args = cmdArgs, options = {poUsePath})
-  # NOTE: readAll() drains stdout to completion before touching stderr. If
-  # the queried command interleaves large amounts of both (well past the
-  # ~64KB pipe buffer) while we're still blocked reading stdout, this can
-  # deadlock — osproc has no per-stream inherit/capture mix to avoid it
-  # without a full concurrent-drain (e.g. a reader thread per stream), which
-  # is more machinery than this task needs. --help output is bounded in
-  # practice, so this is an accepted, not fully general-purpose, limitation.
-  let cmdStdout = cmdProc.outputStream.readAll()
-  let cmdStderr = cmdProc.errorStream.readAll()
-  discard cmdProc.waitForExit()
-  cmdProc.close()
+  let queried = defaultRunner.capture(cmdName, cmdArgs)
+
   # The zsh pipeline only pipes the queried command's stdout into bat; its
-  # stderr flows straight to the terminal. osproc has no per-stream
-  # inherit/capture mix, so we capture stderr too and relay it through errp
-  # (real stderr by default) to reproduce that behaviour.
-  if cmdStderr.len > 0:
-    errp.write(cmdStderr)
+  # stderr flows straight to the terminal. We capture stderr too and relay it
+  # through errp (real stderr by default) to reproduce that behaviour.
+  if queried.error.len > 0:
+    errp.write(queried.error)
 
   # bat auto-detects colour from its OWN stdout being a tty; since we pipe
   # bat's stdout back through us (to relay it via outp) rather than handing
@@ -88,13 +75,11 @@ Examples:
   # colour unconditionally — this keeps NO_COLOR honoured per the project's
   # output contract (docs/nim-functions-conventions.md).
   let colorArg = if colorEnabled(outp): "--color=always" else: "--color=never"
-  var batProc = startProcess(findExe("bat"), args = @[colorArg, "--plain", "--language=help"], options = {poUsePath})
-  batProc.inputStream.write(cmdStdout)
-  batProc.inputStream.close()
-  outp.write(batProc.outputStream.readAll())
-  errp.write(batProc.errorStream.readAll())
-  result = batProc.waitForExit()
-  batProc.close()
+  let highlighted = defaultRunner.capture(
+    "bat", @[colorArg, "--plain", "--language=help"], queried.output)
+  outp.write(highlighted.output)
+  errp.write(highlighted.error)
+  result = highlighted.exitCode
 
 when isMainModule:
   cliMain(run(commandLineParams()))

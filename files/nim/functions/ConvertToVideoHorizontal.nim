@@ -1,25 +1,13 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc tryFfmpeg(ffmpegArgs: seq[string]): bool =
-  ## Runs one hardware-acceleration probe attempt: stdout/stderr are
-  ## captured (not inherited, i.e. not poParentStreams) and never read --
-  ## only the exit code is inspected, matching the zsh original's
-  ## `2>/dev/null` (stderr suppressed) while leaving stdout un-suppressed in
-  ## spirit (ffmpeg writes essentially nothing to stdout in practice; its
-  ## progress/status output goes to stderr). osproc has no per-stream
-  ## inherit/discard mix (see the similar note in GetHelp.nim), so this is
-  ## the closest faithful approximation: neither stream reaches the
-  ## terminal for these three probe attempts. Not draining the pipes is a
-  ## theoretical deadlock risk if a probe wrote enough output to fill the
-  ## OS pipe buffer before failing, but these three attempts fail fast on
-  ## missing hardware/codecs in practice -- an accepted limitation, same
-  ## shape as other un-mockable subprocess passthrough gaps in this codebase.
-  var p = startProcess("ffmpeg", args = ffmpegArgs, options = {poUsePath})
-  result = p.waitForExit() == 0
-  p.close()
+  ## One hardware-acceleration probe. Output is drained and discarded --
+  ## only the exit code matters, matching the zsh original's 2>/dev/null.
+  defaultRunner.runQuiet("ffmpeg", ffmpegArgs) == 0
 
 proc run*(
   args: seq[string],
@@ -114,15 +102,13 @@ Examples:
     outp.writeLine("VA-API hardware acceleration successful!")
   else:
     outp.writeLine("All hardware acceleration methods failed, falling back to software processing...")
-    # Software fallback: real stdout/stderr reach the terminal live
-    # (poParentStreams), matching the original's unsuppressed passthrough.
-    var p = startProcess("ffmpeg", args = @[
+    # Software fallback: real stdout/stderr reach the terminal live,
+    # matching the original's unsuppressed passthrough.
+    discard defaultRunner.runInherited("ffmpeg", @[
       "-y", "-i", input, "-vf", "hflip",
       "-c:v", "libx264", "-preset", "fast", "-crf", "23",
       "-c:a", "aac", "-b:a", "128k", output
-    ], options = {poUsePath, poParentStreams})
-    discard p.waitForExit()
-    p.close()
+    ])
 
   # Unconditional, even if the software fallback above failed: the zsh
   # original has no `return` inside the if/elif/else chain, so it always
