@@ -1,4 +1,5 @@
 import std/[os, osproc]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -48,4 +49,4 @@ Examples:
   return reloadCode
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

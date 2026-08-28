@@ -1,4 +1,5 @@
 import std/[os, osproc]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -77,4 +78,4 @@ proc run*(
   p.close()
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

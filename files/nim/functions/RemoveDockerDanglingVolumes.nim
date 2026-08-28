@@ -1,4 +1,5 @@
 import std/[os, osproc, strutils]
+import "../lib/cli"
 import "../lib/validation"
 
 proc parseDockerList*(output: string): seq[string] =
@@ -52,4 +53,4 @@ Examples:
   return 0
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

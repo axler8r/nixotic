@@ -1,4 +1,5 @@
 import std/[os, terminal, algorithm, strutils]
+import "../lib/cli"
 import "../lib/output"
 
 const groupedVerbs = """Common
@@ -67,4 +68,4 @@ Examples:
   0
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

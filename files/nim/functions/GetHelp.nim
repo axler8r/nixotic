@@ -1,4 +1,5 @@
 import std/[os, osproc, streams, terminal]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -96,4 +97,4 @@ Examples:
   batProc.close()
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

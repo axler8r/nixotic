@@ -1,4 +1,5 @@
 import std/[os, osproc, strutils]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -76,4 +77,4 @@ Examples:
   result = if anyFailed: 1 else: 0
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

@@ -1,4 +1,5 @@
 import std/[os, osproc, strtabs, strutils]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -74,4 +75,4 @@ Examples:
   p.close()
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))

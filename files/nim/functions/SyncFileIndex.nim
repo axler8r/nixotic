@@ -1,4 +1,5 @@
 import std/[os, tables, sets, algorithm, strutils]
+import "../lib/cli"
 import "../lib/output"
 import "../lib/validation"
 
@@ -154,4 +155,4 @@ Examples:
   0
 
 when isMainModule:
-  quit(run(commandLineParams()))
+  cliMain(run(commandLineParams()))
