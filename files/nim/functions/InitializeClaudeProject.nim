@@ -60,18 +60,23 @@ Examples:
     error("Run 'nh os switch' to apply the latest nixotic configuration", errp)
     return 1
 
-  createDir(".claude")
-  copyFile(templatePath, ".claude/axler8r.md")
+  try:
+    createDir(".claude")
+    copyFile(templatePath, ".claude/axler8r.md")
 
-  const claudeMdPath = ".claude/CLAUDE.md"
-  if not fileExists(claudeMdPath):
-    writeFile(claudeMdPath, "@axler8r.md\n")
-  else:
-    let content = readFile(claudeMdPath)
-    if not content.contains("@axler8r.md"):
-      let f = open(claudeMdPath, fmAppend)
-      f.write("\n@axler8r.md\n")
-      f.close()
+    const claudeMdPath = ".claude/CLAUDE.md"
+    if not fileExists(claudeMdPath):
+      writeFile(claudeMdPath, "@axler8r.md\n")
+    else:
+      let content = readFile(claudeMdPath)
+      if not content.contains("@axler8r.md"):
+        let f = open(claudeMdPath, fmAppend)
+        f.write("\n@axler8r.md\n")
+        f.close()
+  except IOError, OSError:
+    error("Cannot write .claude/ in the current directory: " &
+          getCurrentExceptionMsg(), errp)
+    return 1
 
   success("Claude workflow initialised", errp)
   outp.writeLine ""

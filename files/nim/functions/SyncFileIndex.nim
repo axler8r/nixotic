@@ -145,7 +145,11 @@ Examples:
     outLines.add("[ ] " & fname)
   outLines.sort()
 
-  writeFile(trackFile, outLines.join("\n") & "\n")
+  try:
+    writeFile(trackFile, outLines.join("\n") & "\n")
+  except IOError, OSError:
+    error("Cannot write '" & trackFile & "': " & getCurrentExceptionMsg(), errp)
+    return 1
   success("'" & trackBase & "' reconciled.", errp)
   0
 

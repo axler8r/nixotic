@@ -90,3 +90,25 @@ suite "Sync-FileIndex run":
     removeDir(dir)
     check code == 0
     check "[ ] b.txt" in content
+
+  test "unwritable index file is a reported error, not a traceback":
+    let dir = getTempDir() / "test_sync_file_index_readonly"
+    removeDir(dir)
+    createDir(dir)
+    let track = dir / "_TRACK"
+    writeFile(track, "[ ] gone.txt\n")
+    writeFile(dir / "present.txt", "")
+    setFilePermissions(track, {fpUserRead})
+    setFilePermissions(dir, {fpUserRead, fpUserExec})
+    let outPath = getTempDir() / "test_sync_file_index_readonly_out.txt"
+    let f = open(outPath, fmWrite)
+    let code = run(@["-f", track], f, f)
+    f.close()
+    let content = readFile(outPath)
+    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+    setFilePermissions(track, {fpUserRead, fpUserWrite})
+    removeDir(dir)
+    removeFile(outPath)
+    check code == 1
+    check content.contains("Error: ")
+    check not content.contains("Traceback")

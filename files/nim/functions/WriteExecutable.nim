@@ -1,5 +1,6 @@
 import std/[os, osproc]
 import "../lib/validation"
+import "../lib/output"
 
 proc run*(
   args: seq[string],
@@ -39,7 +40,12 @@ Examples:
   while content.len > 0 and content[^1] == '\n':
     content.setLen(content.len - 1)
 
-  let outFile = open(filename, fmWrite)
+  var outFile: File
+  try:
+    outFile = open(filename, fmWrite)
+  except IOError, OSError:
+    error("Cannot write to '" & filename & "': " & getCurrentExceptionMsg(), errp)
+    return 1
   outFile.writeLine("#! /usr/bin/env zsh")
   outFile.writeLine("")
   outFile.writeLine(content)

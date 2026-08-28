@@ -117,3 +117,27 @@ suite "Write-Executable run":
     removeFile(target)
     removeFile(outTmp)
     check message == "Created executable script: " & target & "\n"
+
+  test "unwritable target path is a reported error, not a traceback":
+    let dir = getTempDir() / "test_write_executable_readonly"
+    removeDir(dir)
+    createDir(dir)
+    setFilePermissions(dir, {fpUserRead, fpUserExec})
+    let target = dir / "script"
+    let outPath = getTempDir() / "test_write_executable_readonly_out.txt"
+    let inPath = getTempDir() / "test_write_executable_readonly_in.txt"
+    writeFile(inPath, "echo hello\n")
+    let f = open(outPath, fmWrite)
+    let inf = open(inPath, fmRead)
+    let code = run(@[target], f, f, inf)
+    f.close()
+    inf.close()
+    let content = readFile(outPath)
+    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+    removeDir(dir)
+    removeFile(outPath)
+    removeFile(inPath)
+    check code == 1
+    check content.contains("Error: ")
+    check content.contains(target)
+    check not content.contains("Traceback")

@@ -114,3 +114,32 @@ suite "Initialize-ClaudeProject run":
     removeDir(home)
     check code == 0
     check claudeMd.count("@axler8r.md") == 1
+
+  test "unwritable working directory is a reported error, not a traceback":
+    let dir = mkTmpDir("icp_readonly")
+    let home = mkTmpDir("icp_readonly_home")
+    createDir(home / ".claude/templates/project")
+    writeFile(home / ".claude/templates/project/axler8r.md", "template body\n")
+    runGit(dir, "init", "-q")
+    runGit(dir, "remote", "add", "origin", "https://example.invalid/repo.git")
+    let saved = getCurrentDir()
+    setCurrentDir(dir)
+    setFilePermissions(dir, {fpUserRead, fpUserExec})
+    let outPath = getTempDir() / "test_initialize_claude_project_readonly_out.txt"
+    let f = open(outPath, fmWrite)
+    var code = 0
+    withTempHome(home, proc() =
+      code = run(@[], f, f)
+    )
+    f.close()
+    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+    setCurrentDir(saved)
+    let content = readFile(outPath)
+    removeDir(dir)
+    removeDir(home)
+    removeFile(outPath)
+    # Reaching the createDir call requires the home template to exist; if it
+    # does not, the function exits earlier with its own error. Both are
+    # acceptable outcomes here -- what must NOT happen is a traceback.
+    check code == 1
+    check not content.contains("Traceback")
