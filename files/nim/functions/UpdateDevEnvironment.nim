@@ -7,7 +7,8 @@ import "../lib/validation"
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Update-DevEnvironment
@@ -30,11 +31,11 @@ Examples:
     error("No flake.nix found in current directory", errp)
     return 1
 
-  let updateCode = defaultRunner.runInherited("nix", @["flake", "update"])
+  let updateCode = runner.runInherited("nix", @["flake", "update"])
   if updateCode != 0:
     return 1
 
-  return defaultRunner.runInherited("direnv", @["reload"])
+  return runner.runInherited("direnv", @["reload"])
 
 when isMainModule:
   cliMain(run(commandLineParams()))

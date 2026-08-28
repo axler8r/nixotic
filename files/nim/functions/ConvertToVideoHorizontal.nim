@@ -4,15 +4,16 @@ import "../lib/output"
 import "../lib/process"
 import "../lib/validation"
 
-proc tryFfmpeg(ffmpegArgs: seq[string]): bool =
+proc tryFfmpeg(runner: Runner, ffmpegArgs: seq[string]): bool =
   ## One hardware-acceleration probe. Output is drained and discarded --
   ## only the exit code matters, matching the zsh original's 2>/dev/null.
-  defaultRunner.runQuiet("ffmpeg", ffmpegArgs) == 0
+  runner.runQuiet("ffmpeg", ffmpegArgs) == 0
 
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ConvertTo-VideoHorizontal <input> <output>
@@ -77,7 +78,7 @@ Examples:
   outp.writeLine("Output file: " & output)
   outp.writeLine("Attempting hardware-accelerated flip...")
 
-  if tryFfmpeg(@[
+  if tryFfmpeg(runner, @[
     "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv",
     "-c:v", "h264_qsv", "-i", input,
     "-vf", "vpp_qsv=transpose=hflip",
@@ -85,13 +86,13 @@ Examples:
     "-c:a", "aac", "-b:a", "128k", output
   ]):
     outp.writeLine("Intel QSV/VPL hardware acceleration successful!")
-  elif tryFfmpeg(@[
+  elif tryFfmpeg(runner, @[
     "-y", "-i", input, "-vf", "hflip",
     "-c:v", "h264_nvenc", "-preset", "fast",
     "-c:a", "aac", "-b:a", "128k", output
   ]):
     outp.writeLine("NVIDIA NVENC hardware acceleration successful!")
-  elif tryFfmpeg(@[
+  elif tryFfmpeg(runner, @[
     "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi",
     "-hwaccel_device", "/dev/dri/renderD128",
     "-i", input,
@@ -104,7 +105,7 @@ Examples:
     outp.writeLine("All hardware acceleration methods failed, falling back to software processing...")
     # Software fallback: real stdout/stderr reach the terminal live,
     # matching the original's unsuppressed passthrough.
-    discard defaultRunner.runInherited("ffmpeg", @[
+    discard runner.runInherited("ffmpeg", @[
       "-y", "-i", input, "-vf", "hflip",
       "-c:v", "libx264", "-preset", "fast", "-crf", "23",
       "-c:a", "aac", "-b:a", "128k", output

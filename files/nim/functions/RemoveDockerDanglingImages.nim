@@ -16,7 +16,8 @@ proc parseDockerList*(output: string): seq[string] =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Remove-DockerDanglingImages
@@ -32,7 +33,7 @@ Examples:
 
   if not checkDeps(["docker"], errp): return 2
 
-  let listing = defaultRunner.capture(
+  let listing = runner.capture(
     "docker",
     @["image", "list", "--filter=dangling=true", "--format={{.ID}}"]
   ).output
@@ -44,7 +45,7 @@ Examples:
 
   for id in ids:
     outp.writeLine("Removing image: " & id)
-    let code = defaultRunner.runInherited("docker", @["rmi", id])
+    let code = runner.runInherited("docker", @["rmi", id])
     if code != 0:
       return 1
 

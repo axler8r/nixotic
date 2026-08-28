@@ -2,11 +2,6 @@ import std/[unittest, os, strutils]
 import "../ConvertToVideoHorizontal"
 import "../../lib/testing"
 
-# `ffmpeg` is genuinely present on this sandbox's $PATH, so the
-# checkDeps-failure path (return 2) isn't constructible here without
-# artificially hiding a real binary -- consistent with how
-# test_update_dev_environment.nim treats the same situation for
-# direnv/nix. That branch is left untested per the task brief's guidance.
 # The hardware-acceleration fallback chain is characterized below with a
 # fake ffmpeg on a fixture $PATH (see testing.writeFakeExe/withPath): the
 # probes and the software fallback all invoke the same "ffmpeg" name, so
@@ -78,6 +73,23 @@ suite "ConvertTo-VideoHorizontal run":
     check code == 1
     check content.contains("Input file '/nonexistent/path/xyz.mp4' does not exist")
 
+  test "missing ffmpeg is exit 2 with a Missing commands error":
+    # checkDeps(["ffmpeg"]) runs before fileExists(input), so no real input
+    # file is needed to reach it.
+    let dir = getTempDir() / "deps_convert_to_video_horizontal"
+    removeDir(dir)
+    createDir(dir)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["in.mp4", "out.mp4"], f, f)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 2
+    check content.contains("Missing commands: ffmpeg")
+
   test "characterization: all probes fail, software fallback runs last":
     let dir = getTempDir() / "char_convert_video"
     removeDir(dir)
@@ -136,3 +148,32 @@ exit 0
     check code == 0
     check calls.len == 1
     check content.contains("Intel QSV/VPL hardware acceleration successful!")
+
+  test "contract: a succeeding QSV probe makes exactly one ffmpeg call":
+    let dir = getTempDir() / "contract_convert_video"
+    removeDir(dir)
+    createDir(dir)
+    let input = dir / "in.mp4"
+    writeFile(input, "")
+    let output = dir / "out.mp4"
+    let rec = newRecordingRunner(exitCode = 0)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    let code = run(@[input, output], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "ffmpeg"
+    check rec.calls[0].kind == "capture"
+    # Exact argv, read verbatim from ConvertToVideoHorizontal.nim's first
+    # tryFfmpeg call -- the characterization test above pins probe identity
+    # by substring (its job is distinguishing probes by codec token); this
+    # contract test pins the full construction instead.
+    check rec.calls[0].args == @[
+      "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv",
+      "-c:v", "h264_qsv", "-i", input,
+      "-vf", "vpp_qsv=transpose=hflip",
+      "-c:v", "h264_qsv", "-preset", "fast",
+      "-c:a", "aac", "-b:a", "128k", output
+    ]

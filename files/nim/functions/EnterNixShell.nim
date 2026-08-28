@@ -23,7 +23,8 @@ proc buildShellName*(packages: seq[string]): string =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Enter-NixShell packages...
@@ -66,7 +67,7 @@ Examples:
   env["IN_NIX_SHELL"] = "impure"
   env["name"] = buildShellName(packages)
 
-  result = defaultRunner.runInherited(
+  result = runner.runInherited(
     "nix", @["shell"] & installables, env)
 
 when isMainModule:

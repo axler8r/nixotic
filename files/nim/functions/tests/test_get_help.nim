@@ -120,3 +120,16 @@ exit 0
     check code == 0
     check outContent.len >= 290_000
     check errContent.contains("a warning")
+
+  test "contract: --raw runs the queried command inherited with --help appended":
+    let rec = newRecordingRunner(exitCode = 0)
+    let tmp = getTempDir() / "contract_get_help.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["--raw", "git"], f, f, rec.runner)
+    f.close()
+    removeFile(tmp)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].kind == "inherited"
+    check rec.calls[0].cmd == "git"
+    check rec.calls[0].args == @["--help"]

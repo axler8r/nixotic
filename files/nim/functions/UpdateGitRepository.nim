@@ -51,7 +51,8 @@ proc scanCurrentDirGitRepos*(root: string): seq[string] =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
@@ -74,7 +75,7 @@ proc run*(
   for dir in dirs:
     parallelArgs.add(dir)
 
-  result = defaultRunner.runInherited("parallel", parallelArgs)
+  result = runner.runInherited("parallel", parallelArgs)
 
 when isMainModule:
   cliMain(run(commandLineParams()))

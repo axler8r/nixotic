@@ -7,7 +7,8 @@ import "../lib/validation"
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Get-Help [--raw] <command>
@@ -54,11 +55,11 @@ Examples:
     # terminal rather than to outp/errp, so this branch can't be redirected
     # through the test hook — this matches the zsh original, which also
     # doesn't respect any captured stream here.
-    return defaultRunner.runInherited(cmdName, cmdArgs)
+    return runner.runInherited(cmdName, cmdArgs)
 
   if not checkDeps(["bat"], errp): return 2
 
-  let queried = defaultRunner.capture(cmdName, cmdArgs)
+  let queried = runner.capture(cmdName, cmdArgs)
 
   # The zsh pipeline only pipes the queried command's stdout into bat; its
   # stderr flows straight to the terminal. We capture stderr too and relay it
@@ -75,7 +76,7 @@ Examples:
   # colour unconditionally — this keeps NO_COLOR honoured per the project's
   # output contract (docs/nim-functions-conventions.md).
   let colorArg = if colorEnabled(outp): "--color=always" else: "--color=never"
-  let highlighted = defaultRunner.capture(
+  let highlighted = runner.capture(
     "bat", @[colorArg, "--plain", "--language=help"], queried.output)
   outp.write(highlighted.output)
   errp.write(highlighted.error)

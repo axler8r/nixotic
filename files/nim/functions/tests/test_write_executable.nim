@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../WriteExecutable"
+import "../../lib/testing"
 
 proc mkTmpPath(name: string): string =
   result = getTempDir() / name
@@ -150,3 +151,16 @@ suite "Write-Executable run":
     check content.contains("Error: ")
     check content.contains(target)
     check not content.contains("Traceback")
+
+  test "contract: chmod is called with +x <target>":
+    let target = mkTmpPath("test_write_executable_contract")
+    let rec = newRecordingRunner(exitCode = 0)
+    var code: int
+    withStdin("echo hi\n", proc(inf: File) =
+      code = run(@[target], stdout, stderr, inf, rec.runner)
+    )
+    removeFile(target)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "chmod"
+    check rec.calls[0].args == @["+x", target]

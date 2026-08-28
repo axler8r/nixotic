@@ -49,17 +49,20 @@ suite "Update-DockerImage run":
     check code == 0
     check content.contains("Usage: Update-DockerImage")
 
-  # The checkDeps failure path (docker missing from $PATH) is not exercised
-  # here: docker is present on $PATH in this sandbox/devShell, so a genuine
-  # "missing docker" case can't be constructed without faking $PATH in a way
-  # that would also hide other coreutils the test runner needs. See the
-  # migration report for detail.
-
-  # The live-pull loop (docker image list / docker pull) is not exercised by
-  # these tests: it requires a real docker daemon, which isn't reliably
-  # available in this sandbox. It's covered by manual/production use only,
-  # consistent with the conventions doc's accepted gaps for un-mockable
-  # subprocess passthrough.
+  test "missing docker is exit 2 with a Missing commands error":
+    let dir = getTempDir() / "deps_update_docker_image"
+    removeDir(dir)
+    createDir(dir)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["nginx:latest"], f, f)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 2
+    check content.contains("Missing commands: docker")
 
   test "characterization: pulls each named image sequentially":
     let dir = getTempDir() / "char_update_docker_image"
@@ -96,3 +99,44 @@ suite "Update-DockerImage run":
     removeDir(dir)
     check code == 0
     check calls == @["image list --format={{.Repository}}:{{.Tag}}"]
+
+  test "contract: an explicit image list pulls exactly those images":
+    # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
+    # checkDeps(["docker"]) needs a stand-in on $PATH to succeed; its actual
+    # invocation is intercepted by rec.runner, so the stub's content is
+    # never run.
+    let dir = getTempDir() / "contract_update_docker_image"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let rec = newRecordingRunner(exitCode = 0)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["nginx:latest", "redis:7"], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 2
+    check rec.calls[0].cmd == "docker"
+    check rec.calls[0].args == @["pull", "nginx:latest"]
+    check rec.calls[1].args == @["pull", "redis:7"]
+
+  test "contract: a failed pull does not abort the remaining pulls":
+    let dir = getTempDir() / "contract_update_docker_image_fail"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let rec = newRecordingRunner(exitCode = 1)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["a:1", "b:2", "c:3"], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    # The zsh original has no `|| return` in the loop; every image is
+    # attempted and the failure only folds into the exit code.
+    check rec.calls.len == 3
+    check code == 1

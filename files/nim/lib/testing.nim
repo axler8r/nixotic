@@ -1,7 +1,8 @@
 ## Test-only helpers. Never imported by a function, so this module never
 ## links into a shipped binary. Lives outside lib/tests/ so the flake's
 ## test globs do not compile it as a test suite of its own.
-import std/os
+import std/[os, strtabs]
+import process
 
 let pristinePath = getEnv("PATH")
   ## Captured once, at module init, before any test can have called
@@ -35,3 +36,46 @@ template withPath*(dir: string, body: untyped) =
     body
   finally:
     putEnv("PATH", savedPath)
+
+type
+  CallRecord* = object
+    ## One recorded invocation of a RecordingRunner.
+    kind*: string        ## "inherited" or "capture"
+    cmd*: string
+    args*: seq[string]
+    input*: string       ## stdin payload; always "" for "inherited"
+
+  RecordingRunner* = ref object
+    ## Holds the recorded calls and the canned answers. `runner` is the
+    ## value to pass as a function's `runner` argument.
+    calls*: seq[CallRecord]
+    exitCode*: int
+    output*: string
+    error*: string
+    runner*: Runner
+
+proc newRecordingRunner*(exitCode = 0, output = "",
+                         error = ""): RecordingRunner =
+  ## A Runner that spawns nothing, records every invocation, and answers
+  ## with canned values. Pass `rec.runner` as a function's `runner`
+  ## argument, then assert on `rec.calls`.
+  ##
+  ## RecordingRunner is a ref, so the closures below capture the one
+  ## object the caller holds: calls made through `rec.runner` accumulate
+  ## in `rec.calls` rather than in a copy the caller cannot see.
+  let rec = RecordingRunner(calls: @[], exitCode: exitCode,
+                            output: output, error: error)
+  rec.runner = Runner(
+    runInheritedImpl: proc (cmd: string, args: seq[string],
+                            env: StringTableRef): int =
+      rec.calls.add(CallRecord(kind: "inherited", cmd: cmd,
+                               args: args, input: ""))
+      rec.exitCode,
+    captureImpl: proc (cmd: string, args: seq[string],
+                       input: string): CommandResult =
+      rec.calls.add(CallRecord(kind: "capture", cmd: cmd,
+                               args: args, input: input))
+      CommandResult(exitCode: rec.exitCode, output: rec.output,
+                    error: rec.error)
+  )
+  rec

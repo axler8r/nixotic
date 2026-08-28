@@ -6,15 +6,16 @@ import "../lib/validation"
 
 const templateRelPath = ".claude/templates/project/axler8r.md"
 
-proc gitSucceeds(args: seq[string]): bool =
+proc gitSucceeds(runner: Runner, args: seq[string]): bool =
   ## Exit code only; output is drained and discarded.
   if findExe("git").len == 0: return false
-  defaultRunner.runQuiet("git", args) == 0
+  runner.runQuiet("git", args) == 0
 
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Initialize-ClaudeProject
@@ -46,11 +47,11 @@ Examples:
 
   if not checkDeps(["git"], errp): return 2
 
-  if not gitSucceeds(@["rev-parse", "--git-dir"]):
+  if not gitSucceeds(runner, @["rev-parse", "--git-dir"]):
     error("Not a git repository", errp)
     return 1
 
-  if not gitSucceeds(@["remote", "get-url", "origin"]):
+  if not gitSucceeds(runner, @["remote", "get-url", "origin"]):
     error("No git remote 'origin' configured", errp)
     return 1
 

@@ -8,7 +8,8 @@ proc run*(
   args: seq[string],
   outp: File = stdout,
   errp: File = stderr,
-  inp: File = stdin
+  inp: File = stdin,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Write-Executable <filename>
@@ -53,7 +54,7 @@ Examples:
   outFile.writeLine(content)
   outFile.close()
 
-  discard defaultRunner.runInherited("chmod", @["+x", filename])
+  discard runner.runInherited("chmod", @["+x", filename])
 
   outp.writeLine("Created executable script: " & filename)
   return 0

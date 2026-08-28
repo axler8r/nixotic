@@ -85,24 +85,20 @@ suite "Get-ZfsSnapshots run":
     check code == 1
     check content.contains("Unknown option: --bogus")
 
-  # checkDeps(["zfs"]) itself is NOT asserted on either way here: zfs is
-  # present on $PATH in this interactive/devShell sandbox (it's a host
-  # system package on this NixOS machine), so a "checkDeps returns 2"
-  # assertion would be false in that environment; it is also not declared
-  # as a nativeBuildInput/devShell package for this migration (zfs isn't a
-  # realistic pure-sandbox build input -- see the migration report), so a
-  # "checkDeps returns true" assertion would be false in the pure
-  # `nix flake check` sandbox. Asserting either direction would make this
-  # test environment-dependent and flaky. No test in this file reaches past
-  # the checkDeps(["zfs"]) call in run().
-  #
-  # The live `zfs list` invocation (base args, conditional -H for --raw or
-  # non-TTY stdout, optional trailing dataset positional, live passthrough
-  # via poParentStreams, and propagating zfs's own exit code) is not
-  # exercised here either: it requires a real ZFS pool, which this sandbox
-  # does not have. Covered by manual/production use only, consistent with
-  # the conventions doc's accepted gaps for un-mockable subprocess
-  # passthrough.
+  test "missing zfs is exit 2 with a Missing commands error":
+    let dir = getTempDir() / "deps_get_zfs_snapshots"
+    removeDir(dir)
+    createDir(dir)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 2
+    check content.contains("Missing commands: zfs")
 
   test "characterization: zfs list flags and dataset filter":
     let dir = getTempDir() / "char_get_zfs_snapshots"
@@ -122,3 +118,47 @@ suite "Get-ZfsSnapshots run":
     check calls == @[
       "list -r -t snapshot -S creation -o name,used,referenced,creation -H dpool/data"
     ]
+
+  test "contract: zfs list receives the sort/format flags, no dataset":
+    # `zfs` is not a nativeBuildInput of the test sandbox (flake.nix), so
+    # checkDeps(["zfs"]) needs a stand-in on $PATH to succeed; its actual
+    # invocation is intercepted by rec.runner, so the stub's content is
+    # never run.
+    let dir = getTempDir() / "contract_get_zfs_snapshots"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "zfs", "")
+    let rec = newRecordingRunner(exitCode = 0)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "zfs"
+    check rec.calls[0].args == @["list", "-r", "-t", "snapshot", "-S",
+                                  "creation", "-o",
+                                  "name,used,referenced,creation", "-H"]
+
+  test "contract: zfs list appends the dataset positional when given":
+    let dir = getTempDir() / "contract_get_zfs_snapshots_dataset"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "zfs", "")
+    let rec = newRecordingRunner(exitCode = 0)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["dpool/data"], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].args == @["list", "-r", "-t", "snapshot", "-S",
+                                  "creation", "-o",
+                                  "name,used,referenced,creation", "-H",
+                                  "dpool/data"]

@@ -9,8 +9,8 @@
 ## it should use rather than reaching for osproc directly. A test can
 ## therefore substitute its own implementation and assert exactly which
 ## command and arguments a function builds, with no process spawned. The
-## shared recorder for that lands in lib/testing.nim with the first
-## migrated function; until then a test supplies its own Runner literal.
+## shared recorder for that is `newRecordingRunner` in lib/testing.nim:
+## it records every invocation and answers with canned values.
 import std/[osproc, streams, strtabs]
 
 type

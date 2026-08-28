@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../GetAttributes"
+import "../../lib/testing"
 
 suite "Get-Attributes run":
   test "prints usage and returns 0 for --help":
@@ -23,3 +24,14 @@ suite "Get-Attributes run":
 
   test "fails when the path does not exist":
     check run(@["/definitely/not/a/real/path/xyz123"]) == 1
+
+  test "contract: getfattr is called with --dump <path>":
+    let rec = newRecordingRunner(exitCode = 0)
+    let tmpFile = getTempDir() / "contract_get_attributes.txt"
+    writeFile(tmpFile, "x")
+    let code = run(@[tmpFile], stdout, stderr, rec.runner)
+    removeFile(tmpFile)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "getfattr"
+    check rec.calls[0].args == @["--dump", tmpFile]

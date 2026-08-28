@@ -1,4 +1,5 @@
 import std/[unittest, os, osproc, strutils]
+import "../process"
 import "../testing"
 
 suite "testing helpers":
@@ -55,3 +56,29 @@ suite "testing helpers":
       check code == 0
       check output.strip() == "hello from a real utility"
     removeDir(dir)
+
+suite "recording runner":
+  test "records inherited calls and returns the canned exit code":
+    let rec = newRecordingRunner(exitCode = 5)
+    let code = rec.runner.runInherited("docker", @["pull", "alpine"])
+    check code == 5
+    check rec.calls.len == 1
+    check rec.calls[0].kind == "inherited"
+    check rec.calls[0].cmd == "docker"
+    check rec.calls[0].args == @["pull", "alpine"]
+
+  test "records capture calls including stdin and returns canned output":
+    let rec = newRecordingRunner(output = "canned", error = "warned")
+    let r = rec.runner.capture("bat", @["--plain"], "piped in")
+    check r.output == "canned"
+    check r.error == "warned"
+    check rec.calls[0].kind == "capture"
+    check rec.calls[0].input == "piped in"
+
+  test "accumulates calls in invocation order":
+    let rec = newRecordingRunner()
+    discard rec.runner.runInherited("a", @["1"])
+    discard rec.runner.capture("b", @["2"])
+    check rec.calls.len == 2
+    check rec.calls[0].cmd == "a"
+    check rec.calls[1].cmd == "b"

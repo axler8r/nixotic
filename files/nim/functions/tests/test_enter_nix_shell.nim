@@ -62,14 +62,6 @@ suite "Enter-NixShell run":
     check content.contains("Usage: Enter-NixShell packages...")
     check content.contains("Use --help for more information")
 
-  # The live `nix shell` invocation (env-augmented startProcess with
-  # poParentStreams, an interactive nested shell) is not exercised here: it
-  # would spawn a real interactive shell and hang waiting on user input, is
-  # network-dependent, and inherits the caller's real stdio which can't be
-  # meaningfully captured in a unit test. Covered by manual/production use
-  # only, consistent with this backlog's accepted gap for un-mockable
-  # interactive subprocess passthrough.
-
   test "characterization: installables argv and IN_NIX_SHELL/name environment":
     let dir = getTempDir() / "char_enter_nix_shell"
     removeDir(dir)
@@ -93,3 +85,15 @@ suite "Enter-NixShell run":
     check lines[0] == "shell nixpkgs#jq nixpkgs#ripgrep"
     check content.contains("IN_NIX_SHELL=impure")
     check content.contains("name=" & buildShellName(@["jq", "ripgrep"]))
+
+  test "contract: nix shell is called with nixpkgs#-prefixed installables":
+    let rec = newRecordingRunner(exitCode = 0)
+    let tmp = getTempDir() / "contract_enter_nix_shell.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["jq", "ripgrep"], f, f, rec.runner)
+    f.close()
+    removeFile(tmp)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "nix"
+    check rec.calls[0].args == @["shell", "nixpkgs#jq", "nixpkgs#ripgrep"]

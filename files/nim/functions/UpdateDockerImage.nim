@@ -21,7 +21,8 @@ proc filterImages*(lines: seq[string]): seq[string] =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Update-DockerImage [image...]
@@ -48,7 +49,7 @@ Examples:
   if args.len > 0:
     images = args
   else:
-    let listing = defaultRunner.capture(
+    let listing = runner.capture(
       "docker",
       @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
     ).output
@@ -66,7 +67,7 @@ Examples:
   # to fold into our own exit code, which the original left unspecified.
   var anyFailed = false
   for image in images:
-    let code = defaultRunner.runInherited("docker", @["pull", image])
+    let code = runner.runInherited("docker", @["pull", image])
     if code != 0:
       anyFailed = true
 

@@ -36,16 +36,20 @@ suite "Remove-DockerDanglingImages run":
     check code == 0
     check content.contains("Usage: Remove-DockerDanglingImages")
 
-  # The checkDeps failure path (docker missing from $PATH) is not exercised
-  # here: docker is present on $PATH in this sandbox/devShell, so a genuine
-  # "missing docker" case can't be constructed without faking $PATH in a way
-  # that would also hide other coreutils the test runner needs.
-
-  # The live `docker image list` / `docker rmi` calls are not exercised by
-  # these tests: they require a real docker daemon, which isn't reliably
-  # available in this sandbox. Covered by manual/production use only,
-  # consistent with the conventions doc's accepted gaps for un-mockable
-  # subprocess passthrough.
+  test "missing docker is exit 2 with a Missing commands error":
+    let dir = getTempDir() / "deps_remove_docker_dangling_images"
+    removeDir(dir)
+    createDir(dir)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 2
+    check content.contains("Missing commands: docker")
 
   test "characterization: lists then removes each dangling image":
     let dir = getTempDir() / "char_rm_dangling_images"
@@ -74,3 +78,28 @@ esac
       "rmi sha256:aaa",
       "rmi sha256:bbb"
     ]
+
+  test "contract: lists dangling images then removes each returned ID":
+    # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
+    # checkDeps(["docker"]) needs a stand-in on $PATH to succeed; its actual
+    # invocation is intercepted by rec.runner, so the stub's content is never
+    # run.
+    let dir = getTempDir() / "contract_rm_dangling_images"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let rec = newRecordingRunner(output = "sha256:aaa\nsha256:bbb\n")
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 3
+    check rec.calls[0].cmd == "docker"
+    check rec.calls[0].args == @["image", "list", "--filter=dangling=true",
+                                  "--format={{.ID}}"]
+    check rec.calls[1].args == @["rmi", "sha256:aaa"]
+    check rec.calls[2].args == @["rmi", "sha256:bbb"]

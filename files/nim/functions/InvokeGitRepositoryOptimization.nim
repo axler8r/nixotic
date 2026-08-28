@@ -21,7 +21,8 @@ proc filterGitDirs*(dirs: seq[string]): seq[string] =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   # First help check: a literal `--help` short-circuits before ANYTHING
   # else, including checkDeps — does NOT match `-h`. This is a faithful
@@ -74,7 +75,7 @@ proc run*(
   for dir in gitDirs:
     parallelArgs.add(dir)
 
-  result = defaultRunner.runInherited("parallel", parallelArgs)
+  result = runner.runInherited("parallel", parallelArgs)
 
 when isMainModule:
   cliMain(run(commandLineParams()))

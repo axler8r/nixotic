@@ -16,7 +16,8 @@ proc parseDockerList*(output: string): seq[string] =
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Remove-DockerDanglingVolumes
@@ -32,7 +33,7 @@ Examples:
 
   if not checkDeps(["docker"], errp): return 2
 
-  let listing = defaultRunner.capture(
+  let listing = runner.capture(
     "docker",
     @["volume", "list", "--quiet", "--filter=dangling=true"]
   ).output
@@ -44,7 +45,7 @@ Examples:
 
   for volume in volumes:
     outp.writeLine("Removing volume: " & volume)
-    let code = defaultRunner.runInherited("docker", @["volume", "rm", volume])
+    let code = runner.runInherited("docker", @["volume", "rm", volume])
     if code != 0:
       return 1
 

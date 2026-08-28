@@ -36,16 +36,20 @@ suite "Remove-DockerDanglingVolumes run":
     check code == 0
     check content.contains("Usage: Remove-DockerDanglingVolumes")
 
-  # The checkDeps failure path (docker missing from $PATH) is not exercised
-  # here: docker is present on $PATH in this sandbox/devShell, so a genuine
-  # "missing docker" case can't be constructed without faking $PATH in a way
-  # that would also hide other coreutils the test runner needs.
-
-  # The live `docker volume list` / `docker volume rm` calls are not
-  # exercised by these tests: they require a real docker daemon, which
-  # isn't reliably available in this sandbox. Covered by manual/production
-  # use only, consistent with the conventions doc's accepted gaps for
-  # un-mockable subprocess passthrough.
+  test "missing docker is exit 2 with a Missing commands error":
+    let dir = getTempDir() / "deps_remove_docker_dangling_volumes"
+    removeDir(dir)
+    createDir(dir)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let content = readFile(outPath)
+    removeDir(dir)
+    check code == 2
+    check content.contains("Missing commands: docker")
 
   test "characterization: lists then removes each dangling volume":
     let dir = getTempDir() / "char_rm_dangling_volumes"
@@ -74,3 +78,28 @@ esac
       "volume rm vol_a",
       "volume rm vol_b"
     ]
+
+  test "contract: lists dangling volumes then removes each returned name":
+    # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
+    # checkDeps(["docker"]) needs a stand-in on $PATH to succeed; its actual
+    # invocation is intercepted by rec.runner, so the stub's content is never
+    # run.
+    let dir = getTempDir() / "contract_rm_dangling_volumes"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let rec = newRecordingRunner(output = "vol_a\nvol_b\n")
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 3
+    check rec.calls[0].cmd == "docker"
+    check rec.calls[0].args == @["volume", "list", "--quiet",
+                                  "--filter=dangling=true"]
+    check rec.calls[1].args == @["volume", "rm", "vol_a"]
+    check rec.calls[2].args == @["volume", "rm", "vol_b"]

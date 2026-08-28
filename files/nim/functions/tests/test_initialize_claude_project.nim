@@ -2,6 +2,7 @@
 # repositories/remotes — see flake.nix's nim-functions-tests nativeBuildInputs.
 import std/[unittest, os, osproc, strutils]
 import "../InitializeClaudeProject"
+import "../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -153,3 +154,30 @@ suite "Initialize-ClaudeProject run":
     check content.contains("Error: ")
     check content.contains(".claude/")
     check not content.contains("Traceback")
+
+  test "contract: gitSucceeds probes git-dir then origin remote via runQuiet":
+    # A RecordingRunner intercepts both `git` probes inside gitSucceeds, so
+    # both report success (exitCode 0) regardless of the temp dir's real git
+    # state; withTempHome points HOME at a template-less dir so the run
+    # deterministically fails at the template-missing check right after,
+    # pinning the exit code without depending on this machine's real HOME.
+    let dir = mkTmpDir("icp_contract")
+    let home = mkTmpDir("icp_contract_home")
+    let rec = newRecordingRunner(exitCode = 0)
+    let oldDir = getCurrentDir()
+    setCurrentDir(dir)
+    var code = 0
+    withTempHome(home, proc() =
+      code = run(@[], stdout, stderr, rec.runner)
+    )
+    setCurrentDir(oldDir)
+    removeDir(dir)
+    removeDir(home)
+    check code == 1
+    check rec.calls.len == 2
+    check rec.calls[0].kind == "capture"
+    check rec.calls[0].cmd == "git"
+    check rec.calls[0].args == @["rev-parse", "--git-dir"]
+    check rec.calls[1].kind == "capture"
+    check rec.calls[1].cmd == "git"
+    check rec.calls[1].args == @["remote", "get-url", "origin"]

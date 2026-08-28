@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../RemoveAttribute"
+import "../../lib/testing"
 
 suite "Remove-Attribute run":
   test "prints usage and returns 0 for --help":
@@ -38,3 +39,14 @@ suite "Remove-Attribute run":
     setFilePermissions(tmp, {fpUserRead, fpUserWrite})
     removeFile(tmp)
     check code == 1
+
+  test "contract: setfattr is called with --remove user.<attribute> <path>":
+    let rec = newRecordingRunner(exitCode = 0)
+    let tmpFile = getTempDir() / "contract_remove_attribute.txt"
+    writeFile(tmpFile, "x")
+    let code = run(@["colour", tmpFile], stdout, stderr, rec.runner)
+    removeFile(tmpFile)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "setfattr"
+    check rec.calls[0].args == @["--remove", "user.colour", tmpFile]

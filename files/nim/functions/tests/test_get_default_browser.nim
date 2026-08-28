@@ -79,3 +79,17 @@ suite "Get-DefaultBrowser run":
       "query default x-scheme-handler/http",
       "query default x-scheme-handler/https"
     ]
+
+  test "contract: queries the http then https scheme handlers in order":
+    let rec = newRecordingRunner(exitCode = 0)
+    let tmp = getTempDir() / "contract_get_default_browser.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["--raw"], f, f, rec.runner)
+    f.close()
+    removeFile(tmp)
+    check code == 0
+    check rec.calls.len == 2
+    check rec.calls[0].cmd == "xdg-mime"
+    check rec.calls[0].args == @["query", "default", "x-scheme-handler/http"]
+    check rec.calls[1].cmd == "xdg-mime"
+    check rec.calls[1].args == @["query", "default", "x-scheme-handler/https"]

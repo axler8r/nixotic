@@ -1,8 +1,9 @@
 # These tests need `git` and `parallel` on $PATH at test-compile-time — see
-# flake.nix's nim-functions-tests nativeBuildInputs. The actual `parallel`
-# invocation (pull + submodule update) is not exercised here — it would run
-# real git network operations against whatever's on disk. That path is
-# exercised by manual/production use only.
+# flake.nix's nim-functions-tests nativeBuildInputs. The `parallel`
+# invocation (pull + submodule update) is characterized below against a fake
+# `parallel` on a fixture $PATH (see testing.writeFakeExe/withPath) and
+# pinned exactly by the contract test using a RecordingRunner -- real git
+# network operations are never run by either.
 import std/[unittest, os, strutils]
 import "../UpdateGitRepository"
 import "../../lib/testing"
@@ -66,6 +67,35 @@ suite "Update-GitRepository run":
     removeDir(dir)
     check code == 0
     check calls == @["echo {} && git -C {} pull && git -C {} submodule update ::: repoA"]
+
+  test "contract: parallel receives the pull+submodule-update command and repo dir":
+    # `git`/`parallel` are stubbed on a fixture $PATH via withPath, same as
+    # the docker/zfs contract tests, so this test is environment-independent
+    # and cannot silently skip: checkDeps only needs the stubs to exist,
+    # and rec.runner intercepts the actual invocation so their (empty)
+    # bodies are never run.
+    let dir = getTempDir() / "contract_update_git_repository"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let repoDir = dir / "repo"
+    createDir(repoDir / ".git")
+    let rec = newRecordingRunner(exitCode = 0)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[repoDir], f, f, rec.runner)
+    f.close()
+    removeDir(dir)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "parallel"
+    check rec.calls[0].args == @[
+      "echo {} && git -C {} pull && git -C {} submodule update",
+      ":::", repoDir
+    ]
 
 suite "stripTrailingSlash":
   test "removes a single trailing slash":

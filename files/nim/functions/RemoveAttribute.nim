@@ -7,7 +7,8 @@ import "../lib/validation"
 proc run*(
   args: seq[string],
   outp: File = stdout,
-  errp: File = stderr
+  errp: File = stderr,
+  runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: Remove-Attribute [opts] <attribute> <path>
@@ -53,7 +54,7 @@ Examples:
   if not requireWritablePathTarget(path, errp): return 1
   if not requireXattrName(attribute, errp): return 1
 
-  result = defaultRunner.runInherited(
+  result = runner.runInherited(
     "setfattr", @["--remove", "user." & attribute, path])
 
 when isMainModule:
