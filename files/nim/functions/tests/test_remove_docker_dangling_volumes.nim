@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../RemoveDockerDanglingVolumes"
+import "../../lib/testing"
 
 suite "Remove-DockerDanglingVolumes parseDockerList":
   test "splits multiple volume names on newlines":
@@ -45,3 +46,31 @@ suite "Remove-DockerDanglingVolumes run":
   # isn't reliably available in this sandbox. Covered by manual/production
   # use only, consistent with the conventions doc's accepted gaps for
   # un-mockable subprocess passthrough.
+
+  test "characterization: lists then removes each dangling volume":
+    let dir = getTempDir() / "char_rm_dangling_volumes"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    # First call (volume list) prints two names; every call is logged.
+    writeFakeExe(dir, "docker", """
+""" & fakeRecorder(log) & """
+
+case "$1 $2" in
+  "volume list") echo vol_a; echo vol_b ;;
+esac
+""")
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @[
+      "volume list --quiet --filter=dangling=true",
+      "volume rm vol_a",
+      "volume rm vol_b"
+    ]

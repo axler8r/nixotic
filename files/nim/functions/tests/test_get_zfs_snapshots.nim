@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../GetZfsSnapshots"
+import "../../lib/testing"
 
 suite "Get-ZfsSnapshots parseArgs":
   test "no args: raw false, dataset empty, no unknown option":
@@ -102,3 +103,22 @@ suite "Get-ZfsSnapshots run":
   # does not have. Covered by manual/production use only, consistent with
   # the conventions doc's accepted gaps for un-mockable subprocess
   # passthrough.
+
+  test "characterization: zfs list flags and dataset filter":
+    let dir = getTempDir() / "char_get_zfs_snapshots"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "zfs", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["dpool/data"], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @[
+      "list -r -t snapshot -S creation -o name,used,referenced,creation -H dpool/data"
+    ]

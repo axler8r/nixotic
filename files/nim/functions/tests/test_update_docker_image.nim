@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../UpdateDockerImage"
+import "../../lib/testing"
 
 suite "Update-DockerImage filterImages":
   test "drops a line with a vsc prefix":
@@ -59,3 +60,39 @@ suite "Update-DockerImage run":
   # available in this sandbox. It's covered by manual/production use only,
   # consistent with the conventions doc's accepted gaps for un-mockable
   # subprocess passthrough.
+
+  test "characterization: pulls each named image sequentially":
+    let dir = getTempDir() / "char_update_docker_image"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "docker", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["nginx:latest", "postgres:16"], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @["pull nginx:latest", "pull postgres:16"]
+
+  test "characterization: lists images with the repository:tag format string":
+    let dir = getTempDir() / "char_update_docker_image_list"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    # Emit nothing on stdout so filterImages yields an empty list and the
+    # function returns before any pull.
+    writeFakeExe(dir, "docker", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @["image list --format={{.Repository}}:{{.Tag}}"]

@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../GetDefaultBrowser"
+import "../../lib/testing"
 
 suite "Get-DefaultBrowser run":
   test "prints usage and returns 0 for --help":
@@ -58,3 +59,23 @@ suite "Get-DefaultBrowser run":
   # the conventions doc's accepted gaps for un-mockable subprocess
   # passthrough. Only the exit code and absence of an "Unknown option"
   # message are pinned above.
+
+  test "characterization: queries http then https scheme handlers":
+    let dir = getTempDir() / "char_get_default_browser"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "xdg-mime", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["--raw"], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @[
+      "query default x-scheme-handler/http",
+      "query default x-scheme-handler/https"
+    ]

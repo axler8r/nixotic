@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../UpdateDevEnvironment"
+import "../../lib/testing"
 
 suite "Update-DevEnvironment run":
   test "prints usage and returns 0 for --help":
@@ -55,3 +56,36 @@ suite "Update-DevEnvironment run":
   # network-reachable environment in a test sandbox. That path is covered
   # by manual/production use only, consistent with the conventions doc's
   # accepted gaps for un-mockable subprocess passthrough.
+
+  test "characterization: nix flake update then direnv reload, one call each":
+    let dir = getTempDir() / "char_update_dev_environment"
+    removeDir(dir)
+    createDir(dir)
+    writeFile(dir / "flake.nix", "")
+    let nixLog = dir / "nix_calls.log"
+    let direnvLog = dir / "direnv_calls.log"
+    let sharedLog = dir / "shared_calls.log"
+    # Per-command logs disambiguate which command received which args; the
+    # shared log (each line prefixed with the command name) additionally
+    # pins the ORDER between the two commands.
+    writeFakeExe(dir, "nix", fakeRecorder(nixLog) &
+      "\necho \"nix $@\" >> " & sharedLog.quoteShell)
+    writeFakeExe(dir, "direnv", fakeRecorder(direnvLog) &
+      "\necho \"direnv $@\" >> " & sharedLog.quoteShell)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    let savedDir = getCurrentDir()
+    setCurrentDir(dir)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    setCurrentDir(savedDir)
+    f.close()
+    let nixCalls = readFile(nixLog).strip().splitLines()
+    let direnvCalls = readFile(direnvLog).strip().splitLines()
+    let sharedCalls = readFile(sharedLog).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check nixCalls == @["flake update"]
+    check direnvCalls == @["reload"]
+    check sharedCalls == @["nix flake update", "direnv reload"]

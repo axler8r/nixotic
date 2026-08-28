@@ -5,6 +5,7 @@
 # exercised by manual/production use only.
 import std/[unittest, os, strutils]
 import "../UpdateGitRepository"
+import "../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -43,6 +44,28 @@ suite "Update-GitRepository run":
       check not content.contains("Warning:")
     else:
       echo "skipping: git/parallel not present in this sandbox"
+
+  test "characterization: parallel receives the pull+submodule-update command per repo":
+    let dir = getTempDir() / "char_update_git_repository"
+    removeDir(dir)
+    createDir(dir)
+    createDir(dir / "repoA" / ".git")
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    let savedDir = getCurrentDir()
+    setCurrentDir(dir)
+    var code: int
+    withPath(dir):
+      code = run(@["repoA"], f, f)
+    setCurrentDir(savedDir)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @["echo {} && git -C {} pull && git -C {} submodule update ::: repoA"]
 
 suite "stripTrailingSlash":
   test "removes a single trailing slash":

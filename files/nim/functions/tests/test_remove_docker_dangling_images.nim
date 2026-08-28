@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../RemoveDockerDanglingImages"
+import "../../lib/testing"
 
 suite "Remove-DockerDanglingImages parseDockerList":
   test "splits multiple IDs on newlines":
@@ -45,3 +46,31 @@ suite "Remove-DockerDanglingImages run":
   # available in this sandbox. Covered by manual/production use only,
   # consistent with the conventions doc's accepted gaps for un-mockable
   # subprocess passthrough.
+
+  test "characterization: lists then removes each dangling image":
+    let dir = getTempDir() / "char_rm_dangling_images"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    # First call (image list) prints two ids; every call is logged.
+    writeFakeExe(dir, "docker", """
+""" & fakeRecorder(log) & """
+
+case "$1 $2" in
+  "image list") echo sha256:aaa; echo sha256:bbb ;;
+esac
+""")
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    check calls == @[
+      "image list --filter=dangling=true --format={{.ID}}",
+      "rmi sha256:aaa",
+      "rmi sha256:bbb"
+    ]

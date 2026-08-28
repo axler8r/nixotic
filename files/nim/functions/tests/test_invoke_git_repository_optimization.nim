@@ -5,6 +5,7 @@
 # exercised by manual/production use only.
 import std/[unittest, os, strutils]
 import "../InvokeGitRepositoryOptimization"
+import "../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -72,6 +73,32 @@ suite "Invoke-GitRepositoryOptimization run":
       check content.contains("No git repositories found in the provided directories.")
     else:
       echo "skipping: git/parallel not present in this sandbox"
+
+  test "characterization: parallel receives jobs/progress flags and the gc command":
+    let dir = getTempDir() / "char_invoke_git_repository_optimization"
+    removeDir(dir)
+    createDir(dir)
+    createDir(dir / "repoA" / ".git")
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", fakeRecorder(log))
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    let savedDir = getCurrentDir()
+    setCurrentDir(dir)
+    var code: int
+    withPath(dir):
+      code = run(@["repoA"], f, f)
+    setCurrentDir(savedDir)
+    f.close()
+    let calls = readFile(log).strip().splitLines()
+    removeDir(dir)
+    # gcCommand is a private (non-exported) const at
+    # InvokeGitRepositoryOptimization.nim:8, so it's inlined here verbatim.
+    let gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
+      "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
+    check code == 0
+    check calls == @["--jobs 4 --progress " & gcCommand & " ::: repoA"]
 
 suite "filterGitDirs":
   test "keeps only directories that exist and contain .git":

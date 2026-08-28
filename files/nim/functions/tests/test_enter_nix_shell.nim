@@ -1,5 +1,6 @@
 import std/[unittest, os, strutils]
 import "../EnterNixShell"
+import "../../lib/testing"
 
 suite "Enter-NixShell buildInstallables":
   test "bare package name gets nixpkgs# prefixed":
@@ -68,3 +69,27 @@ suite "Enter-NixShell run":
   # meaningfully captured in a unit test. Covered by manual/production use
   # only, consistent with this backlog's accepted gap for un-mockable
   # interactive subprocess passthrough.
+
+  test "characterization: installables argv and IN_NIX_SHELL/name environment":
+    let dir = getTempDir() / "char_enter_nix_shell"
+    removeDir(dir)
+    createDir(dir)
+    let log = dir / "calls.log"
+    writeFakeExe(dir, "nix", "echo \"$@\" >> " & log.quoteShell &
+                             "\necho \"IN_NIX_SHELL=$IN_NIX_SHELL\" >> " & log.quoteShell &
+                             "\necho \"name=$name\" >> " & log.quoteShell)
+    let outPath = dir / "out.txt"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@["jq", "ripgrep"], f, f)
+    f.close()
+    let content = readFile(log)
+    let lines = content.strip().splitLines()
+    removeDir(dir)
+    check code == 0
+    # Exact-line equality on the argv line pins the full invocation --
+    # `contains` would miss flags appended after the installables list.
+    check lines[0] == "shell nixpkgs#jq nixpkgs#ripgrep"
+    check content.contains("IN_NIX_SHELL=impure")
+    check content.contains("name=" & buildShellName(@["jq", "ripgrep"]))
