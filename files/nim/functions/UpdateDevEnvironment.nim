@@ -1,6 +1,7 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc run*(
@@ -29,24 +30,11 @@ Examples:
     error("No flake.nix found in current directory", errp)
     return 1
 
-  var updateProc = startProcess(
-    "nix",
-    args = @["flake", "update"],
-    options = {poUsePath, poParentStreams}
-  )
-  let updateCode = updateProc.waitForExit()
-  updateProc.close()
+  let updateCode = defaultRunner.runInherited("nix", @["flake", "update"])
   if updateCode != 0:
     return 1
 
-  var reloadProc = startProcess(
-    "direnv",
-    args = @["reload"],
-    options = {poUsePath, poParentStreams}
-  )
-  let reloadCode = reloadProc.waitForExit()
-  reloadProc.close()
-  return reloadCode
+  return defaultRunner.runInherited("direnv", @["reload"])
 
 when isMainModule:
   cliMain(run(commandLineParams()))

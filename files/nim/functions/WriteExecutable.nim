@@ -1,7 +1,8 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/validation"
 import "../lib/output"
+import "../lib/process"
 
 proc run*(
   args: seq[string],
@@ -52,13 +53,7 @@ Examples:
   outFile.writeLine(content)
   outFile.close()
 
-  var chmodProc = startProcess(
-    "chmod",
-    args = @["+x", filename],
-    options = {poUsePath, poParentStreams}
-  )
-  discard chmodProc.waitForExit()
-  chmodProc.close()
+  discard defaultRunner.runInherited("chmod", @["+x", filename])
 
   outp.writeLine("Created executable script: " & filename)
   return 0

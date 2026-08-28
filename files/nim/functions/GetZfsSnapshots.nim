@@ -1,6 +1,7 @@
-import std/[os, osproc, terminal]
+import std/[os, terminal]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 type ParsedArgs* = object
@@ -64,11 +65,7 @@ Examples:
   if parsed.dataset.len > 0:
     zfsArgs.add(parsed.dataset)
 
-  var p = startProcess("zfs", args = @["list"] & zfsArgs,
-                        options = {poUsePath, poParentStreams})
-  let code = p.waitForExit()
-  p.close()
-  code
+  result = defaultRunner.runInherited("zfs", @["list"] & zfsArgs)
 
 when isMainModule:
   cliMain(run(commandLineParams()))

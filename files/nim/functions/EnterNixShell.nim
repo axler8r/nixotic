@@ -1,6 +1,7 @@
-import std/[os, osproc, strtabs, strutils]
+import std/[os, strtabs, strutils]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc buildInstallables*(packages: seq[string]): seq[string] =
@@ -65,14 +66,8 @@ Examples:
   env["IN_NIX_SHELL"] = "impure"
   env["name"] = buildShellName(packages)
 
-  var p = startProcess(
-    "nix",
-    args = @["shell"] & installables,
-    env = env,
-    options = {poUsePath, poParentStreams}
-  )
-  result = p.waitForExit()
-  p.close()
+  result = defaultRunner.runInherited(
+    "nix", @["shell"] & installables, env)
 
 when isMainModule:
   cliMain(run(commandLineParams()))

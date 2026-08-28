@@ -1,4 +1,4 @@
-import std/[os, osproc, strutils]
+import std/[os, strutils]
 import "../lib/cli"
 import "../lib/output"
 import "../lib/process"
@@ -66,9 +66,7 @@ Examples:
   # to fold into our own exit code, which the original left unspecified.
   var anyFailed = false
   for image in images:
-    var p = startProcess("docker", args = @["pull", image], options = {poUsePath, poParentStreams})
-    let code = p.waitForExit()
-    p.close()
+    let code = defaultRunner.runInherited("docker", @["pull", image])
     if code != 0:
       anyFailed = true
 

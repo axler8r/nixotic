@@ -1,4 +1,4 @@
-import std/[os, osproc, strutils]
+import std/[os, strutils]
 import "../lib/cli"
 import "../lib/process"
 import "../lib/validation"
@@ -44,9 +44,7 @@ Examples:
 
   for id in ids:
     outp.writeLine("Removing image: " & id)
-    var p = startProcess("docker", args = @["rmi", id], options = {poUsePath, poParentStreams})
-    let code = p.waitForExit()
-    p.close()
+    let code = defaultRunner.runInherited("docker", @["rmi", id])
     if code != 0:
       return 1
 

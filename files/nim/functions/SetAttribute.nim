@@ -1,6 +1,7 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc run*(
@@ -57,12 +58,8 @@ Examples:
   if not requireWritablePathTarget(path, errp): return 1
   if not requireXattrName(attribute, errp): return 1
 
-  let process = startProcess(findExe("setfattr"),
-                              args = @["--name", "user." & attribute,
-                                       "--value", value, path],
-                              options = {poParentStreams})
-  result = process.waitForExit()
-  process.close()
+  result = defaultRunner.runInherited(
+    "setfattr", @["--name", "user." & attribute, "--value", value, path])
 
 when isMainModule:
   cliMain(run(commandLineParams()))

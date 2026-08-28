@@ -1,4 +1,4 @@
-import std/[os, osproc, strutils]
+import std/[os, strutils]
 import "../lib/cli"
 import "../lib/process"
 import "../lib/validation"
@@ -44,9 +44,7 @@ Examples:
 
   for volume in volumes:
     outp.writeLine("Removing volume: " & volume)
-    var p = startProcess("docker", args = @["volume", "rm", volume], options = {poUsePath, poParentStreams})
-    let code = p.waitForExit()
-    p.close()
+    let code = defaultRunner.runInherited("docker", @["volume", "rm", volume])
     if code != 0:
       return 1
 

@@ -1,16 +1,15 @@
-import std/[os, osproc, strutils]
+import std/[os, strutils]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 const templateRelPath = ".claude/templates/project/axler8r.md"
 
 proc gitSucceeds(args: seq[string]): bool =
-  let exe = findExe("git")
-  if exe.len == 0: return false
-  var p = startProcess(exe, args = args, options = {poUsePath})
-  result = p.waitForExit() == 0
-  p.close()
+  ## Exit code only; output is drained and discarded.
+  if findExe("git").len == 0: return false
+  defaultRunner.runQuiet("git", args) == 0
 
 proc run*(
   args: seq[string],

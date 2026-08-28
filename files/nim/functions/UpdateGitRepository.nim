@@ -1,6 +1,7 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 const usage = """Usage: Update-GitRepository [path...]
@@ -73,9 +74,7 @@ proc run*(
   for dir in dirs:
     parallelArgs.add(dir)
 
-  var p = startProcess("parallel", args = parallelArgs, options = {poUsePath, poParentStreams})
-  result = p.waitForExit()
-  p.close()
+  result = defaultRunner.runInherited("parallel", parallelArgs)
 
 when isMainModule:
   cliMain(run(commandLineParams()))

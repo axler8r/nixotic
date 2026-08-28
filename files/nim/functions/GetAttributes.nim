@@ -1,6 +1,7 @@
-import std/[os, osproc]
+import std/os
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc run*(
@@ -46,11 +47,8 @@ Examples:
   if not checkDeps(["getfattr"], errp): return 2
   if not requirePathTarget(path, errp): return 1
 
-  let process = startProcess(findExe("getfattr"),
-                              args = @["--dump", path],
-                              options = {poParentStreams})
-  result = process.waitForExit()
-  process.close()
+  result = defaultRunner.runInherited(
+    "getfattr", @["--dump", path])
 
 when isMainModule:
   cliMain(run(commandLineParams()))
