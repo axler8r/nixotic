@@ -123,23 +123,33 @@ suite "Initialize-ClaudeProject run":
     runGit(dir, "init", "-q")
     runGit(dir, "remote", "add", "origin", "https://example.invalid/repo.git")
     let saved = getCurrentDir()
-    setCurrentDir(dir)
-    setFilePermissions(dir, {fpUserRead, fpUserExec})
     let outPath = getTempDir() / "test_initialize_claude_project_readonly_out.txt"
-    let f = open(outPath, fmWrite)
+    writeFile(outPath, "")
     var code = 0
-    withTempHome(home, proc() =
-      code = run(@[], f, f)
-    )
-    f.close()
-    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
-    setCurrentDir(saved)
-    let content = readFile(outPath)
-    removeDir(dir)
-    removeDir(home)
-    removeFile(outPath)
+    var content = ""
+    try:
+      setCurrentDir(dir)
+      setFilePermissions(dir, {fpUserRead, fpUserExec})
+      let f = open(outPath, fmWrite)
+      withTempHome(home, proc() =
+        code = run(@[], f, f)
+      )
+      f.close()
+      content = readFile(outPath)
+    finally:
+      # Restore permissions/cwd and remove the fixtures unconditionally, even
+      # if run() regresses and raises -- otherwise a future guard regression
+      # leaves an unwritable directory under getTempDir() that poisons later
+      # local and CI runs with unrelated permission-denied errors.
+      setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+      setCurrentDir(saved)
+      removeDir(dir)
+      removeDir(home)
+      removeFile(outPath)
     # Reaching the createDir call requires the home template to exist; if it
     # does not, the function exits earlier with its own error. Both are
     # acceptable outcomes here -- what must NOT happen is a traceback.
     check code == 1
+    check content.contains("Error: ")
+    check content.contains(".claude/")
     check not content.contains("Traceback")

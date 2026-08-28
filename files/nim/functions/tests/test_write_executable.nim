@@ -122,21 +122,30 @@ suite "Write-Executable run":
     let dir = getTempDir() / "test_write_executable_readonly"
     removeDir(dir)
     createDir(dir)
-    setFilePermissions(dir, {fpUserRead, fpUserExec})
     let target = dir / "script"
     let outPath = getTempDir() / "test_write_executable_readonly_out.txt"
     let inPath = getTempDir() / "test_write_executable_readonly_in.txt"
     writeFile(inPath, "echo hello\n")
-    let f = open(outPath, fmWrite)
-    let inf = open(inPath, fmRead)
-    let code = run(@[target], f, f, inf)
-    f.close()
-    inf.close()
-    let content = readFile(outPath)
-    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
-    removeDir(dir)
-    removeFile(outPath)
-    removeFile(inPath)
+    writeFile(outPath, "")
+    var code = 0
+    var content = ""
+    try:
+      setFilePermissions(dir, {fpUserRead, fpUserExec})
+      let f = open(outPath, fmWrite)
+      let inf = open(inPath, fmRead)
+      code = run(@[target], f, f, inf)
+      f.close()
+      inf.close()
+      content = readFile(outPath)
+    finally:
+      # Restore permissions and remove the fixtures unconditionally, even if
+      # run() regresses and raises -- otherwise a future guard regression
+      # leaves an unwritable directory under getTempDir() that poisons later
+      # local and CI runs with unrelated permission-denied errors.
+      setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+      removeDir(dir)
+      removeFile(outPath)
+      removeFile(inPath)
     check code == 1
     check content.contains("Error: ")
     check content.contains(target)

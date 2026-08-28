@@ -98,17 +98,27 @@ suite "Sync-FileIndex run":
     let track = dir / "_TRACK"
     writeFile(track, "[ ] gone.txt\n")
     writeFile(dir / "present.txt", "")
-    setFilePermissions(track, {fpUserRead})
-    setFilePermissions(dir, {fpUserRead, fpUserExec})
     let outPath = getTempDir() / "test_sync_file_index_readonly_out.txt"
-    let f = open(outPath, fmWrite)
-    let code = run(@["-f", track], f, f)
-    f.close()
-    let content = readFile(outPath)
-    setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
-    setFilePermissions(track, {fpUserRead, fpUserWrite})
-    removeDir(dir)
-    removeFile(outPath)
+    writeFile(outPath, "")
+    var code = 0
+    var content = ""
+    try:
+      setFilePermissions(track, {fpUserRead})
+      setFilePermissions(dir, {fpUserRead, fpUserExec})
+      let f = open(outPath, fmWrite)
+      code = run(@["-f", track], f, f)
+      f.close()
+      content = readFile(outPath)
+    finally:
+      # Restore permissions and remove the fixtures unconditionally, even if
+      # run() regresses and raises -- otherwise a future guard regression
+      # leaves an unwritable directory under getTempDir() that poisons later
+      # local and CI runs with unrelated permission-denied errors.
+      setFilePermissions(dir, {fpUserRead, fpUserWrite, fpUserExec})
+      setFilePermissions(track, {fpUserRead, fpUserWrite})
+      removeDir(dir)
+      removeFile(outPath)
     check code == 1
     check content.contains("Error: ")
+    check content.contains(track)
     check not content.contains("Traceback")
