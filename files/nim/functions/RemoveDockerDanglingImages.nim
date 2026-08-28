@@ -1,5 +1,6 @@
 import std/[os, osproc, strutils]
 import "../lib/cli"
+import "../lib/process"
 import "../lib/validation"
 
 proc parseDockerList*(output: string): seq[string] =
@@ -31,11 +32,10 @@ Examples:
 
   if not checkDeps(["docker"], errp): return 2
 
-  let listing = execProcess(
+  let listing = defaultRunner.capture(
     "docker",
-    args = @["image", "list", "--filter=dangling=true", "--format={{.ID}}"],
-    options = {poUsePath}
-  )
+    @["image", "list", "--filter=dangling=true", "--format={{.ID}}"]
+  ).output
   let ids = parseDockerList(listing)
 
   if ids.len == 0:

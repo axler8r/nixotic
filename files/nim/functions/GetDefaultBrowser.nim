@@ -1,6 +1,7 @@
-import std/[os, osproc, strutils, terminal]
+import std/[os, strutils, terminal]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc run*(
@@ -36,16 +37,14 @@ Examples:
   if not checkDeps(["xdg-mime"], errp):
     return 2
 
-  let httpHandler = execProcess(
+  let httpHandler = defaultRunner.capture(
     "xdg-mime",
-    args = ["query", "default", "x-scheme-handler/http"],
-    options = {poUsePath}
-  ).strip()
-  let httpsHandler = execProcess(
+    @["query", "default", "x-scheme-handler/http"]
+  ).output.strip()
+  let httpsHandler = defaultRunner.capture(
     "xdg-mime",
-    args = ["query", "default", "x-scheme-handler/https"],
-    options = {poUsePath}
-  ).strip()
+    @["query", "default", "x-scheme-handler/https"]
+  ).output.strip()
 
   if raw or not isatty(outp):
     outp.writeLine httpHandler

@@ -1,6 +1,7 @@
 import std/[os, osproc, strutils]
 import "../lib/cli"
 import "../lib/output"
+import "../lib/process"
 import "../lib/validation"
 
 proc filterImages*(lines: seq[string]): seq[string] =
@@ -47,11 +48,10 @@ Examples:
   if args.len > 0:
     images = args
   else:
-    let listing = execProcess(
+    let listing = defaultRunner.capture(
       "docker",
-      args = @["image", "list", "--format={{.Repository}}:{{.Tag}}"],
-      options = {poUsePath}
-    )
+      @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
+    ).output
     images = filterImages(listing.splitLines())
 
   if images.len == 0:
