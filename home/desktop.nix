@@ -33,6 +33,7 @@
     # AI coding assistants
     claude-code
     codex
+    github-copilot-cli
 
     # Editors & text processing
     universal-ctags
