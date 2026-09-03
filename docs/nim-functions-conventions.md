@@ -130,6 +130,11 @@ when isMainModule:
   `runner: Runner = defaultRunner` param, so tests can substitute
   `newRecordingRunner`'s runner instead — see Process execution and Test doubles
   below.
+- A function whose zsh original calls `__ax_confirm` also takes an
+  optional `inp: File = stdin` param, appended **after** `runner`, so a
+  test can redirect what the confirmation prompt reads — mirrors how
+  `outp`/`errp` are already redirectable. `Remove-Vault` is the first
+  example.
 - `when isMainModule` calls `cliMain(run(commandLineParams()))`, not a bare
   `quit(run(...))` — see Error handling and the exit-code contract below.
 - `proc run*` and any helper `proc`s a test needs must be marked `*` (exported)
@@ -156,9 +161,10 @@ Ported so far:
 | `__ax_success`                      | `output.success*(msg: string, errp: File = stderr)`          |
 | `__ax_require_file`                 | `validation.requireFile*(path, errp): bool`                  |
 | `__ax_warn`                         | `output.warn*(msg: string, errp: File = stderr)`             |
+| `__ax_confirm`                      | `output.confirm*(message: string, inp: File = stdin, outp: File = stdout): bool` |
 
 **Not yet ported** (add when the first function that needs one migrates):
-`__ax_verbose`, `__ax_confirm`, `__ax_table`, `__ax_require_dir`,
+`__ax_verbose`, `__ax_table`, `__ax_require_dir`,
 `__ax_require_root`, `__ax_require_extension`.
 
 Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style).
@@ -176,6 +182,27 @@ including empty string (`os.existsEnv("NO_COLOR")`, not a truthiness check on
 its value — this matches zsh's `${NO_COLOR+x}` set-ness test, which a naive
 `getEnv("NO_COLOR") == ""` check would get wrong).
 
+## Family-specific shared libraries
+
+Not every shared Nim module is a growth of the generic `ax` module
+(`output.nim`/`validation.nim`). When several functions in the same
+*family* independently reimplement identical logic in zsh, that logic
+gets its own small `lib/<family>.nim` instead of being force-fit into
+`ax` or duplicated per function — `lib/vault.nim` (`resolveVault`,
+`mapperPresent`), forced by the Vault family (`Mount-Vault`,
+`Remove-Vault`, `Resize-Vault` all resolve a bare name-or-path input to a
+vault file + mapper name the same way), is the first instance of this
+pattern. `lib/git.nim`, planned for the git-WIP family, will be the
+second.
+
+These modules follow the same import convention as `ax`: a plain
+`import "../lib/vault"` brings its exported procs into scope unqualified.
+They are not tracked in the "ported so far" / "not yet ported" tables
+above — those are specific to the generic `ax` surface — but do get their
+own `lib/tests/test_<family>.nim` file, compiled by the same
+`checks.${system}.nim-functions-tests` glob as everything else in
+`lib/tests/`.
+
 ## Process execution
 
 Every subprocess a function spawns goes through `files/nim/lib/process.nim`.
@@ -183,6 +210,14 @@ Never call `std/osproc`'s `startProcess` or `execProcess` directly from a
 `functions/*.nim` file. `run()` takes an optional
 `runner: Runner = defaultRunner` parameter and calls through it, which is also
 the seam tests use to intercept the spawn (see Test doubles below).
+
+A privileged command needs no special handling: it is just
+`runner.runInherited("sudo", @[real_cmd, ...])`. `sudo`'s own
+password/passphrase prompt streams live because `runInherited` connects
+the child to the parent's real stdin/stdout/stderr, the same as any other
+interactive child process. `checkDeps` lists the real command
+(`cryptsetup`, `mount`, ...), never `sudo` itself, matching the zsh
+originals — none of them check for `sudo`'s presence either.
 
 Three primitives, one per shape of subprocess use:
 

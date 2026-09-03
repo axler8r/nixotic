@@ -1,4 +1,4 @@
-import std/[os, terminal]
+import std/[os, strutils, terminal]
 
 const
   ansiRed = "\e[31m"
@@ -32,3 +32,16 @@ proc warn*(msg: string, errp: File = stderr) =
     errp.writeLine(ansiYellow & "Warning:" & ansiReset & " " & msg)
   else:
     errp.writeLine("Warning: " & msg)
+
+proc confirm*(message: string, inp: File = stdin, outp: File = stdout): bool =
+  ## Interactive y/N prompt. Writes `message` (plus " (y/N): ") to `outp`
+  ## with no trailing newline, then reads one line from `inp`. Mirrors the
+  ## zsh original's `__ax_confirm`: only "y"/"yes" (any case) count as
+  ## acceptance; a blank line, "n", anything else, or EOF is a decline.
+  outp.write(message & " (y/N): ")
+  outp.flushFile()
+  var response: string
+  if not inp.readLine(response):
+    return false
+  let normalized = response.strip().toLowerAscii()
+  normalized == "y" or normalized == "yes"

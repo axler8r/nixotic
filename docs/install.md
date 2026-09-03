@@ -418,7 +418,7 @@ rpool                          mountpoint=none
 encryption: every dataset is plain ZFS and mounts at boot, so the host reaches
 SSH/login fully unattended with no passphrase. When a secret needs encryption,
 create a LUKS vault on demand with
-[`New-Vault`](../files/zsh/functions/New-Vault) under `~/Vaults`.
+[`New-Vault`](../files/nim/functions/NewVault.nim) under `~/Vaults`.
 
 `Projects/` subdirectories are separate datasets so each can have its own
 snapshot schedule and quotas independently.

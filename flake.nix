@@ -63,6 +63,11 @@
         "Invoke-GitRepositoryOptimization" = "InvokeGitRepositoryOptimization.nim";
         "Update-GitRepository" = "UpdateGitRepository.nim";
         "Get-ZfsSnapshots" = "GetZfsSnapshots.nim";
+        "New-Vault" = "NewVault.nim";
+        "Mount-Vault" = "MountVault.nim";
+        "Dismount-Vault" = "DismountVault.nim";
+        "Remove-Vault" = "RemoveVault.nim";
+        "Resize-Vault" = "ResizeVault.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
