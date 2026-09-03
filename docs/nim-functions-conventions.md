@@ -192,8 +192,10 @@ gets its own small `lib/<family>.nim` instead of being force-fit into
 `mapperPresent`), forced by the Vault family (`Mount-Vault`,
 `Remove-Vault`, `Resize-Vault` all resolve a bare name-or-path input to a
 vault file + mapper name the same way), is the first instance of this
-pattern. `lib/git.nim`, planned for the git-WIP family, will be the
-second.
+pattern. `lib/devenv.nim` (`formatPackageLines`, `flakeNixContent`,
+`scaffoldDevEnvironment`), forced by the dev-environment scaffolder
+family, is the second. `lib/git.nim`, planned for the git-WIP family,
+will be the third.
 
 These modules follow the same import convention as `ax`: a plain
 `import "../lib/vault"` brings its exported procs into scope unqualified.
@@ -202,6 +204,18 @@ above — those are specific to the generic `ax` surface — but do get their
 own `lib/tests/test_<family>.nim` file, compiled by the same
 `checks.${system}.nim-functions-tests` glob as everything else in
 `lib/tests/`.
+
+## Regex avoidance
+
+No function has needed `std/re` so far, and none should reach for it
+casually: it wraps a runtime `libpcre`, a new build dependency this
+project's Nix derivations don't currently carry. Simple format checks
+(`New-PythonDevEnvironment`'s `3.12`, `New-DotNetDevEnvironment`'s
+`8`/`9`/`10`, `New-ElixirDevEnvironment`'s `1.17`) are all doable with
+`strutils.split` plus a charset check (`allCharsInSet`), the same
+approach `validation.nim`'s `xattrChars` already uses for attribute-name
+validation. Reach for `std/re` only if a genuinely regex-shaped
+requirement shows up that a manual check can't express reasonably.
 
 ## Process execution
 

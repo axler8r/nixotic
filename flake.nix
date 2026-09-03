@@ -68,6 +68,11 @@
         "Dismount-Vault" = "DismountVault.nim";
         "Remove-Vault" = "RemoveVault.nim";
         "Resize-Vault" = "ResizeVault.nim";
+        "New-ToolDevEnvironment" = "NewToolDevEnvironment.nim";
+        "New-PythonDevEnvironment" = "NewPythonDevEnvironment.nim";
+        "New-DotNetDevEnvironment" = "NewDotNetDevEnvironment.nim";
+        "New-ElixirDevEnvironment" = "NewElixirDevEnvironment.nim";
+        "Remove-DevEnvironment" = "RemoveDevEnvironment.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
