@@ -26,9 +26,12 @@ nix flake check --no-build
 # 2. Dry build with package diff — shows what will be built/removed without applying
 nh os build --dry
 
-# 3. Apply configuration
+# 3. Apply configuration (run manually when you decide to apply)
 nh os switch
 ```
+
+In team workflows where builds and applies are user-gated, stop after step 2
+until the operator explicitly approves step 3.
 
 `nh` is preferred over `nixos-rebuild` because it shows a readable diff of
 added/removed packages, size comparison, and cleaner error output.
@@ -78,6 +81,6 @@ cat /nix/store/<hash>-<name>
 | ------- | -------------------------------- | ------------------------------------------------ |
 | Check   | `nix flake check --no-build`     | Schema violations, missing inputs, option errors |
 | Plan    | `nh os build --dry`              | Missing dependencies; shows derivations to build |
-| Apply   | `nh os switch`                   | Runtime failures                                 |
+| Apply   | `nh os switch`                   | Runtime failures (manual/apply gate)             |
 | Parse   | `nix eval --impure --expr '...'` | Syntax errors, undefined vars (debugging only)   |
 | Inspect | `nix-store --realise` + `cat`    | Incorrect escaping, malformed output             |

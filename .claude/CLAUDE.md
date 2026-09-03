@@ -25,7 +25,7 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 
 ## Code Standards
 - ZSH functions use PowerShell approved verbs.
-- ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`, repo-relative — edited alongside the functions it governs).
+- ZSH functions use PascalCase Verb-Noun naming (see `docs/zsh-functions-conventions.md`, repo-relative source of truth).
 - Use `command -v` not `which` for command detection.
 - No conditional guards for Home Manager tools (they're always present).
 - ZSH completions use `home.packages` with a `pkgs.runCommand` derivation (see `home/zsh.nix`) — not `xdg.dataFile`, which is not on `$fpath`.

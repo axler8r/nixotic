@@ -11,6 +11,9 @@ The diagrams show configuration composition and ownership boundaries. They do
 not show imperative execution order; NixOS and Home Manager modules are merged
 by their respective module systems.
 
+Unless stated otherwise, diagrams in this document describe the scaffolded
+future-state route, not every current server-like host.
+
 
 ## Scaffold Route
 A future server normally starts with `Prepare-NewHost`.
@@ -105,6 +108,10 @@ For every future server, `mkHost` adds:
 - `home/headless.nix` for user `axl`
 
 It does not add the workstation-only Stylix modules.
+
+Current-state note: `cre8r` imports `hosts/common/base.nix` directly, and
+`illumin8r` is a WSL host using `nixos-wsl` plus `base.nix` with
+`home/wsl.nix`.
 
 
 ## Generated Host Module

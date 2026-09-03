@@ -11,6 +11,9 @@ The diagrams show configuration composition and ownership boundaries. They do
 not show imperative execution order; NixOS and Home Manager modules are merged
 by their respective module systems.
 
+Unless stated otherwise, diagrams in this document describe the scaffolded
+future-state route, not the current `ambul8r` host file.
+
 
 ## Scaffold Route
 A future workstation normally starts with `Prepare-NewHost`.
@@ -125,6 +128,10 @@ For a workstation, `Prepare-NewHost` generates this import shape:
   system.stateVersion = "25.11";
 }
 ```
+
+Current-state note: `ambul8r` is a legacy workstation and does not currently
+import `../common/zfs-root.nix`; it keeps its existing ZFS/runtime settings in
+`hosts/ambul8r/configuration.nix`.
 
 That file is deliberately small. It owns only the host identity and the first
 boot defaults. Hardware quirks are added there later only when the running

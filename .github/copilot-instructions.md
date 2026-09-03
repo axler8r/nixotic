@@ -37,7 +37,7 @@ Repo-local `.scratchpad/copilot` is shared, gitignored scratch space:
 
 ## Code Standards
 - ZSH functions use PowerShell approved verbs.
-- ZSH functions use PascalCase Verb-Noun naming (see `files/zsh/functions/CONVENTIONS.md`, repo-relative — edited alongside the functions it governs).
+- ZSH functions use PascalCase Verb-Noun naming (see `docs/zsh-functions-conventions.md`, repo-relative source of truth).
 - Use `command -v` not `which` for command detection.
 - No conditional guards for Home Manager tools (they're always present).
 - Let Stylix manage GNOME and desktop chrome only.
