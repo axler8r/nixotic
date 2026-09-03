@@ -47,8 +47,8 @@ files/nim/
 `lib/testing.nim` sits directly under `lib/`, not `lib/tests/`, deliberately:
 the flake's test globs are `lib/tests/*.nim` and `functions/tests/*.nim`, and
 `testing.nim` is a helper module `import`ed by other test files, not a test
-suite of its own — placing it under `lib/tests/` would make the check
-derivation try to compile and run it as one.
+suite of its own — placing it under `lib/tests/` would make the check derivation
+try to compile and run it as one.
 
 ## Naming: source file vs. installed binary
 
@@ -65,9 +65,8 @@ So: **the Nim source file drops the hyphen** (PascalCase, e.g.
 matching the PowerShell Verb-Noun convention that aliases and `$PATH` lookups
 expect.
 
-That mapping is spelled out explicitly per function in `flake.nix`'s `let`
-block as the `nimFunctionBinaries` attrset, not derived from the source
-filename:
+That mapping is spelled out explicitly per function in `flake.nix`'s `let` block
+as the `nimFunctionBinaries` attrset, not derived from the source filename:
 
 ```nix
 nimFunctionBinaries = {
@@ -84,9 +83,10 @@ transform isn't safe in general — e.g. `ConvertTo-H264Video` has two capitaliz
 words before the hyphen, so a mechanical reversal would misplace it. One
 explicit entry per function is boring and correct.
 
-The `packages.${system}.nim-functions` derivation's build phase uses this attrset
-to construct one `nim c` invocation per function, and fails loudly if any
-`functions/*.nim` file has no matching entry — no more silently-missing binaries.
+The `packages.${system}.nim-functions` derivation's build phase uses this
+attrset to construct one `nim c` invocation per function, and fails loudly if
+any `functions/*.nim` file has no matching entry — no more silently-missing
+binaries.
 
 ## Function structure
 
@@ -128,8 +128,8 @@ when isMainModule:
   (used for the `--help` case in `Get-Attribute`'s tests).
 - A function that spawns any subprocess also takes an optional
   `runner: Runner = defaultRunner` param, so tests can substitute
-  `newRecordingRunner`'s runner instead — see Process execution and Test
-  doubles below.
+  `newRecordingRunner`'s runner instead — see Process execution and Test doubles
+  below.
 - `when isMainModule` calls `cliMain(run(commandLineParams()))`, not a bare
   `quit(run(...))` — see Error handling and the exit-code contract below.
 - `proc run*` and any helper `proc`s a test needs must be marked `*` (exported)
@@ -144,31 +144,31 @@ needs** — don't port the full zsh helper surface speculatively.
 
 Ported so far:
 
-| zsh | Nim |
-|---|---|
-| `__ax_error` | `output.error*(msg: string, errp: File = stderr)` |
-| `__ax_require_arg` | `validation.requireArg*(value, name, errp): bool` |
-| `__ax_check_deps` | `validation.checkDeps*(cmds: openArray[string], errp): bool` |
-| `__ax_require_path_target` | `validation.requirePathTarget*(path, errp): bool` |
-| `__ax_require_xattr_name` | `validation.requireXattrName*(attribute, errp): bool` |
-| `__ax_require_writable_path_target` | `validation.requireWritablePathTarget*(path, errp): bool` |
-| `__ax_info` | `output.info*(msg: string, errp: File = stderr)` |
-| `__ax_success` | `output.success*(msg: string, errp: File = stderr)` |
-| `__ax_require_file` | `validation.requireFile*(path, errp): bool` |
-| `__ax_warn` | `output.warn*(msg: string, errp: File = stderr)` |
+| zsh                                 | Nim                                                          |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `__ax_error`                        | `output.error*(msg: string, errp: File = stderr)`            |
+| `__ax_require_arg`                  | `validation.requireArg*(value, name, errp): bool`            |
+| `__ax_check_deps`                   | `validation.checkDeps*(cmds: openArray[string], errp): bool` |
+| `__ax_require_path_target`          | `validation.requirePathTarget*(path, errp): bool`            |
+| `__ax_require_xattr_name`           | `validation.requireXattrName*(attribute, errp): bool`        |
+| `__ax_require_writable_path_target` | `validation.requireWritablePathTarget*(path, errp): bool`    |
+| `__ax_info`                         | `output.info*(msg: string, errp: File = stderr)`             |
+| `__ax_success`                      | `output.success*(msg: string, errp: File = stderr)`          |
+| `__ax_require_file`                 | `validation.requireFile*(path, errp): bool`                  |
+| `__ax_warn`                         | `output.warn*(msg: string, errp: File = stderr)`             |
 
 **Not yet ported** (add when the first function that needs one migrates):
 `__ax_verbose`, `__ax_confirm`, `__ax_table`, `__ax_require_dir`,
 `__ax_require_root`, `__ax_require_extension`.
 
-Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim
-style). Every function imports `output` and `validation` with a plain
-`import "../lib/output"` / `import "../lib/validation"` (no `as` alias),
-which brings their exported procs into scope unqualified — every call site
-in `functions/` writes `error(...)`, `requireArg(...)`, `checkDeps(...)`,
-never `output.error(...)` or `validation.requireArg(...)`. Reach for a
-module-qualified call only if two imported modules ever export a proc with
-the same name and a collision needs resolving; that hasn't happened yet.
+Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style).
+Functions import `output` and `validation` as needed with a plain
+`import "../lib/output"` / `import "../lib/validation"` (no `as` alias), which
+brings their exported procs into scope unqualified — call sites write
+`error(...)`, `requireArg(...)`, and `checkDeps(...)`, not `output.error(...)`
+or `validation.requireArg(...)`. Reach for a module-qualified call only if two
+imported modules ever export a proc with the same name and a collision needs
+resolving; that hasn't happened yet.
 
 Output contract carries over exactly: stdout for data, stderr for status; color
 suppressed when stderr isn't a TTY, or when `NO_COLOR` is set to **any** value
@@ -180,120 +180,116 @@ its value — this matches zsh's `${NO_COLOR+x}` set-ness test, which a naive
 
 Every subprocess a function spawns goes through `files/nim/lib/process.nim`.
 Never call `std/osproc`'s `startProcess` or `execProcess` directly from a
-`functions/*.nim` file. `run()` takes an optional `runner: Runner =
-defaultRunner` parameter and calls through it, which is also the seam tests
-use to intercept the spawn (see Test doubles below).
+`functions/*.nim` file. `run()` takes an optional
+`runner: Runner = defaultRunner` parameter and calls through it, which is also
+the seam tests use to intercept the spawn (see Test doubles below).
 
 Three primitives, one per shape of subprocess use:
 
-- `runner.runInherited(cmd, args)` — connects the child directly to the
-  parent's real stdin/stdout/stderr. Use when the child's own output should
-  stream to the user live (`zfs list`, `nix flake update`, `docker rmi`).
-  Returns the child's exit code.
+- `runner.runInherited(cmd, args)` — connects the child directly to the parent's
+  real stdin/stdout/stderr. Use when the child's own output should stream to the
+  user live (`zfs list`, `nix flake update`, `docker rmi`). Returns the child's
+  exit code.
 - `runner.capture(cmd, args, input = "")` — runs the child with both output
-  streams captured and drained concurrently, optionally writing `input` to
-  its stdin. Use when the function parses or transforms the output before
-  it reaches the user (`Get-Help` piping a queried command's `--help`
-  output through `bat`). Returns a `CommandResult` (`exitCode`, `output`,
-  `error`).
-- `runner.runQuiet(cmd, args)` — runs the child, discards both streams,
-  returns only the exit code. Use when only success/failure matters and
-  nothing is ever shown.
+  streams captured and drained concurrently, optionally writing `input` to its
+  stdin. Use when the function parses or transforms the output before it reaches
+  the user (`Get-Help` piping a queried command's `--help` output through
+  `bat`). Returns a `CommandResult` (`exitCode`, `output`, `error`).
+- `runner.runQuiet(cmd, args)` — runs the child, discards both streams, returns
+  only the exit code. Use when only success/failure matters and nothing is ever
+  shown.
 
 Draining is not optional. `osproc` gives each stream its own OS pipe with a
-small fixed buffer; a child that writes past it blocks until something
-reads that pipe. Reading one stream to completion before starting the other
-deadlocks the parent as soon as a child writes enough to both — `capture`'s
-real implementation drains stdout and stderr concurrently on separate
-threads specifically to avoid this, and `runQuiet` is built on top of
-`capture` rather than a simpler discard-both call for the same reason.
+small fixed buffer; a child that writes past it blocks until something reads
+that pipe. Reading one stream to completion before starting the other deadlocks
+the parent as soon as a child writes enough to both — `capture`'s real
+implementation drains stdout and stderr concurrently on separate threads
+specifically to avoid this, and `runQuiet` is built on top of `capture` rather
+than a simpler discard-both call for the same reason.
 
-`capture` also has an early-exit contract worth knowing before relying on
-it: a child that exits, or closes its stdin, before consuming all of
-`input` is not an error. The write simply stops there; the drain threads
-are still joined, the child is still reaped, and `capture` returns its real
-exit code along with whatever it did emit before exiting. A program piping
-into a pager or a `head`-shaped filter exiting early is the normal case,
-not a fault — a caller that must know the payload arrived in full has to
-arrange its own acknowledgement, because `capture` itself never raises for
-this.
+`capture` also has an early-exit contract worth knowing before relying on it: a
+child that exits, or closes its stdin, before consuming all of `input` is not an
+error. The write simply stops there; the drain threads are still joined, the
+child is still reaped, and `capture` returns its real exit code along with
+whatever it did emit before exiting. A program piping into a pager or a
+`head`-shaped filter exiting early is the normal case, not a fault — a caller
+that must know the payload arrived in full has to arrange its own
+acknowledgement, because `capture` itself never raises for this.
 
 One divergence from `osproc`'s `execProcess` is invisible to the argv-pinning
 tests and worth knowing if `capture`/`runQuiet` grow a new consumer:
-`execProcess` used to append a trailing newline to output that lacked one,
-while `capture`'s `output`/`error` are the child's bytes verbatim. Today
-this is correctly absorbed at all four consumers — `UpdateDockerImage.nim`'s
+`execProcess` used to append a trailing newline to output that lacked one, while
+`capture`'s `output`/`error` are the child's bytes verbatim. Today this is
+correctly absorbed at all four consumers — `UpdateDockerImage.nim`'s
 `filterImages` and `RemoveDockerDanglingImages.nim`/
-`RemoveDockerDanglingVolumes.nim`'s `parseDockerList` all drop empty lines,
-and `GetDefaultBrowser.nim` strips its result — but a future consumer must
-not assume a trailing newline is there.
+`RemoveDockerDanglingVolumes.nim`'s `parseDockerList` all drop empty lines, and
+`GetDefaultBrowser.nim` strips its result — but a future consumer must not
+assume a trailing newline is there.
 
 ## Error handling and the exit-code contract
 
-| Exit code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | Usage error (bad or missing argument, unknown flag) or a validation failure (`requireArg`, `requirePathTarget`, etc. returning `false`) |
-| `2` | A required external command is missing (`checkDeps` returning `false`) |
-| anything else | A subprocess's own exit code, passed straight through — e.g. `Get-ZfsSnapshots` returns whatever `zfs list` exited with |
+| Exit code     | Meaning                                                                                                                                                                                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`           | Success                                                                                                                                                                                                                                                                                            |
+| `1`           | Usage error (bad or missing argument, unknown flag) or a validation failure (`requireArg`, `requirePathTarget`, etc. returning `false`)                                                                                                                                                            |
+| `2`           | A required external command is missing (`checkDeps` returning `false`)                                                                                                                                                                                                                             |
+| anything else | Command-specific. A passthrough function should normally return the subprocess's own exit code (for example, `Get-ZfsSnapshots` returns whatever `zfs list` exited with); an orchestration function may deliberately normalize or combine failures, but that policy must be documented and tested. |
 
-`files/nim/lib/cli.nim`'s `cliMain` template is the top-level safety net:
-every function's `when isMainModule` block reads `cliMain(run(commandLineParams()))`,
-which catches any `CatchableError` escaping `run()`, prints it as an
-`Error:` line on stderr (via the same unqualified `error(...)` from
-`output`), and exits `1` — this preserves the stdout=data/stderr=status
-contract instead of letting a raw Nim traceback reach the user. Treat it as
-a backstop, not the primary error-reporting mechanism: a local
-`try/except` inside `run()` is still preferred wherever a specific message
-("Not a git repository") beats the generic exception text `cliMain` would
-otherwise print. `InitializeClaudeProject.nim` has several such local
-checks.
+`files/nim/lib/cli.nim`'s `cliMain` template is the top-level safety net: every
+function's `when isMainModule` block reads `cliMain(run(commandLineParams()))`,
+which catches any `CatchableError` escaping `run()`, prints it as an `Error:`
+line on stderr (via the same unqualified `error(...)` from `output`), and exits
+`1` — this preserves the stdout=data/stderr=status contract instead of letting a
+raw Nim traceback reach the user. Treat it as a backstop, not the primary
+error-reporting mechanism: a local `try/except` inside `run()` is still
+preferred wherever a specific message ("Not a git repository") beats the generic
+exception text `cliMain` would otherwise print. `InitializeClaudeProject.nim`
+has several such local checks.
 
 ## Resource ownership
 
-Process handles are owned entirely inside `process.nim`. `startProcess`'s
-result is a local variable in `realRunInherited`/`realCapture`, closed via
+Process handles are owned entirely inside `process.nim`. `startProcess`'s result
+is a local variable in `realRunInherited`/`realCapture`, closed via
 `defer: p.close()` (or an explicit `finally`, for `capture`, once its drain
-threads have joined) before the proc returns. A function's `run()` never
-sees a `Process` value and never closes one — it only ever sees the
-`Runner` it was given and the `int`/`CommandResult` a call through it
-returns.
+threads have joined) before the proc returns. A function's `run()` never sees a
+`Process` value and never closes one — it only ever sees the `Runner` it was
+given and the `int`/`CommandResult` a call through it returns.
 
 ## Test doubles
 
 Two mechanisms exist; which one applies depends on what's under test.
 
-**`newRecordingRunner`** (`lib/testing.nim`) is the default for a
-function's own tests. It spawns nothing: pass `rec.runner` as `run()`'s
-`runner` argument, call `run()`, then assert on `rec.calls` — each entry
-records the `kind` (`"inherited"`/`"capture"`), `cmd`, `args`, and any
-`input` that call carried. Its canned `exitCode`/`output`/`error` (set at
-construction) become what every `capture`/`runQuiet` call through it sees,
-so a test can also drive a function's post-processing of subprocess output
-without touching a real process. This is what argv-pinning "contract"
-tests in `functions/tests/` use, e.g. `test_enter_nix_shell.nim`'s
-"contract: nix shell is called with nixpkgs#-prefixed installables".
+**`newRecordingRunner`** (`lib/testing.nim`) is the default for a function's own
+tests. It spawns nothing: pass `rec.runner` as `run()`'s `runner` argument, call
+`run()`, then assert on `rec.calls` — each entry records the `kind`
+(`"inherited"`/`"capture"`), `cmd`, `args`, and any `input` that call carried.
+Its canned `exitCode`/`output`/`error` (set at construction) become what every
+`capture`/`runQuiet` call through it sees, so a test can also drive a function's
+post-processing of subprocess output without touching a real process. This is
+what argv-pinning "contract" tests in `functions/tests/` use, e.g.
+`test_enter_nix_shell.nim`'s "contract: nix shell is called with
+nixpkgs#-prefixed installables".
 
 **`withPath` + `writeFakeExe`** (also `lib/testing.nim`) cover two cases
-`newRecordingRunner` can't: `lib/process.nim`'s own tests, which must
-exercise a real `fork`/`exec` round trip against `realRunInherited`/
-`realCapture` rather than the interception seam, and a function's
-dependency-missing branch, which depends on `findExe` genuinely failing to
-find something on `$PATH`. `withPath(dir): body` replaces `$PATH` with
-`dir` for the block's duration; `writeFakeExe(dir, name, script)` writes an
-executable `/bin/sh` script at `dir/name` standing in for a real command
-(the pristine `$PATH`, captured once at module load, is baked into the
-stub so its own body can still shell out to real utilities like `cat`/`wc`
-even while the test process's `$PATH` is the fixture directory).
+`newRecordingRunner` can't: `lib/process.nim`'s own tests, which must exercise a
+real `fork`/`exec` round trip against `realRunInherited`/ `realCapture` rather
+than the interception seam, and a function's dependency-missing branch, which
+depends on `findExe` genuinely failing to find something on `$PATH`.
+`withPath(dir): body` replaces `$PATH` with `dir` for the block's duration;
+`writeFakeExe(dir, name, script)` writes an executable `/bin/sh` script at
+`dir/name` standing in for a real command (the pristine `$PATH`, captured once
+at module load, is baked into the stub so its own body can still shell out to
+real utilities like `cat`/`wc` even while the test process's `$PATH` is the
+fixture directory).
 
-One wrinkle worth knowing: a `newRecordingRunner` contract test can still
-need a `withPath`/`writeFakeExe` stub, purely to get a `checkDeps` call to
-pass before the recording runner's interception ever matters. The test
-sandbox has no `docker` or `zfs` in `nativeBuildInputs`, so e.g.
-`test_update_docker_image.nim`'s contract tests write an empty-bodied
-`docker` stub under `withPath` before calling `run()` — `checkDeps` finds
-it on `$PATH` and passes, but the stub is never actually executed, because
-`rec.runner` intercepts the spawn that `checkDeps`'s pass unlocks.
+One wrinkle worth knowing: a `newRecordingRunner` contract test can still need a
+`withPath`/`writeFakeExe` stub, purely to get a `checkDeps` call to pass before
+the recording runner's interception ever matters. The test sandbox has no
+`docker` or `zfs` in `nativeBuildInputs`, so e.g.
+`test_update_docker_image.nim`'s contract tests write an empty-bodied `docker`
+stub under `withPath` before calling `run()` — `checkDeps` finds it on `$PATH`
+and passes, but the stub is never actually executed, because `rec.runner`
+intercepts the spawn that `checkDeps`'s pass unlocks.
 
 ## Testing
 
@@ -304,27 +300,29 @@ every `lib/tests/*.nim` and `functions/tests/*.nim` file under
 expression.
 
 Dependency checks are testable in both directions, not just the happy path.
-`checkDeps` calls `findExe`, which reads `$PATH` at **runtime** —
-`nim c -r` compiles the test binary and only then runs it, so there's no
-sense in which a dependency is present or absent "at compile time." Point
-`withPath` (see Test doubles above) at an empty directory to construct the
-"command missing" branch: `checkDeps` fails and the function returns exit
-code `2` with a `Missing commands: ...` message on stderr —
+`checkDeps` calls `findExe`, which reads `$PATH` at **runtime** — `nim c -r`
+compiles the test binary and only then runs it, so there's no sense in which a
+dependency is present or absent "at compile time." Point `withPath` (see Test
+doubles above) at an empty directory to construct the "command missing" branch:
+`checkDeps` fails and the function returns exit code `2` with a
+`Missing commands: ...` message on stderr —
 `functions/tests/test_get_zfs_snapshots.nim` and
-`test_convert_to_video_horizontal.nim` cover this branch for real. It is
-not untestable; six test files that once carried a comment claiming
-otherwise have since been rewritten to prove it.
+`test_convert_to_video_horizontal.nim` cover this branch for real. It is not
+untestable; six test files that once carried a comment claiming otherwise have
+since been rewritten to prove it.
 
-Some test cases still need a genuinely-present tool for a value beyond
-"present or absent" — e.g. `Get-Attribute`'s tests exercise `getfattr`,
-from the `attr` package, for real past the `checkDeps` call. Add that
-package to the `checks` derivation's `nativeBuildInputs`, and to the
-devShell's `packages` for local runs — and consider a comment in the test
-file noting the dependency, since a missing one produces confusing
-failures that look like validation bugs.
+Some test cases still need a genuinely-present tool for a value beyond "present
+or absent" — e.g. `Get-Attribute`'s tests exercise `getfattr`, from the `attr`
+package, for real past the `checkDeps` call. Add that package to the `checks`
+derivation's `nativeBuildInputs`, and to the devShell's `packages` for local
+runs — and consider a comment in the test file noting the dependency, since a
+missing one produces confusing failures that look like validation bugs.
 
-Testing the color/`NO_COLOR` branches of `output.error` isn't practical without
-a real TTY — that's an accepted, permanent coverage gap, not something to chase.
+The non-TTY and `NO_COLOR` branches of `output.error` are covered without any
+special terminal setup. The color-enabled branch needs a pseudo-terminal on this
+Linux-only project; that coverage is feasible, but deferred because its value is
+currently lower than the subprocess and CLI-contract tests. Do not describe it
+as an untestable or permanent gap.
 
 ## Local development
 
@@ -339,32 +337,34 @@ via `nativeBuildInputs` — this is purely local ergonomics.
 `files/nim/nim.cfg` sets `--styleCheck:error`. Both
 `packages.${system}.nim-functions` and `checks.${system}.nim-functions-tests`
 pick it up automatically — both derivations set `src = ./files/nim` and run
-`nim c` from that directory, and Nim reads `nim.cfg` relative to the
-directory a compile is invoked from. The two builds are otherwise
-deliberately asymmetric: the package build passes `-d:release`, the test
-build does not, trading compile speed and optimization for live
-`assert`/`doAssert` checks and readable stack traces in a test binary.
-Don't "fix" this to match — see the comment beside `nim-functions-tests` in
-`flake.nix`.
+`nim c` from that directory, and Nim reads `nim.cfg` relative to the directory a
+compile is invoked from. The two builds are otherwise deliberately asymmetric:
+the package build passes `-d:release`, the test build does not, trading compile
+speed and optimization for live `assert`/`doAssert` checks and readable stack
+traces in a test binary. Don't "fix" this to match — see the comment beside
+`nim-functions-tests` in `flake.nix`.
 
-Resist adding `--warningAsError` or similar for a stricter test gate.
-Compiling a function file as a test's `import` dependency (rather than as
-its own main-module program) triggers a benign `UnusedImport` warning for
-`../lib/cli`: every function does `import "../lib/cli"` for `cliMain`, but
-`cliMain` is only ever referenced inside that file's own `when isMainModule`
-block, which a test build never compiles. Turning warnings into errors
-would fail every function's test on this false positive.
+Resist adding `--warningAsError` or similar for a stricter test gate. Compiling
+a function file as a test's `import` dependency (rather than as its own
+main-module program) triggers a benign `UnusedImport` warning for `../lib/cli`:
+every function does `import "../lib/cli"` for `cliMain`, but `cliMain` is only
+ever referenced inside that file's own `when isMainModule` block, which a test
+build never compiles. Turning warnings into errors would fail every function's
+test on this false positive.
 
-## Gaps closed while porting the Attribute family
+## Integration gaps found while porting the Attribute family
 
-Both gaps flagged after the `Get-Attribute` pilot are now closed:
+The two gaps flagged after the `Get-Attribute` pilot drove these changes:
 
 - `packages.${system}.nim-functions` builds from an explicit
-  `nimFunctionBinaries` attrset (binary name → source file) and fails the
-  build if any `functions/*.nim` file has no entry — no more
-  silently-missing binaries.
+  `nimFunctionBinaries` attrset (binary name → source file) and fails the build
+  if any `functions/*.nim` file has no entry — no more silently-missing
+  binaries.
 - `files/zsh/functions/Get-UserFunctions` reads `$NIXOTIC_NIM_FUNCTIONS_BIN`
   (set in `home/zsh.nix`'s `programs.zsh.sessionVariables`) and merges
-  Nim-installed binaries into its existing tables, tagged `(compiled)`,
-  using each binary's own `--help` text for its description (there's no
-  source comment to read on a compiled file).
+  Nim-installed binaries into its existing tables, tagged `(compiled)`.
+  Description extraction is not fully closed: it takes the first non-empty line
+  after `Usage:`, so functions whose help starts with a `Description:` heading
+  are currently listed with that literal heading instead of the following
+  descriptive text. Fix the parser or standardize the help shape before treating
+  this integration as complete.
