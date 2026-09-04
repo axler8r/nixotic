@@ -73,6 +73,11 @@
         "New-DotNetDevEnvironment" = "NewDotNetDevEnvironment.nim";
         "New-ElixirDevEnvironment" = "NewElixirDevEnvironment.nim";
         "Remove-DevEnvironment" = "RemoveDevEnvironment.nim";
+        "New-GitWIPBranch" = "NewGitWipBranch.nim";
+        "Complete-GitWIPBranch" = "CompleteGitWipBranch.nim";
+        "Remove-GitWIPBranch" = "RemoveGitWipBranch.nim";
+        "Update-GitStableBranch" = "UpdateGitStableBranch.nim";
+        "New-GitTag" = "NewGitTag.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +

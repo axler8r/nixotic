@@ -192,8 +192,13 @@ Vault family (`Mount-Vault`, `Remove-Vault`, `Resize-Vault` all resolve a bare
 name-or-path input to a vault file + mapper name the same way), is the first
 instance of this pattern. `lib/devenv.nim` (`formatPackageLines`,
 `flakeNixContent`, `scaffoldDevEnvironment`), forced by the dev-environment
-scaffolder family, is the second. `lib/git.nim`, planned for the git-WIP family,
-will be the third.
+scaffolder family, is the second. `lib/git.nim` (`requireGitRepo`,
+`gitCurrentBranch`, `requireCleanGitWorktree`, `requireBranchExists`,
+`requireNotBranch`, `requireWipBranch`), a port of the existing
+`files/zsh/lib/git.zsh` rather than logic newly extracted from duplicated zsh,
+is the third — and the first of these three whose zsh source file is *not*
+deleted after the port, since `Update-GitWIPBranchHistory` (excluded from
+migration) still sources it.
 
 These modules follow the same import convention as `ax`: a plain
 `import "../lib/vault"` brings its exported procs into scope unqualified. They
@@ -201,6 +206,16 @@ are not tracked in the "ported so far" / "not yet ported" tables above — those
 are specific to the generic `ax` surface — but do get their own
 `lib/tests/test_<family>.nim` file, compiled by the same
 `checks.${system}.nim-functions-tests` glob as everything else in `lib/tests/`.
+
+`lib/git.nim` breaks one `ax`-established convention deliberately: its
+`require*` procs return `int`, not `bool`. The zsh original's
+`__ax_require_git_repo` calls `__ax_check_deps git` internally and its callers
+propagate `$?` verbatim, so callers need to distinguish "git is missing" (2)
+from "not a repository" (1) — a `bool` can't carry that third state. Every
+other `require*`-shaped proc in this codebase (`validation.nim`'s,
+`lib/vault.nim`'s) returns `bool` because none of them wrap a `checkDeps` call
+themselves; reach for the `int` shape only when a helper genuinely needs to
+convey more than pass/fail.
 
 ## Regex avoidance
 
