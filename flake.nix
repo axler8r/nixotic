@@ -79,6 +79,10 @@
         "Update-GitStableBranch" = "UpdateGitStableBranch.nim";
         "New-GitTag" = "NewGitTag.nim";
         "Get-GitHubLicenses" = "GetGitHubLicenses.nim";
+        "Get-DockerImages" = "GetDockerImages.nim";
+        "Get-DanglingDockerImages" = "GetDanglingDockerImages.nim";
+        "Get-DockerDanglingVolumes" = "GetDockerDanglingVolumes.nim";
+        "Find-DockerImages" = "FindDockerImages.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
