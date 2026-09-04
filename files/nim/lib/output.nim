@@ -1,4 +1,5 @@
 import std/[os, strutils, terminal]
+import process
 
 const
   ansiRed = "\e[31m"
@@ -45,3 +46,24 @@ proc confirm*(message: string, inp: File = stdin, outp: File = stdout): bool =
     return false
   let normalized = response.strip().toLowerAscii()
   normalized == "y" or normalized == "yes"
+
+proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
+           outp: File = stdout, errp: File = stderr): int =
+  ## Formats pipe-delimited rows (first row = header) the same way the zsh
+  ## __ax_table helper does: `gum table` when outp is an interactive
+  ## terminal, NO_COLOR is unset, and gum is on PATH; otherwise plain
+  ## `column -t -s|` alignment. `raw` forces the plain path exactly like
+  ## the zsh original's --raw flag; a non-tty outp forces it regardless of
+  ## raw, matching the zsh original's `[[ ! -t 1 ]]` check.
+  let plain = raw or not isatty(outp) or existsEnv("NO_COLOR") or
+              findExe("gum").len == 0
+  let cr =
+    if plain:
+      runner.capture("column", @["-t", "-s|"], data)
+    else:
+      runner.capture("gum", @["table", "--separator", "|", "--border",
+                              "rounded", "--print"], data)
+  outp.write(cr.output)
+  if cr.error.len > 0:
+    errp.write(cr.error)
+  cr.exitCode

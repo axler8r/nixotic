@@ -78,6 +78,7 @@
         "Remove-GitWIPBranch" = "RemoveGitWipBranch.nim";
         "Update-GitStableBranch" = "UpdateGitStableBranch.nim";
         "New-GitTag" = "NewGitTag.nim";
+        "Get-GitHubLicenses" = "GetGitHubLicenses.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
@@ -178,7 +179,7 @@
           pname = "nixotic-nim-functions-tests";
           version = "0.1.0";
           src = ./files/nim;
-          nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv ];
+          nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv pkgs.util-linux ];
           # Deliberately built WITHOUT -d:release, unlike packages.nim-functions above:
           # live `assert`/`doAssert` checks and readable stack traces are worth more
           # in a test binary than the speed release mode buys. Do not "fix" this to
@@ -233,7 +234,7 @@
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv ];
+        packages = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv pkgs.util-linux ];
       };
     };
 }

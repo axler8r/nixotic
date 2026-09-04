@@ -161,9 +161,10 @@ Ported so far:
 | `__ax_require_file`                 | `validation.requireFile*(path, errp): bool`                                      |
 | `__ax_warn`                         | `output.warn*(msg: string, errp: File = stderr)`                                 |
 | `__ax_confirm`                      | `output.confirm*(message: string, inp: File = stdin, outp: File = stdout): bool` |
+| `__ax_table`                        | `output.table*(data: string, raw, runner, outp, errp): int`                      |
 
 **Not yet ported** (add when the first function that needs one migrates):
-`__ax_verbose`, `__ax_table`, `__ax_require_dir`, `__ax_require_root`,
+`__ax_verbose`, `__ax_require_dir`, `__ax_require_root`,
 `__ax_require_extension`.
 
 Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style).

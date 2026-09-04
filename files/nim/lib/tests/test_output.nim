@@ -1,5 +1,7 @@
-import std/[unittest, os]
+import std/[unittest, os, strutils]
 import "../output"
+import "../process"
+import "../testing"
 
 suite "output.error":
   test "writes a plain-text prefixed message to a non-tty file":
@@ -128,3 +130,71 @@ suite "output.confirm":
     removeFile(tmp)
     removeFile(outTmp)
     check prompted == "Delete this? (y/N): "
+
+suite "output.table":
+  test "plain path is used when outp is not a tty, regardless of raw":
+    let outTmp = getTempDir() / "test_output_table_nontty.txt"
+    let outf = open(outTmp, fmWrite)
+    let rec = newRecordingRunner(exitCode = 0, output = "Name  Size\n")
+    let code = table("Name|Size", raw = false, runner = rec.runner, outp = outf)
+    outf.close()
+    removeFile(outTmp)
+    check code == 0
+    check rec.calls.len == 1
+    check rec.calls[0].kind == "capture"
+    check rec.calls[0].cmd == "column"
+    check rec.calls[0].args == @["-t", "-s|"]
+    check rec.calls[0].input == "Name|Size"
+
+  test "raw=true also selects column, same as the non-tty default":
+    let outTmp = getTempDir() / "test_output_table_raw.txt"
+    let outf = open(outTmp, fmWrite)
+    let rec = newRecordingRunner(exitCode = 0)
+    let code = table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner,
+                     outp = outf)
+    outf.close()
+    removeFile(outTmp)
+    check code == 0
+    check rec.calls[0].cmd == "column"
+    check rec.calls[0].input == "Name|Size\nfoo.txt|1.2 KB"
+
+  test "writes the runner's captured stdout to outp":
+    let outTmp = getTempDir() / "test_output_table_stdout.txt"
+    let outf = open(outTmp, fmWrite)
+    let rec = newRecordingRunner(exitCode = 0, output = "Name  Size\nfoo.txt  1.2 KB\n")
+    discard table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner,
+                  outp = outf)
+    outf.close()
+    let content = readFile(outTmp)
+    removeFile(outTmp)
+    check content == "Name  Size\nfoo.txt  1.2 KB\n"
+
+  test "forwards a nonzero exit code and writes the runner's captured stderr to errp":
+    let outTmp = getTempDir() / "test_output_table_err_out.txt"
+    let errTmp = getTempDir() / "test_output_table_err_err.txt"
+    let outf = open(outTmp, fmWrite)
+    let errf = open(errTmp, fmWrite)
+    let rec = newRecordingRunner(exitCode = 1, error = "column: bad option\n")
+    let code = table("Name|Size", raw = true, runner = rec.runner, outp = outf,
+                     errp = errf)
+    outf.close()
+    errf.close()
+    let errContent = readFile(errTmp)
+    removeFile(outTmp)
+    removeFile(errTmp)
+    check code == 1
+    check errContent == "column: bad option\n"
+
+  test "real invocation: column -t -s| actually aligns pipe-delimited rows":
+    # Requires util-linux's `column` for real, past the runner seam — see
+    # flake.nix's nim-functions-tests nativeBuildInputs / devShell packages.
+    let outTmp = getTempDir() / "test_output_table_real.txt"
+    let outf = open(outTmp, fmWrite)
+    let code = table("Name|Size\nfoo.txt|1.2 KB", raw = true, outp = outf)
+    outf.close()
+    let content = readFile(outTmp)
+    removeFile(outTmp)
+    check code == 0
+    check content.contains("Name")
+    check content.contains("foo.txt")
+    check not content.contains("|")
