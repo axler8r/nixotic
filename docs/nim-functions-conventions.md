@@ -22,6 +22,16 @@ Threshold-based, mapped onto the tier system in
 No backfill deadline. Un-migrated functions keep working exactly as today,
 indefinitely, via the existing zsh path.
 
+## Migration status
+
+Complete. Every zsh function identified as a migration candidate across the
+wave schedule has been ported to Nim, with two deliberate exceptions, both
+staying zsh indefinitely per the no-backfill-deadline policy above:
+
+- `Mount-Nfs` — considered over-engineered for its actual use; may be removed
+  outright rather than migrated, so it was left as-is pending that decision.
+- `Prepare-NewHost` — left as zsh; no migration planned.
+
 ## Repo layout
 
 Mirrors `files/zsh/`:
