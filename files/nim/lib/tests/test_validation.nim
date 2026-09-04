@@ -64,3 +64,17 @@ suite "validation.requireWritablePathTarget":
     setFilePermissions(tmp, {fpUserRead, fpUserWrite})
     removeFile(tmp)
     check ok == false
+
+suite "validation.requireDir":
+  test "fails when the path does not exist":
+    check requireDir("/definitely/not/a/real/path/xyz123") == false
+
+  test "succeeds for an existing directory":
+    check requireDir(getTempDir()) == true
+
+  test "fails when the path exists but is a file, not a directory":
+    let tmp = getTempDir() / "test_require_dir_file"
+    writeFile(tmp, "x")
+    let ok = requireDir(tmp)
+    removeFile(tmp)
+    check ok == false

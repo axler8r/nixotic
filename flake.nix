@@ -86,6 +86,9 @@
         "Get-SwapUsage" = "GetSwapUsage.nim";
         "Resolve-GitRepositoryPath" = "ResolveGitRepositoryPath.nim";
         "Get-NfsExports" = "GetNfsExports.nim";
+        "Find-MixedIndentation" = "FindMixedIndentation.nim";
+        "Measure-Words" = "MeasureWords.nim";
+        "Show-FileSizeHistogram" = "ShowFileSizeHistogram.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +

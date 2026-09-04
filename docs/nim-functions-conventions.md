@@ -162,10 +162,10 @@ Ported so far:
 | `__ax_warn`                         | `output.warn*(msg: string, errp: File = stderr)`                                 |
 | `__ax_confirm`                      | `output.confirm*(message: string, inp: File = stdin, outp: File = stdout): bool` |
 | `__ax_table`                        | `output.table*(data: string, raw, runner, outp, errp): int`                      |
+| `__ax_require_dir`                  | `validation.requireDir*(path, errp): bool`                                       |
 
 **Not yet ported** (add when the first function that needs one migrates):
-`__ax_verbose`, `__ax_require_dir`, `__ax_require_root`,
-`__ax_require_extension`.
+`__ax_verbose`, `__ax_require_root`, `__ax_require_extension`.
 
 Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style).
 Functions import `output` and `validation` as needed with a plain
@@ -199,7 +199,12 @@ scaffolder family, is the second. `lib/git.nim` (`requireGitRepo`,
 `files/zsh/lib/git.zsh` rather than logic newly extracted from duplicated zsh,
 is the third — and the first of these three whose zsh source file is *not*
 deleted after the port, since `Update-GitWIPBranchHistory` (excluded from
-migration) still sources it.
+migration) still sources it. `lib/fdscan.nim`
+(`buildFdArgs`, `findFiles`, `isTextMimeType`, `mimeType`), forced by the
+fd-scan family (`Find-MixedIndentation`, `Measure-Words`,
+`Show-FileSizeHistogram` all build `fd` arguments from `-e`/`--all` and
+word-split its output the same way; two of the three also classify files via
+`file --brief --mime-type`), is the fourth.
 
 These modules follow the same import convention as `ax`: a plain
 `import "../lib/vault"` brings its exported procs into scope unqualified. They

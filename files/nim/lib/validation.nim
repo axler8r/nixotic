@@ -42,6 +42,12 @@ proc requireWritablePathTarget*(path: string, errp: File = stderr): bool =
     return false
   true
 
+proc requireDir*(path: string, errp: File = stderr): bool =
+  if not dirExists(path):
+    error("Directory not found: " & path, errp)
+    return false
+  true
+
 const xattrChars = {'a'..'z', 'A'..'Z', '0'..'9', '.', '_', '-'}
 
 proc requireXattrName*(attribute: string, errp: File = stderr): bool =
