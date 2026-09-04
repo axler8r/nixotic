@@ -62,7 +62,7 @@
 
     # Nushell plugins
     nushellPlugins.gstat
-    nushellPlugins.highlight
+    # nushellPlugins.highlight
     nushellPlugins.polars
     nushellPlugins.query
 
