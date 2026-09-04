@@ -4,39 +4,39 @@
 
 Functions use **PascalCase Verb-Noun** naming (PowerShell-style):
 
-| Verb         | Purpose                      | Example                           |
-| ------------ | ---------------------------- | --------------------------------- |
-| `Get-`       | Retrieve/display information | `Get-Help`, `Get-IpAddress`       |
-| `Set-`       | Configure/modify state       | `Set-TrailingNewline`             |
-| `New-`       | Create a new resource        | `New-Function`, `New-Vault`       |
-| `Remove-`    | Delete a resource            | `Remove-Vault`                    |
-| `Start-`     | Begin a process/container    | `Start-DockerJupyterNotebook`     |
-| `Stop-`      | End a process/container      | `Stop-DockerZshUbuntu`            |
-| `Connect-`   | Attach to a resource         | `Connect-DockerZshUbuntu`         |
-| `Invoke-`    | Run a command/tool           | `Invoke-DockerTesseract`          |
-| `Update-`    | Refresh/upgrade              | `Update-DockerImages`             |
-| `Read-`      | Stream/follow content        | `Read-Log`, `Read-DockerLog`      |
-| `Write-`     | Output/save content          | `Write-Image`, `Write-Executable` |
-| `Test-`      | Check/validate               | `Test-SslHandshake`               |
-| `Mount-`     | Attach/activate              | `Mount-Vault`                     |
-| `Dismount-`  | Detach/deactivate            | `Dismount-Vault`                  |
-| `ConvertTo-` | Transform format             | `ConvertTo-PdfDocument`           |
-| `Show-`      | Display interactively        | `Show-GitHubLicense`              |
-| `Find-`      | Search for resources         | `Find-DockerImages`               |
-| `Open-`      | Launch a resource in its associated application | `Open-File`     |
-| `Confirm-`   | Verify/validate              | `Confirm-GitUntrackedCache`       |
-| `Reset-`     | Restore defaults             | `Reset-GnomeSettings`             |
-| `Resolve-`   | Determine/lookup             | `Resolve-GitRepositoryPath`       |
-| `Clear-`     | Remove cached data           | `Clear-DnsCache`                  |
-| `Measure-`   | Benchmark/profile            | `Measure-Performance`             |
+| Verb         | Purpose                                         | Example                           |
+| ------------ | ----------------------------------------------- | --------------------------------- |
+| `Get-`       | Retrieve/display information                    | `Get-Help`, `Get-IpAddress`       |
+| `Set-`       | Configure/modify state                          | `Set-TrailingNewline`             |
+| `New-`       | Create a new resource                           | `New-Function`, `New-Vault`       |
+| `Remove-`    | Delete a resource                               | `Remove-Vault`                    |
+| `Start-`     | Begin a process/container                       | `Start-DockerJupyterNotebook`     |
+| `Stop-`      | End a process/container                         | `Stop-DockerZshUbuntu`            |
+| `Connect-`   | Attach to a resource                            | `Connect-DockerZshUbuntu`         |
+| `Invoke-`    | Run a command/tool                              | `Invoke-DockerTesseract`          |
+| `Update-`    | Refresh/upgrade                                 | `Update-DockerImages`             |
+| `Read-`      | Stream/follow content                           | `Read-Log`, `Read-DockerLog`      |
+| `Write-`     | Output/save content                             | `Write-Image`, `Write-Executable` |
+| `Test-`      | Check/validate                                  | `Test-SslHandshake`               |
+| `Mount-`     | Attach/activate                                 | `Mount-Vault`                     |
+| `Dismount-`  | Detach/deactivate                               | `Dismount-Vault`                  |
+| `ConvertTo-` | Transform format                                | `ConvertTo-PdfDocument`           |
+| `Show-`      | Display interactively                           | `Show-GitHubLicense`              |
+| `Find-`      | Search for resources                            | `Find-DockerImages`               |
+| `Open-`      | Launch a resource in its associated application | `Open-File`                       |
+| `Confirm-`   | Verify/validate                                 | `Confirm-GitUntrackedCache`       |
+| `Reset-`     | Restore defaults                                | `Reset-GnomeSettings`             |
+| `Resolve-`   | Determine/lookup                                | `Resolve-GitRepositoryPath`       |
+| `Clear-`     | Remove cached data                              | `Clear-DnsCache`                  |
+| `Measure-`   | Benchmark/profile                               | `Measure-Performance`             |
 
 ## Output Contract
 
 **stdout carries data. stderr carries status.**
 
 - `__ax_error`, `__ax_warn`, `__ax_info`, `__ax_success` all write to stderr
-- Functions that produce no data (action takers: `New-`, `Remove-`, `Update-`, etc.)
-  write nothing to stdout — only status to stderr
+- Functions that produce no data (action takers: `New-`, `Remove-`, `Update-`,
+  etc.) write nothing to stdout — only status to stderr
 - Color is suppressed automatically when the output stream is not a TTY, or when
   `NO_COLOR` is set (any value)
 
@@ -80,17 +80,19 @@ alias start-dockerjupyternotebook=' Start-DockerJupyterNotebook '
 
 ## `--raw` Flag
 
-All `Get-`, `Find-`, `Resolve-`, and `Measure-` functions that produce structured or
-formatted output must accept `--raw`.
+All `Get-`, `Find-`, `Resolve-`, and `Measure-` functions that produce
+structured or formatted output must accept `--raw`.
 
 `--raw` output:
+
 - Plain text only — no color, no borders, no gum
 - One record per line for lists
 - Tab-separated fields for structured data
 - Suitable for `grep`, `awk`, `sort`, `xargs`
 
-Functions using `__ax_table` pass `$_raw_flag` through directly. `__ax_table` also
-auto-detects non-TTY stdout, so pipelines get plain output without needing `--raw`.
+Functions using `__ax_table` pass `$_raw_flag` through directly. `__ax_table`
+also auto-detects non-TTY stdout, so pipelines get plain output without needing
+`--raw`.
 
 ## Help Pattern
 
@@ -118,8 +120,8 @@ EOF
 fi
 ```
 
-Pattern 2 (the `local _help=...` / `_help_flag` / inner `_help()` / `unfunction` approach)
-is retired.
+Pattern 2 (the `local _help=...` / `_help_flag` / inner `_help()` / `unfunction`
+approach) is retired.
 
 ## Shared Libraries
 
@@ -136,6 +138,7 @@ files/zsh/
 ```
 
 Functions source libraries with:
+
 ```zsh
 source "${0:h}/../lib/output.zsh"
 source "${0:h}/../lib/validation.zsh"
@@ -143,23 +146,22 @@ source "${0:h}/../lib/validation.zsh"
 
 ### Output Helpers (lib/output.zsh)
 
-| Helper           | Purpose                                    |
-| ---------------- | ------------------------------------------ |
-| `__ax_error`     | Red error message to stderr                |
-| `__ax_warn`      | Yellow warning message to stderr           |
-| `__ax_info`      | Green info message to stderr               |
-| `__ax_success`   | Green success message to stderr            |
-| `__ax_verbose`   | Blue debug message (if `_verbose_flag` set)|
-| `__ax_confirm`   | Interactive y/N prompt                     |
+| Helper         | Purpose                                     |
+| -------------- | ------------------------------------------- |
+| `__ax_error`   | Red error message to stderr                 |
+| `__ax_warn`    | Yellow warning message to stderr            |
+| `__ax_info`    | Green info message to stderr                |
+| `__ax_success` | Green success message to stderr             |
+| `__ax_verbose` | Blue debug message (if `_verbose_flag` set) |
+| `__ax_confirm` | Interactive y/N prompt                      |
 
 ### Validation Helpers (lib/validation.zsh)
 
-| Helper                 | Purpose                              |
-| ---------------------- | ------------------------------------ |
-| `__ax_check_deps`      | Check if commands exist              |
-| `__ax_require_file`    | Require file exists                  |
-| `__ax_require_dir`     | Require directory exists             |
-| `__ax_require_arg`     | Require argument not empty           |
-| `__ax_require_root`    | Require running as root              |
-| `__ax_require_extension` | Require file has extension         |
-
+| Helper                   | Purpose                    |
+| ------------------------ | -------------------------- |
+| `__ax_check_deps`        | Check if commands exist    |
+| `__ax_require_file`      | Require file exists        |
+| `__ax_require_dir`       | Require directory exists   |
+| `__ax_require_arg`       | Require argument not empty |
+| `__ax_require_root`      | Require running as root    |
+| `__ax_require_extension` | Require file has extension |

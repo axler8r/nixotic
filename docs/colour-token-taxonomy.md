@@ -4,14 +4,15 @@
 
 My preferred colours for coding and terminal work.
 
-> [!NOTE]
-> The goal is consistency: the same kind of token should look the same
-> wherever practical. This document is the single source of truth.
-> All tool configurations derive from it.
+> [!NOTE] The Goal is Consistency
+>
+> The same kind of token should look the same wherever practical. This document
+> is the single source of truth. All tool configurations derive from it.
 
 ## Rules
 
-1. Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, and wallpaper.
+1. Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, and
+   wallpaper.
 2. Base16 sucks, so I use my own Solarized palette and syntax colours.
 3. Tools use manual Solarized themes, based on my palette.
 4. Use Solarized Light.
@@ -49,7 +50,6 @@ These are the accent colours used for syntax and diagnostics.
 | Violet  | violet         | `6c71c4` |
 | Magenta | magenta        | `d33682` |
 
-
 ## Canonical Token Taxonomy
 
 This is the authoritative token table. Every tool appendix maps its
@@ -77,10 +77,11 @@ tool-specific names to the slugs in the `Token Slug` column.
 | `code.operator`       | Operators: `+`, `->`, `=>`, `::`, …                 | Light Accent (base0) | Normal   | `839496` |
 | `code.punctuation`    | Delimiters, brackets, commas, semicolons            | Light Accent (base0) | Normal   | `839496` |
 
-> [!NOTE]
+> [!NOTE] Conventions
+>
 > - `code.literal.*` types intentionally share cyan — all are value literals.
-> - `code.constant` is blue (naming role) not cyan (literal role): a named constant
->   is an identifier, not a literal value.
+> - `code.constant` is blue (naming role) not cyan (literal role): a named
+>   constant is an identifier, not a literal value.
 > - `code.comment` and `code.doc_comment` intentionally share base0/italic.
 > - `code.import` and `code.macro` intentionally share magenta.
 
@@ -166,8 +167,9 @@ attributes within a type namespace — closer to variable than to function.
 ### Shell — Zsh / Bash
 
 String literals are cyan (literals), not blue (variables). Variable expansions
-are blue (variable role). Process/command substitutions are violet (interpolation
-role). Commands and builtins are green/bold — they are the shell's keywords.
+are blue (variable role). Process/command substitutions are violet
+(interpolation role). Commands and builtins are green/bold — they are the
+shell's keywords.
 
 | Token Slug              | Description                                      | Colour               | Style    | Hex      |
 | ----------------------- | ------------------------------------------------ | -------------------- | -------- | -------- |
@@ -185,9 +187,10 @@ role). Commands and builtins are green/bold — they are the shell's keywords.
 | `shell.separator`       | Separators and redirections: `\|`, `;`, `>`, `&` | Light Accent (base0) | Normal   | `839496` |
 | `shell.comment`         | `# …`                                            | Light Accent (base0) | _Italic_ | `839496` |
 
-> [!NOTE]
-> - `shell.command` and `shell.keyword` intentionally share green/**Bold**.
->   Both are executable/control tokens; the distinction is not visually useful.
+> [!NOTE] Shell Conventions
+>
+> - `shell.command` and `shell.keyword` intentionally share green/**Bold**. Both
+>   are executable/control tokens; the distinction is not visually useful.
 > - `shell.string` is cyan (literal), not blue (variable). This is a correction
 >   from earlier config which used blue for quoted arguments.
 
@@ -277,13 +280,12 @@ Applies to yazi, dircolors (`LS_COLORS`), and eza (`EZA_COLORS`).
 | `fs.permission_exec`  | Execute permission bit                        | green `859900`                    | Normal   |
 | `fs.filesize`         | File size values                              | cyan `2aa198`                     | Normal   |
 
-
 ## Theming Strategy
 
 Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, wallpaper.
 
-Terminal and code-adjacent tools use manual Solarized themes so that shell colours
-and editor syntax colours remain independent.
+Terminal and code-adjacent tools use manual Solarized themes so that shell
+colours and editor syntax colours remain independent.
 
 | Tool      | Config path                           | Theme mechanism                                                                                                             |
 | --------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -304,14 +306,13 @@ and editor syntax colours remain independent.
 | btop      | `home/btop.nix`                       | Theme file — needs build-out                                                                                                |
 | atuin     | `home/atuin.nix`                      | Inherits terminal ANSI palette — no action needed                                                                           |
 
-
 ---
 
 ## Appendix A — Neovim (`home/neovim.nix`)
 
 Neovim uses two layers: legacy Vim highlight groups (for plugins and fallback)
-and treesitter `@` capture groups (for parsed buffers). Both must be set.
-The `role_hl` table in `initLua` is the implementation target.
+and treesitter `@` capture groups (for parsed buffers). Both must be set. The
+`role_hl` table in `initLua` is the implementation target.
 
 ### A.1 Legacy Vim Groups
 
@@ -388,8 +389,8 @@ The `role_hl` table in `initLua` is the implementation target.
 
 ### A.3 Lualine Statusline
 
-Lualine uses `solarized_light` as its base theme. Override the mode segments
-to match `status.mode_*` slugs above. In the `lualine.setup` `options` table:
+Lualine uses `solarized_light` as its base theme. Override the mode segments to
+match `status.mode_*` slugs above. In the `lualine.setup` `options` table:
 
 ```lua
 -- Mode colours override solarized_light defaults
@@ -409,13 +410,12 @@ local sol = {
 Mode → background colour mapping: Normal=blue, Insert=green, Visual=yellow,
 Replace=red, Command=orange. Foreground is always Light Background (`fdf6e3`).
 
-
 ---
 
 ## Appendix B — Helix (`home/helix.nix`)
 
-Helix theme inherits `solarized_light` and overrides specific keys.
-The theme file is `xdg.configFile."helix/themes/nixotic_solarized_light.toml"`.
+Helix theme inherits `solarized_light` and overrides specific keys. The theme
+file is `xdg.configFile."helix/themes/nixotic_solarized_light.toml"`.
 
 ### B.1 Syntax Scopes
 
@@ -479,17 +479,18 @@ The theme file is `xdg.configFile."helix/themes/nixotic_solarized_light.toml"`.
 | `status.separator`         | `ui.statusline.separator`                   |
 | `status.filename_modified` | `ui.text.modified` / `ui.bufferline.active` |
 
-
 ---
 
 ## Appendix C — VSCode (`extensions/nixotic-solarized-light/`)
 
-The theme is delivered as a standalone VS Code extension at `extensions/nixotic-solarized-light/`.
-Install it with a symlink or via the command palette (`Developer: Install Extension from Location…`),
-then select **Nixotic Solarized Light** in `Preferences: Color Theme`.
+The theme is delivered as a standalone VS Code extension at
+`extensions/nixotic-solarized-light/`. Install it with a symlink or via the
+command palette (`Developer: Install Extension from Location…`), then select
+**Nixotic Solarized Light** in `Preferences: Color Theme`.
 
-This appendix documents the TextMate scopes and workbench colour keys used in the extension.
-The sections below are kept as reference; `home/vscode.nix` is not modified.
+This appendix documents the TextMate scopes and workbench colour keys used in
+the extension. The sections below are kept as reference; `home/vscode.nix` is
+not modified.
 
 ### C.0 Extension install
 
@@ -498,7 +499,8 @@ ln -s "$PWD/extensions/nixotic-solarized-light" \
       "$HOME/.vscode/extensions/nixotic-solarized-light-0.1.0"
 ```
 
-Reload VS Code after linking. Re-run the command if the extension version is bumped in `package.json`.
+Reload VS Code after linking. Re-run the command if the extension version is
+bumped in `package.json`.
 
 ### C.1 Token Colour Customizations (reference)
 
@@ -602,14 +604,13 @@ Reload VS Code after linking. Re-run the command if the extension version is bum
 }
 ```
 
-
 ---
 
 ## Appendix D — bat (`home/bat.nix`)
 
-bat uses a Sublime Text `.tmTheme` XML (plist format) embedded inline.
-The existing `NixoticSolarizedLight` theme is largely correct.
-Add the following `<dict>` blocks to the `<array>` to cover gaps.
+bat uses a Sublime Text `.tmTheme` XML (plist format) embedded inline. The
+existing `NixoticSolarizedLight` theme is largely correct. Add the following
+`<dict>` blocks to the `<array>` to cover gaps.
 
 ### D.1 Scopes to Add
 
@@ -691,17 +692,18 @@ Add the following `<dict>` blocks to the `<array>` to cover gaps.
 </dict>
 ```
 
-
 ---
 
 ## Appendix E — Zsh (`home/zsh.nix`)
 
 Full corrected `ZSH_HIGHLIGHT_STYLES` map. Changes from current config:
+
 - `single-quoted-argument`, `double-quoted-argument`, `dollar-quoted-argument`,
   `back-quoted-argument` corrected from blue → cyan (`shell.string`)
 - `dollar-quoted-argument` further set to violet (`shell.interpolation`) — it
   can contain escape sequences and is interpolation-like
-- `command`, `builtin`, `function`, `alias` set to green/**bold** (`shell.command`)
+- `command`, `builtin`, `function`, `alias` set to green/**bold**
+  (`shell.command`)
 - `commandseparator`, `redirection` set to base0 (`shell.separator`)
 
 ```nix
@@ -738,7 +740,6 @@ ZSH_HIGHLIGHT_STYLES[process-substitution-delimiter] = 'fg=${solarized.violet}';
 ZSH_HIGHLIGHT_STYLES[arithmetic-expansion]     = 'fg=${solarized.violet}';
 ZSH_HIGHLIGHT_STYLES[rc-quote]                 = 'fg=${solarized.cyan}';
 ```
-
 
 ---
 
@@ -805,13 +806,12 @@ let solarized_light_shapes = {
 }
 ```
 
-
 ---
 
 ## Appendix G — tmux (`home/tmux.nix`)
 
-Replace the inline hex strings with named-comment annotations so the intent
-is auditable. The colours themselves are correct; the comments were wrong.
+Replace the inline hex strings with named-comment annotations so the intent is
+auditable. The colours themselves are correct; the comments were wrong.
 
 ```nix
 # ── Status Bar — Solarized Light ──
@@ -835,18 +835,18 @@ set -g message-command-style         "bg=#fdf6e3,fg=#b58900"
 set -g mode-style                    "bg=#eee8d5,fg=#002b36"
 ```
 
-> [!NOTE]
-> `window-status-current-format` uses Dark Background (`#002b36`) as text
-> on Light Background (`#fdf6e3`) for maximum contrast on the active window tab.
+> [!NOTE] Active Window Contrast
+>
+> `window-status-current-format` uses Dark Background (`#002b36`) as text on
+> Light Background (`#fdf6e3`) for maximum contrast on the active window tab.
 > This maps to `status.mode_normal` inverted — intentional.
-
 
 ---
 
 ## Appendix H — fzf (`home/zsh.nix`)
 
-fzf has no colour config currently. Add to `programs.fzf.defaultOptions` or
-set `FZF_DEFAULT_OPTS` in `sessionVariables`.
+fzf has no colour config currently. Add to `programs.fzf.defaultOptions` or set
+`FZF_DEFAULT_OPTS` in `sessionVariables`.
 
 ```nix
 programs.fzf = {
@@ -875,7 +875,6 @@ programs.fzf = {
 };
 ```
 
-
 ---
 
 ## Appendix I — dircolors (`home/dircolors.nix`)
@@ -902,7 +901,6 @@ Update the `extraConfig` to use these consistently.
 
 Changes required: `DIR` from `01;34` → `01;38;5;33`; `LINK` from `01;36` →
 `01;38;5;37`; `fs.meta` from index 240 → 245.
-
 
 ---
 
@@ -931,12 +929,12 @@ EZA_COLORS = [
 ].join(":");
 ```
 
-> [!NOTE]
-> `EZA_COLORS` is a colon-separated string in the Nix `sessionVariables` attrset;
-> the list above must be joined. The current string is mostly correct;
-> `sn` (size number) should be cyan (`37`) not green (`32`),
-> and `sb` (size unit) should be yellow (`136`) not orange/yellow (`33`).
-
+> [!NOTE] EZA Colours
+>
+> `EZA_COLORS` is a colon-separated string in the Nix `sessionVariables`
+> attrset; the list above must be joined. The current string is mostly correct;
+> `sn` (size number) should be cyan (`37`) not green (`32`), and `sb` (size
+> unit) should be yellow (`136`) not orange/yellow (`33`).
 
 ---
 
@@ -966,13 +964,12 @@ color "^Author: "     color33   default           # blue
 color "^Date: "       color245  default           # base0
 ```
 
-
 ---
 
 ## Appendix L — btop (`home/btop.nix`)
 
-btop ships named themes. The closest available theme is `solarized_light`.
-Set it in `programs.btop.settings`:
+btop ships named themes. The closest available theme is `solarized_light`. Set
+it in `programs.btop.settings`:
 
 ```nix
 programs.btop = {
@@ -985,11 +982,10 @@ programs.btop = {
 ```
 
 If `solarized_light` is not available in the btop package, the fallback is
-`default` and the terminal ANSI palette (Kitty) provides approximate colours.
-A custom btop theme matching the full palette can be written to
-`~/.config/btop/themes/nixotic_solarized_light.theme` if needed — flag this
-to implement as a follow-up.
-
+`default` and the terminal ANSI palette (Kitty) provides approximate colours. A
+custom btop theme matching the full palette can be written to
+`~/.config/btop/themes/nixotic_solarized_light.theme` if needed — flag this to
+implement as a follow-up.
 
 ---
 

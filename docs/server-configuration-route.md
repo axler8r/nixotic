@@ -1,4 +1,5 @@
 # Server Configuration Route
+
 This document shows what future Nixotic server hosts look like when they are
 scaffolded through `Prepare-NewHost` and evaluated through `flake.nix`.
 
@@ -14,8 +15,8 @@ by their respective module systems.
 Unless stated otherwise, diagrams in this document describe the scaffolded
 future-state route, not every current server-like host.
 
-
 ## Scaffold Route
+
 A future server normally starts with `Prepare-NewHost`.
 
 ```bash
@@ -67,8 +68,8 @@ The generated flake entry for a server is explicit:
 That `role = "server"` is what selects the headless Home Manager profile and
 prevents Stylix from being added by `mkHost`.
 
-
 ## Flake Route
+
 `flake.nix` turns the generated server entry into a full NixOS configuration.
 
 ```mermaid
@@ -110,11 +111,10 @@ For every future server, `mkHost` adds:
 It does not add the workstation-only Stylix modules.
 
 Current-state note: `cre8r` imports `hosts/common/base.nix` directly, and
-`illumin8r` is a WSL host using `nixos-wsl` plus `base.nix` with
-`home/wsl.nix`.
-
+`illumin8r` is a WSL host using `nixos-wsl` plus `base.nix` with `home/wsl.nix`.
 
 ## Generated Host Module
+
 For a server, `Prepare-NewHost` generates this import shape:
 
 ```nix
@@ -173,8 +173,8 @@ flowchart TD
     HostConfig --> State
 ```
 
-
 ## Disk Route
+
 Future servers use the shared ZFS-on-root Disko layout in
 `hosts/common/zfs-root-disk.nix`.
 
@@ -230,8 +230,8 @@ flowchart TD
     Rpool --> UserData
 ```
 
-
 ## Server System Baseline
+
 There is currently no separate `hosts/common/server.nix`. Future scaffolded
 servers import `hosts/common/base.nix` directly, with the SSH block generated in
 their host file.
@@ -260,12 +260,12 @@ flowchart TD
 ```
 
 This keeps the server baseline intentionally small. Server-specific services
-should start in `hosts/<hostname>/configuration.nix`; if the same service becomes
-common across multiple servers, that is the point where a future
+should start in `hosts/<hostname>/configuration.nix`; if the same service
+becomes common across multiple servers, that is the point where a future
 `hosts/common/server.nix` may become useful.
 
-
 ## ZFS Runtime Route
+
 Future servers import `hosts/common/zfs-root.nix` alongside their disk wrapper.
 The disk wrapper declares the layout; the runtime module owns shared ZFS
 operating behavior.
@@ -286,8 +286,8 @@ flowchart TD
     ZfsRoot --> Tmpfiles
 ```
 
-
 ## Home Manager Route
+
 All future server hosts use the headless Home Manager profile unless a host
 passes a custom `homeConfig` in `flake.nix`.
 
@@ -319,8 +319,8 @@ the common shell, Git, tmux, prompt, dotfiles, and core CLI tools, but does not
 pull in GNOME, desktop applications, VS Code, Kitty, Neovim, Stylix Home Manager
 overrides, or AI coding assistant packages.
 
-
 ## Full Future Server Graph
+
 This is the complete reusable server route in one diagram.
 
 ```mermaid
@@ -351,8 +351,8 @@ flowchart LR
     Home --> System
 ```
 
-
 ## What Future Servers Share
+
 Future server hosts share:
 
 - the same explicit `role = "server"` path in `flake.nix`
@@ -373,19 +373,20 @@ They should differ only where the machine or service role requires it:
 - host-specific firewall, storage, or network settings
 - machine-specific firmware or driver quirks
 
-
 ## Where Changes Belong
-| Change type | Usual location |
-| --- | --- |
-| Make every host behave differently, workstation or server | `hosts/common/base.nix` |
-| Change the generated server SSH posture | `files/zsh/functions/Prepare-NewHost` |
-| Add shared server behavior after multiple servers need it | future `hosts/common/server.nix` |
-| Change the default future server disk layout | `hosts/common/zfs-root-disk.nix` |
-| Change runtime ZFS behavior for new ZFS-on-root hosts | `hosts/common/zfs-root.nix` |
-| Change all server user tools or dotfiles | `home/headless.nix`, imported `home/*.nix`, or `files/` |
-| Add one machine's workload or hardware-specific settings | `hosts/<hostname>/configuration.nix` |
-| Change how server hosts are composed | `flake.nix` |
+
+| Change type                                               | Usual location                                          |
+| --------------------------------------------------------- | ------------------------------------------------------- |
+| Make every host behave differently, workstation or server | `hosts/common/base.nix`                                 |
+| Change the generated server SSH posture                   | `files/zsh/functions/Prepare-NewHost`                   |
+| Add shared server behavior after multiple servers need it | future `hosts/common/server.nix`                        |
+| Change the default future server disk layout              | `hosts/common/zfs-root-disk.nix`                        |
+| Change runtime ZFS behavior for new ZFS-on-root hosts     | `hosts/common/zfs-root.nix`                             |
+| Change all server user tools or dotfiles                  | `home/headless.nix`, imported `home/*.nix`, or `files/` |
+| Add one machine's workload or hardware-specific settings  | `hosts/<hostname>/configuration.nix`                    |
+| Change how server hosts are composed                      | `flake.nix`                                             |
 
 The rule of thumb is simple: shared host baseline goes in `base.nix`, repeated
-server policy should eventually move into a server role module, and machine facts
-or workloads stay in the generated host directory until they prove reusable.
+server policy should eventually move into a server role module, and machine
+facts or workloads stay in the generated host directory until they prove
+reusable.

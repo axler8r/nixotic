@@ -1,10 +1,11 @@
 # Configuration Validation
+
 A staged approach to validate Nix configuration changes before applying them.
 Each step is cheaper than the next and catches a different class of error —
 running them in order means failures surface as early as possible.
 
-
 ## The Pipeline
+
 ```mermaid
 flowchart LR
     A[flake check<br/>validate] --> B[nh build<br/>plan+diff]
@@ -15,8 +16,8 @@ flowchart LR
     style C fill:#e8f5e9
 ```
 
-
 ## Standard Workflow
+
 For routine configuration changes:
 
 ```bash
@@ -36,8 +37,8 @@ until the operator explicitly approves step 3.
 `nh` is preferred over `nixos-rebuild` because it shows a readable diff of
 added/removed packages, size comparison, and cleaner error output.
 
-
 ## When to Use Each Workflow
+
 | Scenario                   | Workflow                                                    |
 | -------------------------- | ----------------------------------------------------------- |
 | Adding a package           | Apply directly                                              |
@@ -45,12 +46,13 @@ added/removed packages, size comparison, and cleaner error output.
 | Escaping-sensitive changes | Standard + [inspect derivation](#debugging-escaping-issues) |
 | Large refactors            | Standard + careful inspection                               |
 
-
 ## Debugging Escaping Issues
+
 When migrating dotfiles to pure Nix, escaping bugs are common and invisible
 until the generated file is read directly. Two extra steps help:
 
 ### Parse the module
+
 Before `flake check`, you can parse a single module in isolation to catch syntax
 errors, undefined variables, and type mismatches without evaluating the whole
 flake:
@@ -63,6 +65,7 @@ nix eval --impure --expr '
 ```
 
 ### Realise and inspect the derivation
+
 After `nh os build --dry`, take the `.drv` path from the output and realise it
 to read the actual generated file. This is the only way to verify that escape
 sequences and string interpolations produced the expected bytes:
@@ -75,8 +78,8 @@ nix-store --realise /nix/store/<hash>-<name>.drv
 cat /nix/store/<hash>-<name>
 ```
 
-
 ## Quick Reference
+
 | Step    | Command                          | Catches                                          |
 | ------- | -------------------------------- | ------------------------------------------------ |
 | Check   | `nix flake check --no-build`     | Schema violations, missing inputs, option errors |

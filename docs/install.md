@@ -1,15 +1,17 @@
 # Installing Nixotic
+
 Covers provisioning a new _Nixotic_ host with nixos-anywhere and the WSL install
 path. Also covers ZFS disk layout and ongoing ZFS operations.
 
-
 ## Read This First
+
 In this guide, the **Nixotic Source** is the machine running the install: it has
 `nix`, SSH access to the target, and a local `~/.nixotic` checkout. That source
 can be any managed Nixotic host, a dedicated source VM, or in a fallback case
 any Linux machine that can run `nix`.
 
 Three rules matter more than anything else:
+
 1. New machines are installed **from another machine**, never by typing on the
    new machine itself. The new machine only ever boots the stock NixOS ISO and
    mostly waits.
@@ -17,32 +19,35 @@ Three rules matter more than anything else:
    **local checkout** at `~/.nixotic`, WIP branch and all. Add, commit and push
    after the install succeeds.
 3. Nothing needs to be reconciled after installing. The hardware config is
-   written into the local checkout *before* the install, `networking.hostId`
-   is a random permanent value chosen at scaffold time, and on `portable`
-   hosts disko emits `boot.resumeDevice` from the swap partition — no
-   hand-set value, nothing to reconcile after the disk exists.
+   written into the local checkout _before_ the install, `networking.hostId` is
+   a random permanent value chosen at scaffold time, and on `portable` hosts
+   disko emits `boot.resumeDevice` from the swap partition — no hand-set value,
+   nothing to reconcile after the disk exists.
 
 > [!NOTE] Steps
-> ---
+>
 > _**On the New Host**_
+>
 > 1. Boot the target from any NixOS ISO.
 > 1. Set the root password.
 > 1. Get the IP address.
-> ---
+>
 > _**On the Nixotic Source**_
+>
 > 1. Run `Prepare-NewHost` on the source.
 > 1. Configure the target disk.
 > 1. Commit the target configuration.
 > 1. Install the target with _nixos-anywhere_.
 
-
 ## Provision a New Host from a Nixotic Source
+
 Total hands-on time at the new machine: about two minutes. Everything else
 happens on the Nixotic Source.
 
 ### Step 1 — Boot the target on the NixOS ISO
-Write the standard NixOS ISO (minimal is fine) to a USB stick and boot the
-new machine from it. Log in as `nixos` (no password).
+
+Write the standard NixOS ISO (minimal is fine) to a USB stick and boot the new
+machine from it. Log in as `nixos` (no password).
 
 Give root a password and note the IP address:
 
@@ -60,16 +65,17 @@ curl -fsSI https://github.com >/dev/null && echo ok
 Expected: `ok`.
 
 **What can go wrong here:**
-- *No IP shown*: Wi-Fi needs manual setup on the minimal ISO — run
-  `sudo systemctl start wpa_supplicant`, then `wpa_cli` →
-  `add_network` / `set_network 0 ssid "<SSID>"` /
-  `set_network 0 psk "<password>"` / `enable_network 0` / `quit`.
-- *Machine won't boot the USB*: check UEFI boot order and disable Secure
-  Boot.
+
+- _No IP shown_: Wi-Fi needs manual setup on the minimal ISO — run
+  `sudo systemctl start wpa_supplicant`, then `wpa_cli` → `add_network` /
+  `set_network 0 ssid "<SSID>"` / `set_network 0 psk "<password>"` /
+  `enable_network 0` / `quit`.
+- _Machine won't boot the USB_: check UEFI boot order and disable Secure Boot.
 
 That is all the typing the new machine ever gets. Walk away from it.
 
 ### Step 2 — Scaffold the host
+
 ```bash
 cd ~/.nixotic
 git checkout stable && git pull --ff-only
@@ -77,29 +83,31 @@ Prepare-NewHost <newhost> --role workstation|server --profile fixed|portable
 ```
 
 Choose `--profile fixed` for desktops, servers, and VMs (zram swap, no
-hibernation). Choose `--profile portable` for laptops (swap partition
-sized for hibernation, `boot.resumeDevice` set). The default is `fixed`
-when `--profile` is omitted.
+hibernation). Choose `--profile portable` for laptops (swap partition sized for
+hibernation, `boot.resumeDevice` set). The default is `fixed` when `--profile`
+is omitted.
 
-Choose `--role workstation` (the default) for a GNOME machine — it gets the
-full workstation experience: the workstation role module, Stylix, and the desktop
+Choose `--role workstation` (the default) for a GNOME machine — it gets the full
+workstation experience: the workstation role module, Stylix, and the desktop
 Home Manager profile. Choose `--role server` for a CLI-only machine — it gets
 the base module, no Stylix, and the headless Home Manager profile. Until a
 dedicated server role module exists, servers scaffold on `base.nix` plus a
 hardened openssh block written into the host file (key-only, no root login).
 
 Expected: `Done. Scaffolded hosts/<newhost>/ ...` and a new WIP branch
-`wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is
-the **permanent** value for this host — it never changes.
+`wip/YYYYMMDD-XXXXXXX` holding one commit. The random `hostId` it prints is the
+**permanent** value for this host — it never changes.
 
 **What can go wrong here:**
-- *`error: working tree is dirty`*: commit or stash first; prepare refuses
-  to scaffold on top of unrelated changes.
-- *`error: must be on 'stable' branch`*: `git checkout stable` and re-run.
-- *`error: hosts/<newhost>/ already exists`*: pick another name, or delete
-  the stale directory if it was an abandoned attempt.
+
+- _`error: working tree is dirty`_: commit or stash first; prepare refuses to
+  scaffold on top of unrelated changes.
+- _`error: must be on 'stable' branch`_: `git checkout stable` and re-run.
+- _`error: hosts/<newhost>/ already exists`_: pick another name, or delete the
+  stale directory if it was an abandoned attempt.
 
 ### Step 3 — Point disk.nix at the right disk
+
 Look at the target's disks over SSH, then set the device:
 
 ```bash
@@ -108,13 +116,12 @@ ssh root@<target-ip> lsblk -o NAME,SIZE,MODEL,TYPE
 
 Expected: the target's disks, e.g. `nvme0n1  931.5G  ...  disk`.
 
-Edit `hosts/<newhost>/disk.nix` and set `device` to match
-(e.g. `/dev/nvme0n1`). For a `portable` host, also confirm that
-`swapSizeGiB` is set to at least the machine's RAM — the scaffold sets a
-default; adjust it to the actual RAM size. Then review
-`hosts/<newhost>/configuration.nix` for anything obviously wrong for this
-machine (role import, timezone, stateVersion) — but remember: **only the disk
-layout must be right now**; everything else is an ordinary post-boot edit.
+Edit `hosts/<newhost>/disk.nix` and set `device` to match (e.g. `/dev/nvme0n1`).
+For a `portable` host, also confirm that `swapSizeGiB` is set to at least the
+machine's RAM — the scaffold sets a default; adjust it to the actual RAM size.
+Then review `hosts/<newhost>/configuration.nix` for anything obviously wrong for
+this machine (role import, timezone, stateVersion) — but remember: **only the
+disk layout must be right now**; everything else is an ordinary post-boot edit.
 
 Commit what you changed:
 
@@ -123,13 +130,15 @@ git add hosts/<newhost>/ && git commit -m "feat(host): configure <newhost> disk 
 ```
 
 **What can go wrong here:**
-- *`ssh: connection refused`*: sshd starts automatically on the ISO, but
-  root needs the password from Step 1 — did `sudo passwd root` happen?
-- *Wrong device chosen*: this is the one destructive mistake available in
-  the whole flow. disko will erase whatever `disk.main.device` names,
-  without asking. Double-check against the `MODEL` and `SIZE` columns.
+
+- _`ssh: connection refused`_: sshd starts automatically on the ISO, but root
+  needs the password from Step 1 — did `sudo passwd root` happen?
+- _Wrong device chosen_: this is the one destructive mistake available in the
+  whole flow. disko will erase whatever `disk.main.device` names, without
+  asking. Double-check against the `MODEL` and `SIZE` columns.
 
 ### Step 4 — Install (the walk-away step)
+
 ```bash
 cd ~/.nixotic
 nix run github:nix-community/nixos-anywhere -- \
@@ -147,26 +156,26 @@ for a walk. On a typical machine this takes 10–30 minutes.
 Expected final output: `installation finished!` followed by the reboot.
 
 **What can go wrong here:**
-- *Host key prompt*: answer `yes`; the ISO generates a fresh host key each
-  boot. If a previous attempt left a stale entry:
-  `ssh-keygen -R <target-ip>`.
-- *disko fails*: the target is still sitting on the live ISO, untouched or
-  partially partitioned — nothing is lost. Fix `disk.nix`, commit, re-run
-  the same command.
-- *`error: The 'fileSystems' option does not specify your root file
-  system`*: the host's `disk.nix` sets `disko.enableConfig = false`, so
-  disko emits no `fileSystems`, and `nixos-generate-config` runs *before*
-  the disk is partitioned so it can't emit them either. The host must let
-  disko own the mounts — `disko.enableConfig = true` (the default).
-  `Prepare-NewHost` sets this for scaffolded hosts; only a host whose
-  `hardware-configuration.nix` was hand-generated on a running machine
-  (e.g. `ambul8r`) may keep it `false`.
-- *Build is too heavy for the Nixotic Source*: add `--build-on-remote` to build
+
+- _Host key prompt_: answer `yes`; the ISO generates a fresh host key each boot.
+  If a previous attempt left a stale entry: `ssh-keygen -R <target-ip>`.
+- _disko fails_: the target is still sitting on the live ISO, untouched or
+  partially partitioned — nothing is lost. Fix `disk.nix`, commit, re-run the
+  same command.
+- _`error: The 'fileSystems' option does not specify your root file system`_:
+  the host's `disk.nix` sets `disko.enableConfig = false`, so disko emits no
+  `fileSystems`, and `nixos-generate-config` runs _before_ the disk is
+  partitioned so it can't emit them either. The host must let disko own the
+  mounts — `disko.enableConfig = true` (the default). `Prepare-NewHost` sets
+  this for scaffolded hosts; only a host whose `hardware-configuration.nix` was
+  hand-generated on a running machine (e.g. `ambul8r`) may keep it `false`.
+- _Build is too heavy for the Nixotic Source_: add `--build-on-remote` to build
   on the target instead.
-- *`error: flake ... is dirty`*: uncommitted changes; `git add` them —
-  flakes only see tracked files.
+- _`error: flake ... is dirty`_: uncommitted changes; `git add` them — flakes
+  only see tracked files.
 
 ### Step 5 — After the install
+
 ```bash
 git add hosts/<newhost>/hardware-configuration.nix
 git commit -m "feat(host): persist generated hardware config for <newhost>"
@@ -177,8 +186,8 @@ git branch --delete @{-1} 2>/dev/null || true
 git push origin stable
 ```
 
-Then log into the new host (as `axl`) and give it its own checkout for
-ongoing updates:
+Then log into the new host (as `axl`) and give it its own checkout for ongoing
+updates:
 
 ```bash
 nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git ~/.nixotic'
@@ -186,47 +195,48 @@ nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git ~/.nixo
 
 From here on, updates are the normal cycle: edit, `nh os switch`.
 
-Post-install tuning — packages, GPU drivers, NVIDIA PRIME bus IDs
-(`lspci` on the running host), keyboard layout — is ordinary configuration
-work on a live system. Nothing about it is special to a fresh install.
+Post-install tuning — packages, GPU drivers, NVIDIA PRIME bus IDs (`lspci` on
+the running host), keyboard layout — is ordinary configuration work on a live
+system. Nothing about it is special to a fresh install.
 
-For a future ML workstation, the post-install additions are: NVIDIA drivers
-and CUDA, `hardware.nvidia-container-toolkit.enable = true` for Docker GPU
-access, and generous zram or swap for large models.
+For a future ML workstation, the post-install additions are: NVIDIA drivers and
+CUDA, `hardware.nvidia-container-toolkit.enable = true` for Docker GPU access,
+and generous zram or swap for large models.
 
 **What can go wrong here:**
-- *New host won't resume from hibernation*: only `portable`-profile hosts
+
+- _New host won't resume from hibernation_: only `portable`-profile hosts
   hibernate. disko sets `boot.resumeDevice` from the swap partition
   automatically — verify it resolved in the generated
   `hardware-configuration.nix` rather than hand-setting a partlabel. `fixed`
   hosts have no swap and do not hibernate.
 
-
 ## Optional: Bootstrap a Dedicated Nixotic Source VM
+
 A dedicated Nixotic Source can be a minimal headless NixOS VM on the Proxmox
 host. It is installed exactly like any other host from an existing Nixotic
 Source, such as `ambul8r`. This can be done more than once.
 
-1. On Proxmox, create a VM: 2 vCPU, 4 GB RAM, 32 GB disk (VirtIO block),
-   UEFI (OVMF) firmware **with the EFI disk added**, and the NixOS ISO
-   attached as the CD. Boot it. Two settings are not optional and are the
-   two things most likely to be wrong:
+1. On Proxmox, create a VM: 2 vCPU, 4 GB RAM, 32 GB disk (VirtIO block), UEFI
+   (OVMF) firmware **with the EFI disk added**, and the NixOS ISO attached as
+   the CD. Boot it. Two settings are not optional and are the two things most
+   likely to be wrong:
    - **BIOS must be OVMF (UEFI), not the default SeaBIOS.** systemd-boot is
      UEFI-only; a SeaBIOS VM installs fine but never boots the result.
-   - **When adding the EFI disk, uncheck "Pre-Enroll keys".** That box is
-     ticked by default; enrolling keys turns on Secure Boot, which rejects
-     the unsigned NixOS ISO and systemd-boot with `Access Denied`.
-2. In the Proxmox console for the VM: `sudo passwd root`, then `ip a` and
-   note the IP.
+   - **When adding the EFI disk, uncheck "Pre-Enroll keys".** That box is ticked
+     by default; enrolling keys turns on Secure Boot, which rejects the unsigned
+     NixOS ISO and systemd-boot with `Access Denied`.
+2. In the Proxmox console for the VM: `sudo passwd root`, then `ip a` and note
+   the IP.
 3. On the existing Nixotic Source, confirm the disk name the VM sees:
 
    ```bash
    ssh root@<vm-ip> lsblk -o NAME,SIZE,TYPE
    ```
 
-   Expected: `vda  32G  disk`. If it shows `sda` instead (VirtIO SCSI),
-   change `device` in `hosts/<nixotic_source>/disk.nix` to `/dev/sda` and
-   commit.
+   Expected: `vda  32G  disk`. If it shows `sda` instead (VirtIO SCSI), change
+   `device` in `hosts/<nixotic_source>/disk.nix` to `/dev/sda` and commit.
+
 4. Install from the existing Nixotic Source:
 
    ```bash
@@ -236,9 +246,10 @@ Source, such as `ambul8r`. This can be done more than once.
      --generate-hardware-config nixos-generate-config hosts/<nixotic_source>/hardware-configuration.nix \
      root@<vm-ip>
    ```
-5. After reboot, remove the ISO from the VM in Proxmox. Log in as `axl`
-   over SSH (key-only), change the initial console password
-   (`passwd`), commit the generated hardware config, merge, push.
+
+5. After reboot, remove the ISO from the VM in Proxmox. Log in as `axl` over SSH
+   (key-only), change the initial console password (`passwd`), commit the
+   generated hardware config, merge, push.
 6. Give `<nixotic_source>` its working checkout and an SSH key with GitHub
    access:
 
@@ -250,37 +261,40 @@ Source, such as `ambul8r`. This can be done more than once.
    ```
 
 **What can go wrong here:**
-- *Console hangs at `SeaBIOS ... Booting from Hard Disk...`*: the VM is on
-  legacy SeaBIOS firmware. The install succeeded, but systemd-boot is
-  UEFI-only so SeaBIOS finds nothing bootable and stalls forever — this is
-  not slowness, it will never boot. Stop the VM, set BIOS to OVMF (UEFI),
-  add an EFI disk with **Pre-Enroll keys unchecked**, and boot. No reinstall
-  is needed; the disk is already good.
-- *OVMF shows `Access Denied` loading the DVD-ROM and `No bootable option
-  or device was found`*: Secure Boot is enabled and rejecting the unsigned
-  NixOS ISO. Stop the VM, detach and remove the EFI disk, re-add it with
-  **Pre-Enroll keys unchecked**, put the CD first in the boot order, and
-  boot. The same applies to the installed system — systemd-boot is unsigned
-  and needs Secure Boot off.
-- *VM boots to a UEFI shell after install*: created without a proper
-  OVMF/EFI-disk setup. Recreate with OVMF (UEFI) and an EFI disk;
-  `hosts/<nixotic_source>/configuration.nix` uses systemd-boot, which is UEFI-only.
 
+- _Console hangs at `SeaBIOS ... Booting from Hard Disk...`_: the VM is on
+  legacy SeaBIOS firmware. The install succeeded, but systemd-boot is UEFI-only
+  so SeaBIOS finds nothing bootable and stalls forever — this is not slowness,
+  it will never boot. Stop the VM, set BIOS to OVMF (UEFI), add an EFI disk with
+  **Pre-Enroll keys unchecked**, and boot. No reinstall is needed; the disk is
+  already good.
+- _OVMF shows `Access Denied` loading the DVD-ROM and
+  `No bootable option or device was found`_: Secure Boot is enabled and
+  rejecting the unsigned NixOS ISO. Stop the VM, detach and remove the EFI disk,
+  re-add it with **Pre-Enroll keys unchecked**, put the CD first in the boot
+  order, and boot. The same applies to the installed system — systemd-boot is
+  unsigned and needs Secure Boot off.
+- _VM boots to a UEFI shell after install_: created without a proper
+  OVMF/EFI-disk setup. Recreate with OVMF (UEFI) and an EFI disk;
+  `hosts/<nixotic_source>/configuration.nix` uses systemd-boot, which is
+  UEFI-only.
 
 ## Fallback: No Driver Machine Available
+
 If no managed Nixotic Source is available (first machine ever, or total loss),
 any Linux machine that can run `nix` can act as the source: install nix, clone
 the repo, and follow "Provision a New Host from a Nixotic Source" from Step 2.
 The steps are identical; a dedicated source VM is a convenience, not a
 requirement.
 
-
 ## WSL Hosts (illumin8r)
+
 WSL hosts use a completely different install path. There is no ISO, no disk
-layout, no `hardware-configuration.nix`, no ZFS, and no bootloader.
-`illumin8r` is always installed this way.
+layout, no `hardware-configuration.nix`, no ZFS, and no bootloader. `illumin8r`
+is always installed this way.
 
 ### Prerequisites (Windows side)
+
 1. Enable WSL2: `wsl --install` (or via Windows Features → Virtual Machine
    Platform + Windows Subsystem for Linux).
 2. Confirm WSL2 is the default version: `wsl --set-default-version 2`.
@@ -288,6 +302,7 @@ layout, no `hardware-configuration.nix`, no ZFS, and no bootloader.
    `nix-community/NixOS-WSL` GitHub releases page.
 
 ### Step 1 — Import the NixOS-WSL distribution
+
 From PowerShell or Windows Terminal:
 
 ```powershell
@@ -303,6 +318,7 @@ wsl -d NixOS
 The initial default user is `nixos`.
 
 ### Step 3 — Enable Nix flakes
+
 Inside the WSL instance:
 
 ```bash
@@ -311,15 +327,17 @@ echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.con
 ```
 
 ### Step 4 — Apply the nixotic configuration
+
 ```bash
 nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git /tmp/nixotic'
 sudo nixos-rebuild switch --flake /tmp/nixotic#illumin8r
 ```
 
-This installs zsh, helix, git, tmux, tig, github-copilot-cli, and Docker,
-and sets `axl` as the default WSL user.
+This installs zsh, helix, git, tmux, tig, github-copilot-cli, and Docker, and
+sets `axl` as the default WSL user.
 
 ### Step 5 — Restart WSL
+
 From PowerShell:
 
 ```powershell
@@ -332,11 +350,13 @@ active. No reconciliation step is needed — there are no generated values to
 patch back.
 
 ### Step 6 — Move the repo into the user home
+
 ```bash
 cp -r /tmp/nixotic ~/.nixotic
 ```
 
 ### Ongoing updates
+
 From inside the WSL instance:
 
 ```bash
@@ -345,8 +365,8 @@ git pull
 sudo nixos-rebuild switch --flake .#illumin8r
 ```
 
-
 ## Disk Layout
+
 New hosts use a ZFS-on-root layout declared in
 [`hosts/common/zfs-root-disk.nix`](../hosts/common/zfs-root-disk.nix). Two
 profiles share the same base:
@@ -384,8 +404,8 @@ and will adopt ZFS-on-root only on a future reinstall. `ambul8r` in particular
 uses its own hand-generated `hardware-configuration.nix` with
 `disko.enableConfig = false`; that remains correct for its current layout.
 
-
 ## ZFS Pool Structure
+
 The pool is split into `HOSTDATA` and `USERDATA` so that a machine rebuild —
 which wipes root — does not touch personal data. `USERDATA` datasets mount
 directly into the home directory and survive reinstalls.
@@ -424,14 +444,14 @@ create a LUKS vault on demand with
 snapshot schedule and quotas independently.
 
 Dataset ownership is set by `systemd.tmpfiles.rules` in
-[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix), which runs on
-every boot.
-
+[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix), which runs on every
+boot.
 
 ## Required NixOS Configuration
-ZFS-on-root hosts import [`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix)
-from their `configuration.nix`. That shared module owns all the common
-runtime settings:
+
+ZFS-on-root hosts import
+[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix) from their
+`configuration.nix`. That shared module owns all the common runtime settings:
 
 ```nix
 boot.supportedFilesystems = [ "zfs" "nfs" ];
@@ -459,28 +479,29 @@ networking.hostId = "<random-8-hex-chars>";
 ```
 
 For a `portable` host, disko emits `boot.resumeDevice` automatically from the
-swap partition — you do not hand-set it. `fixed` hosts have no swap and
-do not hibernate.
-
+swap partition — you do not hand-set it. `fixed` hosts have no swap and do not
+hibernate.
 
 ## ZFS Operations
+
 The pool name is `rpool` on new ZFS-on-root hosts. `ambul8r` uses `dpool` —
 substitute accordingly. `cre8r` currently has no ZFS pool.
 
 ### Common Commands
-| Command                                               | Purpose                 |
-| ----------------------------------------------------- | ----------------------- |
-| `zpool status`                                        | Check pool health       |
-| `zpool scrub rpool`                                   | Manual scrub            |
-| `zfs list`                                            | List datasets and usage |
-| `zfs list -t snapshot`                                | List snapshots          |
-| `zfs snapshot rpool/USERDATA/home/axl/Projects@name`  | Create snapshot         |
-| `zfs rollback rpool/USERDATA/home/axl/Projects@name`  | Restore snapshot        |
-| `zfs destroy rpool/path@snapshot`                     | Delete snapshot         |
-| `systemctl hibernate`                                 | Hibernate laptop        |
 
+| Command                                              | Purpose                 |
+| ---------------------------------------------------- | ----------------------- |
+| `zpool status`                                       | Check pool health       |
+| `zpool scrub rpool`                                  | Manual scrub            |
+| `zfs list`                                           | List datasets and usage |
+| `zfs list -t snapshot`                               | List snapshots          |
+| `zfs snapshot rpool/USERDATA/home/axl/Projects@name` | Create snapshot         |
+| `zfs rollback rpool/USERDATA/home/axl/Projects@name` | Restore snapshot        |
+| `zfs destroy rpool/path@snapshot`                    | Delete snapshot         |
+| `systemctl hibernate`                                | Hibernate laptop        |
 
 ### Adding New Datasets
+
 Edit the relevant `hosts/<hostname>/disk.nix` to add the dataset — disko creates
 it on the next fresh install. To add a dataset on a running system without
 reinstalling:
@@ -495,14 +516,14 @@ sudo zfs create -o mountpoint=/home/axl/NewFolder rpool/USERDATA/home/axl/NewFol
 sudo chown axl:users /home/axl/NewFolder
 ```
 
-Then add the corresponding entry to `disk.nix` and `systemd.tmpfiles.rules`
-to keep the declaration in sync with reality.
-
+Then add the corresponding entry to `disk.nix` and `systemd.tmpfiles.rules` to
+keep the declaration in sync with reality.
 
 ### Dataset Recovery
+
 If datasets are accidentally destroyed, use
-[`files/zsh/functions/New-ZfsLayout`](../files/zsh/functions/New-ZfsLayout)
-to recreate them without a full reinstall:
+[`files/zsh/functions/New-ZfsLayout`](../files/zsh/functions/New-ZfsLayout) to
+recreate them without a full reinstall:
 
 ```bash
 sudo New-ZfsLayout    # recreates missing datasets, skips existing ones

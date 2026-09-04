@@ -1,11 +1,12 @@
 # Workstation Configuration Route
+
 This document shows what future Nixotic workstation hosts look like when they
 are scaffolded through `Prepare-NewHost` and evaluated through `flake.nix`.
 
 It describes the reusable workstation shape rather than the existing `ambul8r`
 laptop. The key difference is that future workstations use the shared
-ZFS-on-root disk wrapper by default, while `ambul8r` keeps its legacy ext4
-plus `dpool` layout until a future reinstall.
+ZFS-on-root disk wrapper by default, while `ambul8r` keeps its legacy ext4 plus
+`dpool` layout until a future reinstall.
 
 The diagrams show configuration composition and ownership boundaries. They do
 not show imperative execution order; NixOS and Home Manager modules are merged
@@ -14,8 +15,8 @@ by their respective module systems.
 Unless stated otherwise, diagrams in this document describe the scaffolded
 future-state route, not the current `ambul8r` host file.
 
-
 ## Scaffold Route
+
 A future workstation normally starts with `Prepare-NewHost`.
 
 ```bash
@@ -62,8 +63,8 @@ The generated flake entry for a workstation is intentionally thin:
 No explicit `role` is needed because `mkHost` defaults to
 `role = "workstation"`.
 
-
 ## Flake Route
+
 `flake.nix` turns the generated host entry into a full NixOS configuration.
 
 ```mermaid
@@ -106,8 +107,8 @@ For every future workstation, `mkHost` adds:
 - Stylix's NixOS module
 - the root `stylix.nix` theme configuration
 
-
 ## Generated Host Module
+
 For a workstation, `Prepare-NewHost` generates this import shape:
 
 ```nix
@@ -161,8 +162,8 @@ flowchart TD
     HostConfig --> State
 ```
 
-
 ## Disk Route
+
 Future workstations use the shared ZFS-on-root Disko layout in
 `hosts/common/zfs-root-disk.nix`.
 
@@ -218,8 +219,8 @@ flowchart TD
     Rpool --> UserData
 ```
 
-
 ## Workstation System Role
+
 The shared workstation role is `hosts/common/workstation.nix`. It imports the
 shared base role and then adds desktop system behavior.
 
@@ -259,8 +260,8 @@ flowchart TD
 This role is the reusable system-level template for workstations. Host-specific
 hardware should not be added here unless it applies to all future workstations.
 
-
 ## Home Manager Route
+
 All workstation hosts use the same Home Manager profile as `ambul8r`:
 `home/desktop.nix`.
 
@@ -291,8 +292,8 @@ This is what makes future workstations share the same user environment as
 `ambul8r`. To keep that true, future workstation entries in `flake.nix` should
 not set a custom `homeConfig`.
 
-
 ## Stylix Route
+
 Future workstations also get the same Stylix route as `ambul8r`.
 
 ```mermaid
@@ -320,8 +321,8 @@ flowchart TD
     HomeStylix --> Icons
 ```
 
-
 ## Full Future Workstation Graph
+
 This is the complete reusable workstation route in one diagram.
 
 ```mermaid
@@ -358,8 +359,8 @@ flowchart LR
     Theme --> System
 ```
 
-
 ## What Future Workstations Share
+
 Future workstation hosts share:
 
 - the same `mkHost` workstation path in `flake.nix`
@@ -380,19 +381,19 @@ They should differ only where the physical machine requires it:
 - hibernation, suspend, or firmware quirks
 - host-specific services or peripherals
 
-
 ## Where Changes Belong
-| Change type | Usual location |
-| --- | --- |
-| Make every future workstation behave differently at the system level | `hosts/common/workstation.nix` |
-| Make every host behave differently, workstation or server | `hosts/common/base.nix` |
-| Change the default future workstation disk layout | `hosts/common/zfs-root-disk.nix` |
-| Change runtime ZFS behavior for new ZFS-on-root hosts | `hosts/common/zfs-root.nix` |
-| Change all workstation user tools or dotfiles | `home/desktop.nix`, imported `home/*.nix`, or `files/` |
-| Change GNOME user preferences or desktop apps | `home/gnome.nix` |
-| Change shared workstation theming | `stylix.nix` or `home/stylix.nix` |
-| Add one machine's hardware-specific settings | `hosts/<hostname>/configuration.nix` |
-| Change how hosts are composed | `flake.nix` |
+
+| Change type                                                          | Usual location                                         |
+| -------------------------------------------------------------------- | ------------------------------------------------------ |
+| Make every future workstation behave differently at the system level | `hosts/common/workstation.nix`                         |
+| Make every host behave differently, workstation or server            | `hosts/common/base.nix`                                |
+| Change the default future workstation disk layout                    | `hosts/common/zfs-root-disk.nix`                       |
+| Change runtime ZFS behavior for new ZFS-on-root hosts                | `hosts/common/zfs-root.nix`                            |
+| Change all workstation user tools or dotfiles                        | `home/desktop.nix`, imported `home/*.nix`, or `files/` |
+| Change GNOME user preferences or desktop apps                        | `home/gnome.nix`                                       |
+| Change shared workstation theming                                    | `stylix.nix` or `home/stylix.nix`                      |
+| Add one machine's hardware-specific settings                         | `hosts/<hostname>/configuration.nix`                   |
+| Change how hosts are composed                                        | `flake.nix`                                            |
 
 The rule of thumb is simple: shared workstation policy goes in the shared
 workstation modules; machine facts and quirks stay in the generated host

@@ -1,4 +1,5 @@
 # Git Workflow
+
 This repository uses a **WIP-first trunk workflow**: all active work happens on
 short-lived `wip/*` branches that fast-forward into `stable`.
 
@@ -9,10 +10,10 @@ durable ref.
 
 The `stable` branch is the source of truth.
 
-
 ## The Cycle
 
 ### 1. Update Stable
+
 ```bash
 Update-GitStableBranch
 ```
@@ -21,6 +22,7 @@ This command refuses dirty worktrees and fast-forwards `stable` from
 `origin/stable`.
 
 ### 2. Create a WIP Branch
+
 ```bash
 New-GitWIPBranch
 ```
@@ -29,21 +31,26 @@ This creates and switches to `wip/YYYYMMDD-<random7>` from a clean `stable`
 branch.
 
 ### 3. Develop & Validate
+
 Make changes, then validate them with the existing Nix workflow:
+
 ```bash
 nix flake check --no-build
 nh os build --dry
 nh os switch
 ```
 
-> [!TIP] Tip
->  If the build fails or breaks the system, rollback to the previous
-> generation at boot time.
+> [!TIP] Recovery
+>
+> If the build fails or breaks the system, rollback to the previous generation
+> at boot time.
 
 See [validation.md](validation.md) for the full validation workflow.
 
 ### 4. Curate History
+
 Before landing work on `stable`, clean up the WIP history:
+
 ```bash
 Update-GitWIPBranchHistory
 ```
@@ -53,10 +60,11 @@ Update-GitWIPBranchHistory
 - Follow [Conventional Commits](https://www.conventionalcommits.org/)
 
 This runs `git rebase --interactive stable` from the current `wip/*` branch
-after checking repo state. Curation is a separate explicit step — mixing it
-into the completion command would make rebases invisible and harder to review.
+after checking repo state. Curation is a separate explicit step — mixing it into
+the completion command would make rebases invisible and harder to review.
 
 ### 5. Complete the WIP Branch
+
 ```bash
 Complete-GitWIPBranch
 ```
@@ -67,6 +75,7 @@ top of `stable` before merging, which keeps `stable`'s history linear and
 bisectable. If `stable` cannot be fast-forwarded, the command refuses.
 
 ### 6. Cleanup
+
 ```bash
 Remove-GitWIPBranch <wip-branch>
 ```
@@ -75,6 +84,7 @@ Cleanup stays explicit. The branch name is required, and only merged `wip/*`
 branches can be deleted.
 
 ## Guidelines
+
 | Practice                                   | Reason                                                 |
 | ------------------------------------------ | ------------------------------------------------------ |
 | Keep all active work on `wip/*` branches   | Enforces the intended `stable -> wip/* -> stable` flow |
