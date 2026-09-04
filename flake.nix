@@ -83,6 +83,9 @@
         "Get-DanglingDockerImages" = "GetDanglingDockerImages.nim";
         "Get-DockerDanglingVolumes" = "GetDockerDanglingVolumes.nim";
         "Find-DockerImages" = "FindDockerImages.nim";
+        "Get-SwapUsage" = "GetSwapUsage.nim";
+        "Resolve-GitRepositoryPath" = "ResolveGitRepositoryPath.nim";
+        "Get-NfsExports" = "GetNfsExports.nim";
       };
 
       # role selects the whole experience: "workstation" = Stylix +
