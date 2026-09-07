@@ -29,6 +29,8 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      lib = pkgs.lib;
+      nimDir = ./files/nim;
 
       # Each function's Nim source file is named without a hyphen (e.g.
       # GetAttribute.nim) because Nim's `import` requires a valid identifier,
@@ -90,6 +92,51 @@
         "Measure-Words" = "MeasureWords.nim";
         "Show-FileSizeHistogram" = "ShowFileSizeHistogram.nim";
       };
+
+      # Fails at eval time (before any build runs) if functions/*.nim and
+      # nimFunctionBinaries ever drift apart in either direction: a file added
+      # without an entry, or an entry left behind after its file was deleted.
+      checkedNimFunctionBinaries =
+        let
+          onDisk = builtins.attrNames
+            (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nim" name)
+              (builtins.readDir (nimDir + "/functions")));
+          mapped = builtins.attrValues nimFunctionBinaries;
+          unmapped = lib.subtractLists mapped onDisk;
+          stale = lib.subtractLists onDisk mapped;
+        in
+        if unmapped != [ ] then
+          throw "flake.nix: functions/*.nim on disk with no nimFunctionBinaries entry: ${toString unmapped}"
+        else if stale != [ ] then
+          throw "flake.nix: nimFunctionBinaries entries with no matching functions/*.nim file: ${toString stale}"
+        else nimFunctionBinaries;
+
+      # nim.cfg + lib/*.nim shared by every function. lib/tests is excluded so
+      # editing a lib test doesn't invalidate every function's build cache.
+      nimShared = lib.fileset.difference
+        (lib.fileset.unions [ (nimDir + "/nim.cfg") (nimDir + "/lib") ])
+        (nimDir + "/lib/tests");
+
+      # One derivation per function, sourced from only nim.cfg + lib/ + its own
+      # functions/<srcFile> -- so editing one function (or an unrelated test)
+      # only invalidates that function's own build, not every other one's.
+      mkNimFunction = binName: srcFile:
+        pkgs.stdenv.mkDerivation {
+          pname = "nixotic-nim-fn-${binName}";
+          version = "0.1.0";
+          src = lib.fileset.toSource {
+            root = nimDir;
+            fileset = lib.fileset.union nimShared (nimDir + "/functions/${srcFile}");
+          };
+          nativeBuildInputs = [ pkgs.nim ];
+          buildPhase = ''
+            runHook preBuild
+            mkdir -p $out/bin
+            nim c -d:release --nimcache:.nimcache -o:"$out/bin/${binName}" functions/${srcFile}
+            runHook postBuild
+          '';
+          dontInstall = true;
+        };
 
       # role selects the whole experience: "workstation" = Stylix +
       # home/desktop.nix, "server" = no Stylix + home/headless.nix.
@@ -153,35 +200,9 @@
         };
       };
 
-      packages.${system}.nim-functions = pkgs.stdenv.mkDerivation {
-        pname = "nixotic-nim-functions";
-        version = "0.1.0";
-        src = ./files/nim;
-        nativeBuildInputs = [ pkgs.nim ];
-        buildPhase = ''
-          runHook preBuild
-          mkdir -p $out/bin
-
-          wired="${pkgs.lib.concatStringsSep " " (builtins.attrValues nimFunctionBinaries)}"
-          for f in functions/*.nim; do
-            base="$(basename "$f")"
-            case " $wired " in
-              *" $base "*) ;;
-              *)
-                echo "error: functions/$base has no entry in nimFunctionBinaries (flake.nix)" >&2
-                exit 1
-                ;;
-            esac
-          done
-
-          ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList
-            (binName: srcFile:
-              ''nim c -d:release --nimcache:.nimcache -o:"$out/bin/${binName}" functions/${srcFile}'')
-            nimFunctionBinaries)}
-
-          runHook postBuild
-        '';
-        dontInstall = true;
+      packages.${system}.nim-functions = pkgs.symlinkJoin {
+        name = "nixotic-nim-functions";
+        paths = pkgs.lib.mapAttrsToList mkNimFunction checkedNimFunctionBinaries;
       };
 
       checks.${system} = {
