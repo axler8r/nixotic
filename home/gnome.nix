@@ -21,6 +21,7 @@
     meld
     mission-center
     obsidian
+    protonmail-desktop
     raider
     shortwave
     sysprof
