@@ -135,7 +135,7 @@ in
     sessionVariables = {
       HISTSIZE = "5000";
       SAVEHIST = "2500";
-      NIXOTIC_NIM_FUNCTIONS_BIN = "${self.packages.${pkgs.system}.nim-functions}/bin";
+      NIXOTIC_NIM_FUNCTIONS_BIN = "${self.packages.${pkgs.stdenv.hostPlatform.system}.nim-functions}/bin";
     };
   };
 
@@ -193,6 +193,6 @@ in
       mkdir -p $out/share/zsh/site-functions
       cp ${../files/zsh/completions}/_* $out/share/zsh/site-functions/
     '')
-    self.packages.${pkgs.system}.nim-functions
+    self.packages.${pkgs.stdenv.hostPlatform.system}.nim-functions
   ];
 }
