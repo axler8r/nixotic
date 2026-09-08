@@ -4,6 +4,11 @@ import "../output"
 import "../process"
 import "../testing"
 
+# Each suite is an independent executable; start from deterministic status
+# settings even when invoked from a shell with AX_* overrides.
+putEnv(axColorEnv, "auto")
+delEnv(axQuietEnv)
+
 suite "output.error":
   test "writes a plain-text prefixed message to a non-tty file":
     let tmp = getTempDir() / "test_output_error.txt"
@@ -246,3 +251,35 @@ suite "output.render":
     removeFile(tmp)
     check code == 0
     check parsed[0]["size"].getStr == ""
+
+suite "output display safety":
+  test "colour policy resolves the complete explicit/automatic matrix":
+    for tty in [false, true]:
+      for noColor in [false, true]:
+        check tableUsesColor(cmAlways, tty, noColor, true)
+        check not tableUsesColor(cmNever, tty, noColor, true)
+        check tableUsesColor(cmAuto, tty, noColor, true) == (tty and not noColor)
+        check not tableUsesColor(cmAlways, tty, noColor, false)
+
+  test "display encoding preserves cell and row boundaries":
+    check displayCell("a|b\nc\r\td\\e\e") == "a\\x7cb\\nc\\r\\td\\\\e\\x1b"
+    let tmp = getTempDir() / "test_output_safe_cells.txt"
+    let f = open(tmp, fmWrite)
+    defer:
+      f.close()
+      removeFile(tmp)
+    let rec = newRecordingRunner()
+    check render(@["Name"], @[@["a|b\nc"]], Ctx(output: omPlain),
+                 rec.runner, f, f) == 0
+    check rec.calls[0].input == "Name\na\\x7cb\\nc\n"
+
+  test "ambiguous headers and excess cells fail before rendering":
+    let tmp = getTempDir() / "test_output_invalid_shape.txt"
+    let f = open(tmp, fmWrite)
+    defer:
+      f.close()
+      removeFile(tmp)
+    let rec = newRecordingRunner()
+    check render(@["Tag Name", "tag_name"], @[], Ctx(), rec.runner, f, f) == 1
+    check render(@["Name"], @[@["a", "b"]], Ctx(), rec.runner, f, f) == 1
+    check rec.calls.len == 0

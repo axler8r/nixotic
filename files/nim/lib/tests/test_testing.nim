@@ -1,4 +1,4 @@
-import std/[unittest, os, osproc, strutils]
+import std/[unittest, os, osproc, strtabs, strutils]
 import "../process"
 import "../testing"
 
@@ -82,3 +82,58 @@ suite "recording runner":
     check rec.calls.len == 2
     check rec.calls[0].cmd == "a"
     check rec.calls[1].cmd == "b"
+
+  test "queued replies are consumed in order across every runner shape":
+    let rec = newRecordingRunner(exitCode = 9, output = "fallback", error = "default",
+      replies = @[
+        CommandResult(exitCode: 1, output: "first", error: "first error"),
+        CommandResult(exitCode: 2), CommandResult(exitCode: 3)])
+    let first = rec.runner.capture("a", @[])
+    check first.exitCode == 1
+    check first.output == "first"
+    check first.error == "first error"
+    check rec.runner.runInherited("b", @[]) == 2
+    check rec.runner.runQuiet("c", @[]) == 3
+    let fallback = rec.runner.capture("d", @[])
+    check fallback.exitCode == 9
+    check fallback.output == "fallback"
+    check fallback.error == "default"
+    check rec.replies.len == 0
+    check rec.calls.len == 4
+    check rec.calls[2].kind == "capture"
+
+  test "queues can be refilled and defaults remain mutable":
+    let rec = newRecordingRunner()
+    check rec.runner.runInherited("a", @[]) == 0
+    rec.replies.add CommandResult(exitCode: 4, output: "queued")
+    check rec.runner.capture("b", @[]).output == "queued"
+    rec.exitCode = 7
+    rec.output = "changed"
+    check rec.runner.capture("c", @[]).output == "changed"
+    check rec.runner.runInherited("d", @[]) == 7
+
+  test "explicit environment replaces inherited values and is snapshotted":
+    let env = newStringTable({"AX_RECORDING_TEST": "original"}, modeCaseSensitive)
+    let rec = newRecordingRunner()
+    discard rec.runner.runInherited("tool", @[], env)
+    env["AX_RECORDING_TEST"] = "changed"
+    check rec.calls[0].env["AX_RECORDING_TEST"] == "original"
+    check rec.calls[0].env.len == 1
+    discard rec.runner.runInherited("tool", @[], newStringTable(modeCaseSensitive))
+    check rec.calls[1].env.len == 0
+
+  test "default inherited and captured environments are snapshots at call time":
+    let existed = existsEnv("AX_RECORDING_TEST")
+    let before = getEnv("AX_RECORDING_TEST")
+    try:
+      let rec = newRecordingRunner()
+      putEnv("AX_RECORDING_TEST", "inherited")
+      discard rec.runner.runInherited("tool", @[])
+      putEnv("AX_RECORDING_TEST", "captured")
+      discard rec.runner.capture("tool", @[])
+      delEnv("AX_RECORDING_TEST")
+      check rec.calls[0].env["AX_RECORDING_TEST"] == "inherited"
+      check rec.calls[1].env["AX_RECORDING_TEST"] == "captured"
+    finally:
+      if existed: putEnv("AX_RECORDING_TEST", before)
+      else: delEnv("AX_RECORDING_TEST")

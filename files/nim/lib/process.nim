@@ -1,4 +1,4 @@
-## Every subprocess in files/nim/functions/ runs through this module.
+## Every subprocess in the Nim command tree runs through this module.
 ##
 ## Two reasons it exists. First, correctness: osproc creates a pipe per
 ## stream, and a child that fills an undrained pipe blocks forever. Reading
@@ -62,10 +62,15 @@ proc runQuiet*(r: Runner, cmd: string, args: seq[string]): int =
   ## this saves nothing over `capture` but the caller's attention.
   r.capture(cmd, args).exitCode
 
-type DrainArg = tuple[s: Stream, dest: ptr string]
+type DrainArg = tuple[s: Stream, dest: ptr string, failure: ptr string]
 
 proc drainProc(arg: DrainArg) {.thread.} =
-  arg.dest[] = arg.s.readAll()
+  try:
+    arg.dest[] = arg.s.readAll()
+  except CatchableError as e:
+    # An uncaught thread exception terminates the whole process. Return it
+    # through owned storage after joining instead of escaping this thread.
+    arg.failure[] = e.msg
 
 proc realRunInherited(cmd: string, args: seq[string],
                       env: StringTableRef): int =
@@ -78,15 +83,16 @@ proc realCapture(cmd: string, args: seq[string],
                  input: string): CommandResult =
   var p = startProcess(cmd, args = args, options = {poUsePath})
 
-  var outBuf, errBuf: string
+  var outBuf, errBuf, outFailure, errFailure: string
   var outThread, errThread: Thread[DrainArg]
-  # Drain threads start BEFORE stdin is written. A child that answers while
-  # we are still writing would otherwise fill its stdout pipe and block,
-  # while we block filling its stdin pipe.
-  createThread(outThread, drainProc, (p.outputStream, addr outBuf))
-  createThread(errThread, drainProc, (p.errorStream, addr errBuf))
-
+  var outStarted, errStarted, joined, reaped: bool
   try:
+    # Establish ownership BEFORE either thread starts: starting the second
+    # thread can fail while the first still borrows our stack storage.
+    createThread(outThread, drainProc, (p.outputStream, addr outBuf, addr outFailure))
+    outStarted = true
+    createThread(errThread, drainProc, (p.errorStream, addr errBuf, addr errFailure))
+    errStarted = true
     try:
       if input.len > 0:
         p.inputStream.write(input)
@@ -106,12 +112,33 @@ proc realCapture(cmd: string, args: seq[string],
         discard
       joinThread(outThread)
       joinThread(errThread)
+      joined = true
 
     result.exitCode = p.waitForExit()
+    reaped = true
+    if outFailure.len > 0 or errFailure.len > 0:
+      raise newException(IOError, "Cannot capture child output: " & outFailure & errFailure)
     result.output = outBuf
     result.error = errBuf
   finally:
-    p.close()
+    try:
+      if not reaped:
+        # In particular, a missing drain must not leave the child blocked
+        # on a full pipe while cleanup tries to join the other drain.
+        try:
+          p.kill()
+        except OSError:
+          discard
+        try:
+          p.inputStream.close()
+        except CatchableError:
+          discard
+        if not joined:
+          if outStarted: joinThread(outThread)
+          if errStarted: joinThread(errThread)
+        discard p.waitForExit()
+    finally:
+      p.close()
 
 let defaultRunner* = Runner(
   runInheritedImpl: realRunInherited,

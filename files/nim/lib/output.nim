@@ -51,7 +51,7 @@ proc warn*(msg: string, errp: File = stderr) =
   else:
     errp.writeLine("Warning: " & msg)
 
-proc confirm*(message: string, inp: File = stdin, outp: File = stdout): bool =
+proc confirm*(message: string, inp: File = stdin, outp: File = stderr): bool =
   ## Interactive y/N prompt. Writes `message` (plus " (y/N): ") to `outp`
   ## with no trailing newline, then reads one line from `inp`. Mirrors the
   ## zsh original's `__ax_confirm`: only "y"/"yes" (any case) count as
@@ -64,22 +64,37 @@ proc confirm*(message: string, inp: File = stdin, outp: File = stdout): bool =
   let normalized = response.strip().toLowerAscii()
   normalized == "y" or normalized == "yes"
 
+func tableUsesColor*(color: ColorMode, tty, noColor, gumAvailable: bool): bool =
+  gumAvailable and (color == cmAlways or (color == cmAuto and tty and not noColor))
+
 proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
-           outp: File = stdout, errp: File = stderr): int =
-  ## Formats pipe-delimited rows (first row = header) the same way the zsh
-  ## __ax_table helper does: `gum table` when outp is an interactive
-  ## terminal, NO_COLOR is unset, and gum is on PATH; otherwise plain
-  ## `column -t -s|` alignment. `raw` forces the plain path exactly like
-  ## the zsh original's --raw flag; a non-tty outp forces it regardless of
-  ## raw, matching the zsh original's `[[ ! -t 1 ]]` check.
-  let plain = raw or not isatty(outp) or existsEnv("NO_COLOR") or
-              findExe("gum").len == 0
-  let cr =
-    if plain:
-      runner.capture("column", @["-t", "-s|"], data)
-    else:
-      runner.capture("gum", @["table", "--separator", "|", "--border",
-                              "rounded", "--print"], data)
+           outp: File = stdout, errp: File = stderr,
+           color: ColorMode = ctxFromEnv().color): int =
+  ## Plain output always uses column. Table output follows the resolved
+  ## colour policy, including an explicit override of NO_COLOR.
+  let plain = raw or not tableUsesColor(color, isatty(outp), existsEnv("NO_COLOR"),
+                                       findExe("gum").len > 0)
+  var cr: CommandResult
+  if plain:
+    cr = runner.capture("column", @["-t", "-s|"], data)
+  else:
+    # gum uses termenv's environment rather than AX_COLOR. Restore exact
+    # set/unset state after the synchronous child finishes.
+    let hadNoColor = existsEnv("NO_COLOR")
+    let noColor = getEnv("NO_COLOR")
+    let hadForce = existsEnv("CLICOLOR_FORCE")
+    let force = getEnv("CLICOLOR_FORCE")
+    try:
+      if color == cmAlways:
+        delEnv("NO_COLOR")
+        putEnv("CLICOLOR_FORCE", "1")
+      cr = runner.capture("gum", @["table", "--separator", "|", "--border",
+                                  "rounded", "--print"], data)
+    finally:
+      if hadNoColor: putEnv("NO_COLOR", noColor)
+      else: delEnv("NO_COLOR")
+      if hadForce: putEnv("CLICOLOR_FORCE", force)
+      else: delEnv("CLICOLOR_FORCE")
   outp.write(cr.output)
   if cr.error.len > 0:
     errp.write(cr.error)
@@ -87,6 +102,19 @@ proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
 
 proc jsonKey(header: string): string =
   header.strip().toLowerAscii().replace(" ", "_")
+
+func displayCell*(value: string): string =
+  ## Display encoding, not a transport format; JSON preserves exact data.
+  for c in value:
+    case c
+    of '\\': result.add "\\\\"
+    of '|': result.add "\\x7c"
+    of '\n': result.add "\\n"
+    of '\r': result.add "\\r"
+    of '\t': result.add "\\t"
+    of '\0' .. '\b', '\v', '\f', '\x0e' .. '\x1f', '\x7f':
+      result.add "\\x" & toHex(ord(c), 2).toLowerAscii()
+    else: result.add c
 
 proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
              runner: Runner = defaultRunner,
@@ -96,6 +124,17 @@ proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
   ## (gum/column and --raw respectively); `json` emits an array of objects
   ## keyed by the lowercased, underscore-joined header cells, making every
   ## such command a first-class jq source.
+  var keys: seq[string]
+  for h in header:
+    let key = jsonKey(h)
+    if key.len == 0 or key in keys:
+      error("Report headers must have nonempty, unique JSON keys", errp)
+      return 1
+    keys.add key
+  for row in rows:
+    if row.len > header.len:
+      error("Report row has more cells than its header", errp)
+      return 1
   case ctx.output
   of omJson:
     var arr = newJArray()
@@ -107,8 +146,12 @@ proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
     outp.writeLine(arr.pretty())
     0
   of omTable, omPlain:
-    var data = header.join("|") & "\n"
+    var columns: seq[string]
+    for h in header: columns.add displayCell(h)
+    var data = columns.join("|") & "\n"
     for row in rows:
-      data.add row.join("|") & "\n"
+      columns.setLen(0)
+      for cell in row: columns.add displayCell(cell)
+      data.add columns.join("|") & "\n"
     table(data, raw = ctx.output == omPlain, runner = runner,
-          outp = outp, errp = errp)
+          outp = outp, errp = errp, color = ctx.color)

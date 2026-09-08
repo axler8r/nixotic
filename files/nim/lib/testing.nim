@@ -24,7 +24,7 @@ proc writeFakeExe*(dir, name, script: string) =
 proc fakeRecorder*(logPath: string): string =
   ## Shell body that appends the invocation's arguments, one call per line,
   ## to logPath. Pair with writeFakeExe.
-  "echo \"$@\" >> " & logPath.quoteShell
+  "printf '%s\\n' \"$*\" >> " & logPath.quoteShell
 
 template withPath*(dir: string, body: untyped) =
   ## Replaces $PATH with `dir` for the duration of `body`. findExe reads
@@ -44,6 +44,7 @@ type
     cmd*: string
     args*: seq[string]
     input*: string       ## stdin payload; always "" for "inherited"
+    env*: StringTableRef ## snapshot of the effective child environment
 
   RecordingRunner* = ref object
     ## Holds the recorded calls and the canned answers. `runner` is the
@@ -52,10 +53,12 @@ type
     exitCode*: int
     output*: string
     error*: string
+    replies*: seq[CommandResult] ## FIFO; exhausted queues use the canned defaults
     runner*: Runner
 
 proc newRecordingRunner*(exitCode = 0, output = "",
-                         error = ""): RecordingRunner =
+               error = "",
+               replies: seq[CommandResult] = @[]): RecordingRunner =
   ## A Runner that spawns nothing, records every invocation, and answers
   ## with canned values. Pass `rec.runner` as a function's `runner`
   ## argument, then assert on `rec.calls`.
@@ -64,18 +67,35 @@ proc newRecordingRunner*(exitCode = 0, output = "",
   ## object the caller holds: calls made through `rec.runner` accumulate
   ## in `rec.calls` rather than in a copy the caller cannot see.
   let rec = RecordingRunner(calls: @[], exitCode: exitCode,
-                            output: output, error: error)
+                            output: output, error: error, replies: replies)
+
+  proc nextReply(): CommandResult =
+    if rec.replies.len > 0:
+      result = rec.replies[0]
+      rec.replies.delete(0)
+    else:
+      result = CommandResult(exitCode: rec.exitCode, output: rec.output,
+                             error: rec.error)
+
+  proc snapshotEnv(env: StringTableRef = nil): StringTableRef =
+    result = newStringTable(modeCaseSensitive)
+    if env.isNil:
+      for key, value in envPairs():
+        result[key] = value
+    else:
+      for key, value in env:
+        result[key] = value
+
   rec.runner = Runner(
     runInheritedImpl: proc (cmd: string, args: seq[string],
                             env: StringTableRef): int =
       rec.calls.add(CallRecord(kind: "inherited", cmd: cmd,
-                               args: args, input: ""))
-      rec.exitCode,
+                               args: args, input: "", env: snapshotEnv(env)))
+      nextReply().exitCode,
     captureImpl: proc (cmd: string, args: seq[string],
                        input: string): CommandResult =
       rec.calls.add(CallRecord(kind: "capture", cmd: cmd,
-                               args: args, input: input))
-      CommandResult(exitCode: rec.exitCode, output: rec.output,
-                    error: rec.error)
+                               args: args, input: input, env: snapshotEnv()))
+      nextReply()
   )
   rec
