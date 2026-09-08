@@ -8,15 +8,15 @@
 # contract test using a RecordingRunner -- real git maintenance commands are
 # never run by either.
 import std/[unittest, os, strutils]
-import "../InvokeGitRepositoryOptimization"
-import "../../lib/testing"
+import "../optimize"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
   removeDir(result)
   createDir(result)
 
-suite "Invoke-GitRepositoryOptimization run":
+suite "ax git repo optimize run":
   test "--help short-circuits before checkDeps, returns 0":
     let tmp = getTempDir() / "test_igro_help_dashdash.txt"
     let f = open(tmp, fmWrite)
@@ -25,7 +25,7 @@ suite "Invoke-GitRepositoryOptimization run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Invoke-GitRepositoryOptimization")
+    check content.contains("Usage: ax git repo optimize")
 
   test "-h does NOT short-circuit before checkDeps (asymmetry vs --help)":
     # git/parallel are stubbed on a fixture $PATH via withPath, so checkDeps
@@ -48,9 +48,9 @@ suite "Invoke-GitRepositoryOptimization run":
     removeFile(tmp)
     removeDir(dir)
     check code == 0
-    check content.contains("Usage: Invoke-GitRepositoryOptimization")
+    check content.contains("Usage: ax git repo optimize")
 
-  test "missing directory arg fails with exit 1":
+  test "missing directory arg fails with exit 64":
     # git/parallel are stubbed on a fixture $PATH so checkDeps passes and
     # the missing-arg check below it is what's under test; neither stub is
     # ever run.
@@ -63,9 +63,9 @@ suite "Invoke-GitRepositoryOptimization run":
     withPath(dir):
       code = run(@[])
     removeDir(dir)
-    check code == 1
+    check code == 64
 
-  test "unknown option fails with exit 1":
+  test "unknown option fails with exit 64":
     let dir = getTempDir() / "deps_igro_unknown_opt"
     removeDir(dir)
     createDir(dir)
@@ -75,9 +75,9 @@ suite "Invoke-GitRepositoryOptimization run":
     withPath(dir):
       code = run(@["--bogus"])
     removeDir(dir)
-    check code == 1
+    check code == 64
 
-  test "--log with no path following it fails with exit 1":
+  test "--log with no path following it fails with exit 64":
     let dir = getTempDir() / "deps_igro_log_no_path"
     removeDir(dir)
     createDir(dir)
@@ -87,7 +87,7 @@ suite "Invoke-GitRepositoryOptimization run":
     withPath(dir):
       code = run(@["--log"])
     removeDir(dir)
-    check code == 1
+    check code == 64
 
   test "empty git-dir filter result warns and returns 0 without invoking parallel":
     let dir = getTempDir() / "deps_igro_no_git_dirs"

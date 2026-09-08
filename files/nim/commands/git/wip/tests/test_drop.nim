@@ -1,5 +1,5 @@
 import std/[unittest, os, osproc, strutils]
-import "../RemoveGitWipBranch"
+import "../drop"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -21,7 +21,7 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "commit", "-q", "-m", "feat: initial commit")
   runGit(dir, "branch", "-m", "stable")
 
-suite "Remove-GitWIPBranch run":
+suite "ax git wip drop run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)
@@ -30,7 +30,7 @@ suite "Remove-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-GitWIPBranch")
+    check content.contains("Usage: ax git wip drop")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_remove_git_wip_branch_h.txt"
@@ -40,7 +40,7 @@ suite "Remove-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-GitWIPBranch")
+    check content.contains("Usage: ax git wip drop")
 
   test "missing the branch name argument is a requireArg error":
     let tmp = getTempDir() / "test_remove_git_wip_branch_no_arg.txt"
@@ -49,7 +49,7 @@ suite "Remove-GitWIPBranch run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: wip branch name")
 
   test "more than one argument is an error":
@@ -59,7 +59,7 @@ suite "Remove-GitWIPBranch run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Too many arguments")
 
   test "a non-wip branch name is rejected":

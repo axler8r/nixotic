@@ -1,7 +1,7 @@
 # See test_git.nim's header note: these tests need `git` on $PATH (already
 # in flake.nix's nimToolchain).
 import std/[unittest, os, osproc, streams, strutils]
-import "../NewGitWipBranch"
+import "../start"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -23,14 +23,14 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "commit", "-q", "-m", "feat: initial commit")
   runGit(dir, "branch", "-m", "stable")
 
-suite "New-GitWIPBranch randomAlnum":
+suite "ax git wip start randomAlnum":
   test "produces a string of the requested length from A-Za-z0-9":
     let s = randomAlnum(7)
     check s.len == 7
     for c in s:
       check c in {'A'..'Z', 'a'..'z', '0'..'9'}
 
-suite "New-GitWIPBranch generateWipBranchName":
+suite "ax git wip start generateWipBranchName":
   test "accepts the first candidate when nothing collides":
     let name = generateWipBranchName(proc(n: string): bool = false)
     check name.startsWith("wip/")
@@ -54,7 +54,7 @@ suite "New-GitWIPBranch generateWipBranchName":
     check calls == 10
     check name == ""
 
-suite "New-GitWIPBranch run":
+suite "ax git wip start run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_new_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)
@@ -63,7 +63,7 @@ suite "New-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-GitWIPBranch")
+    check content.contains("Usage: ax git wip start")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_new_git_wip_branch_h.txt"
@@ -73,7 +73,7 @@ suite "New-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-GitWIPBranch")
+    check content.contains("Usage: ax git wip start")
 
   test "outside a git repository is an error":
     let dir = mkTmpDir("new_git_wip_branch_not_repo")

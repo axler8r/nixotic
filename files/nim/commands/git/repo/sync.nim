@@ -1,10 +1,24 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
 
-const usage = """Usage: Update-GitRepository [path...]
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "repo", "sync"],
+  kind: ckVerb,
+  summary: "pull and update git repositories in parallel",
+  usage: "ax git repo sync [path...]",
+  args: @[
+    ArgSpec(name: "path", required: false, variadic: true,
+            description: "git repository paths (default: scan the current directory)")
+  ],
+  deps: @["git", "parallel"],
+  dryRun: false
+)
+
+const usage = """Usage: ax git repo sync [path...]
 
 Pull and update git repositories. With no arguments, scans the current
 directory for git repositories.
@@ -16,9 +30,9 @@ Arguments:
     path          One or more git repository paths
 
 Examples:
-    Update-GitRepository
-    Update-GitRepository ~/Projects/foo ~/Projects/bar
-    Update-GitRepository ~/Projects/*/"""
+    ax git repo sync
+    ax git repo sync ~/Projects/foo ~/Projects/bar
+    ax git repo sync ~/Projects/*/"""
 
 proc stripTrailingSlash*(path: string): string =
   ## Mirrors zsh's `${_arg%/}` — removes at most one trailing `/`.
@@ -78,4 +92,5 @@ proc run*(
   result = runner.runInherited("parallel", parallelArgs)
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

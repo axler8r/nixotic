@@ -1,8 +1,19 @@
 import std/[os, algorithm, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/context"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "repo", "root"],
+  kind: ckReport,
+  summary: "map repository directories to their remote fetch URLs",
+  usage: "ax git repo root [-o table|plain|json]",
+  deps: @["git"],
+  dryRun: false
+)
 
 proc isGitRepo*(dir: string, runner: Runner): bool =
   runner.runQuiet("git", @["-C", dir, "rev-parse", "--git-dir"]) == 0
@@ -41,34 +52,39 @@ proc run*(
   baseDir: string = "."
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Resolve-GitRepositoryPath [--raw]
+    outp.writeLine """Usage: ax git repo root [-o table|plain|json]
 
 Maps git repository directories to their remote fetch URLs.
 
 Options:
     -h, --help    Show this help message
-    --raw         Display output in raw format
+    --raw         Deprecated alias for -o plain
 
 Examples:
-    Resolve-GitRepositoryPath"""
+    ax git repo root"""
     return 0
 
-  var raw = false
+  var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
-      raw = true
+      ctx.output = omPlain
 
   if not checkDeps(["git"], errp): return 2
 
-  let rows = collectRepoRows(baseDir, runner)
-  var lines: seq[string] = @[]
-  for r in rows:
-    lines.add(r.url & "|" & r.path)
+  let repoRows = collectRepoRows(baseDir, runner)
+  var rows: seq[seq[string]] = @[]
+  for r in repoRows:
+    rows.add @[r.url, r.path]
 
-  outp.writeLine("")
-  discard table("Remote|Path\n" & lines.join("\n"), raw, runner, outp, errp)
-  outp.writeLine("")
+  # The blank-line padding around the table is cosmetic gum spacing; plain
+  # and json output stay unpadded so they remain script- and jq-clean.
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Remote", "Path"], rows, ctx, runner, outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

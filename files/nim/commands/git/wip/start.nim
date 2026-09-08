@@ -1,10 +1,20 @@
 import std/[os, random, times]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/git"
+import "../../../lib/git"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
 
 randomize()
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "wip", "start"],
+  kind: ckVerb,
+  summary: "create and switch to a fresh wip/* branch",
+  usage: "ax git wip start",
+  deps: @["git"],
+  dryRun: false
+)
 
 proc randomAlnum*(length: int): string =
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -31,7 +41,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: New-GitWIPBranch
+    outp.writeLine """Usage: ax git wip start
 
 Create and switch to a new branch named:
   wip/YYYYMMDD-<random7>
@@ -71,4 +81,5 @@ Requirements:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

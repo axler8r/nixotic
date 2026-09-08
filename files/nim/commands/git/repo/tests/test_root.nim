@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../ResolveGitRepositoryPath"
-import "../../lib/testing"
+import "../root"
+import "../../../../lib/testing"
 
-suite "Resolve-GitRepositoryPath isGitRepo":
+suite "ax git repo root isGitRepo":
   test "true when git rev-parse succeeds":
     let rec = newRecordingRunner(exitCode = 0)
     check isGitRepo("/some/dir", rec.runner) == true
@@ -12,7 +12,7 @@ suite "Resolve-GitRepositoryPath isGitRepo":
     let rec = newRecordingRunner(exitCode = 1)
     check isGitRepo("/some/dir", rec.runner) == false
 
-suite "Resolve-GitRepositoryPath gitRemoteFetchUrl":
+suite "ax git repo root gitRemoteFetchUrl":
   test "returns origin's fetch URL when origin is present among several remotes":
     let rec = newRecordingRunner(exitCode = 0, output = "upstream\tgit@github.com:other/repo.git (fetch)\n" &
       "upstream\tgit@github.com:other/repo.git (push)\n" &
@@ -29,7 +29,7 @@ suite "Resolve-GitRepositoryPath gitRemoteFetchUrl":
     let rec = newRecordingRunner(exitCode = 0, output = "")
     check gitRemoteFetchUrl("/some/dir", rec.runner) == ""
 
-suite "Resolve-GitRepositoryPath collectRepoRows":
+suite "ax git repo root collectRepoRows":
   test "considers only non-hidden subdirectories, sorted":
     let dir = getTempDir() / "collect_repo_rows"
     removeDir(dir)
@@ -55,7 +55,7 @@ suite "Resolve-GitRepositoryPath collectRepoRows":
     removeDir(dir)
     check rows.len == 0
 
-suite "Resolve-GitRepositoryPath run":
+suite "ax git repo root run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_resolve_git_repository_path_help.txt"
     let f = open(tmp, fmWrite)
@@ -64,7 +64,7 @@ suite "Resolve-GitRepositoryPath run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Resolve-GitRepositoryPath")
+    check content.contains("Usage: ax git repo root")
 
   test "missing git is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_resolve_git_repo_path"
@@ -99,4 +99,4 @@ suite "Resolve-GitRepositoryPath run":
     removeDir(dir)
     check code == 0
     check rec.calls[^1].cmd == "column"
-    check rec.calls[^1].input == "Remote|Path\ngit@github.com:me/repo-a.git|" & (dir / "repo-a")
+    check rec.calls[^1].input == "Remote|Path\ngit@github.com:me/repo-a.git|" & (dir / "repo-a") & "\n"

@@ -1,10 +1,28 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
 
-const usage = "Usage: Invoke-GitRepositoryOptimization [--log <path>] <dir>... - Optimize git repositories"
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "repo", "optimize"],
+  kind: ckVerb,
+  summary: "fetch, fsck, and gc git repositories in parallel",
+  usage: "ax git repo optimize [--log <path>] <dir>...",
+  args: @[
+    ArgSpec(name: "dir", required: true, variadic: true,
+            description: "directories to optimise")
+  ],
+  flags: @[
+    FlagSpec(long: "log", takesValue: true,
+             description: "write a GNU parallel job log to this path")
+  ],
+  deps: @["git", "parallel"],
+  dryRun: false
+)
+
+const usage = "Usage: ax git repo optimize [--log <path>] <dir>... - Optimize git repositories"
 
 const gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
   "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
@@ -42,7 +60,7 @@ proc run*(
     of "--log":
       inc i
       let next = if i < args.len: args[i] else: ""
-      if not requireArg(next, "log path", errp): return 1
+      if not requireArg(next, "log path", errp): return 64
       logPath = next
     of "-h", "--help":
       outp.writeLine(usage)
@@ -50,15 +68,15 @@ proc run*(
     else:
       if arg.len > 0 and arg[0] == '-':
         error("Unknown option: " & arg, errp)
-        return 1
+        return 64
       else:
         dirs.add(arg)
     inc i
 
   let firstDir = if dirs.len > 0: dirs[0] else: ""
   if not requireArg(firstDir, "directory", errp):
-    outp.writeLine("Usage: Invoke-GitRepositoryOptimization [--log <path>] <dir>...")
-    return 1
+    outp.writeLine("Usage: ax git repo optimize [--log <path>] <dir>...")
+    return 64
 
   let gitDirs = filterGitDirs(dirs)
 
@@ -78,4 +96,5 @@ proc run*(
   result = runner.runInherited("parallel", parallelArgs)
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

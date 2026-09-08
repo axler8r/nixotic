@@ -8,15 +8,15 @@
 # contract test using a RecordingRunner -- real git network operations are
 # never run by either.
 import std/[unittest, os, strutils]
-import "../UpdateGitRepository"
-import "../../lib/testing"
+import "../sync"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
   removeDir(result)
   createDir(result)
 
-suite "Update-GitRepository run":
+suite "ax git repo sync run":
   test "-h/--help prints usage and returns 0, checked before checkDeps":
     for flag in ["-h", "--help"]:
       let tmp = getTempDir() / ("test_ugr_help_" & flag.replace("-", "") & ".txt")
@@ -26,7 +26,7 @@ suite "Update-GitRepository run":
       let content = readFile(tmp)
       removeFile(tmp)
       check code == 0
-      check content.contains("Usage: Update-GitRepository")
+      check content.contains("Usage: ax git repo sync")
 
   test "empty result (no args, no git dirs found) uses info, not warn, and returns 0":
     # git/parallel are stubbed on a fixture $PATH via withPath so checkDeps

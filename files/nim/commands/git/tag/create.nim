@@ -1,8 +1,19 @@
 import std/[os, strutils, times]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/git"
+import "../../../lib/context"
+import "../../../lib/git"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "tag", "create"],
+  kind: ckVerb,
+  summary: "tag HEAD from its commit type: v<MAJOR>.<MINOR>.0+<timestamp>",
+  usage: "ax git tag create [-n]",
+  deps: @["git"],
+  dryRun: true
+)
 
 proc extractCommitType*(subject: string): string =
   ## Mirrors the zsh original's `^([a-z]+)(!)?(\([^)]*\))?:` extraction:
@@ -56,7 +67,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: New-GitTag [--dry-run]
+    outp.writeLine """Usage: ax git tag create [-n]
 
 Compute the next tag from HEAD's commit type and the last matching tag,
 then create it as a signed annotated tag: v<MAJOR>.<MINOR>.0+<timestamp>.
@@ -66,14 +77,16 @@ then create it as a signed annotated tag: v<MAJOR>.<MINOR>.0+<timestamp>.
   no tag:                         everything else
 
 Options:
-  --dry-run   Print the computed tag without creating it.
+  -n, --dry-run   Print the computed tag without creating it.
 
 Requirements:
   - Inside a Git repository
   - HEAD not already tagged"""
     return 0
 
-  let dryRun = args.len > 0 and args[0] == "--dry-run"
+  # The driver consumes -n and passes it down as AX_DRY_RUN; a literal
+  # --dry-run still works for direct libexec invocation.
+  let dryRun = ctxFromEnv().dryRun or (args.len > 0 and args[0] == "--dry-run")
 
   let repoCode = requireGitRepo(runner, errp)
   if repoCode != 0: return repoCode
@@ -125,4 +138,5 @@ Requirements:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

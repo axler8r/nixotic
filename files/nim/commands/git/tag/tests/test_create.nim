@@ -1,6 +1,6 @@
 import std/[unittest, os, osproc, streams, strutils]
-import "../NewGitTag"
-import "../../lib/testing"
+import "../create"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -23,7 +23,7 @@ proc initRepoWithCommit(dir: string, subject: string) =
   runGit(dir, "add", "README.md")
   runGit(dir, "commit", "-q", "-m", subject)
 
-suite "New-GitTag extractCommitType":
+suite "ax git tag create extractCommitType":
   test "a plain type with no scope or bang":
     check extractCommitType("feat: add x") == "feat"
 
@@ -45,7 +45,7 @@ suite "New-GitTag extractCommitType":
   test "an unclosed parenthesis has no type":
     check extractCommitType("feat(nim: add x") == ""
 
-suite "New-GitTag parseLastTag":
+suite "ax git tag create parseLastTag":
   test "a well-formed tag parses its major/minor":
     let p = parseLastTag("v1.2.0+20260101120000")
     check p.valid == true
@@ -64,7 +64,7 @@ suite "New-GitTag parseLastTag":
   test "a tag missing the v prefix is invalid":
     check parseLastTag("1.2.0+20260101120000").valid == false
 
-suite "New-GitTag run":
+suite "ax git tag create run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_new_git_tag_help.txt"
     let f = open(tmp, fmWrite)
@@ -73,7 +73,7 @@ suite "New-GitTag run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-GitTag")
+    check content.contains("Usage: ax git tag create")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_new_git_tag_h.txt"
@@ -83,7 +83,7 @@ suite "New-GitTag run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-GitTag")
+    check content.contains("Usage: ax git tag create")
 
   test "HEAD already tagged is an error":
     let dir = mkTmpDir("new_git_tag_already_tagged")

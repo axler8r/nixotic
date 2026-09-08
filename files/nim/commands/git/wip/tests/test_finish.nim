@@ -1,5 +1,5 @@
 import std/[unittest, os, osproc, streams, strutils]
-import "../CompleteGitWipBranch"
+import "../finish"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -21,7 +21,7 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "commit", "-q", "-m", "feat: initial commit")
   runGit(dir, "branch", "-m", "stable")
 
-suite "Complete-GitWIPBranch run":
+suite "ax git wip finish run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_complete_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)
@@ -30,7 +30,7 @@ suite "Complete-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Complete-GitWIPBranch")
+    check content.contains("Usage: ax git wip finish")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_complete_git_wip_branch_h.txt"
@@ -40,7 +40,7 @@ suite "Complete-GitWIPBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Complete-GitWIPBranch")
+    check content.contains("Usage: ax git wip finish")
 
   test "not on a wip/* branch is an error":
     let dir = mkTmpDir("complete_git_wip_not_wip")

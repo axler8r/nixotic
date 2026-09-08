@@ -1,5 +1,5 @@
 import std/[unittest, os, osproc, streams, strutils]
-import "../UpdateGitStableBranch"
+import "../sync"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -23,7 +23,7 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "commit", "-q", "-m", "feat: initial commit")
   runGit(dir, "branch", "-m", "stable")
 
-suite "Update-GitStableBranch run":
+suite "ax git stable sync run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_update_git_stable_branch_help.txt"
     let f = open(tmp, fmWrite)
@@ -32,7 +32,7 @@ suite "Update-GitStableBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-GitStableBranch")
+    check content.contains("Usage: ax git stable sync")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_update_git_stable_branch_h.txt"
@@ -42,7 +42,7 @@ suite "Update-GitStableBranch run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-GitStableBranch")
+    check content.contains("Usage: ax git stable sync")
 
   test "no origin remote is an error, checked before switching branches":
     let dir = mkTmpDir("update_git_stable_no_origin")

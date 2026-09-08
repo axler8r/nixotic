@@ -1,8 +1,18 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/git"
+import "../../../lib/git"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["git", "wip", "finish"],
+  kind: ckVerb,
+  summary: "fast-forward stable to the current wip/* branch",
+  usage: "ax git wip finish",
+  deps: @["git"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -11,7 +21,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Complete-GitWIPBranch
+    outp.writeLine """Usage: ax git wip finish
 
 Fast-forward stable to the current wip/* branch.
 
@@ -54,4 +64,5 @@ Notes:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())
