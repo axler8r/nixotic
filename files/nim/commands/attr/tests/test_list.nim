@@ -34,4 +34,4 @@ suite "ax attr list run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "getfattr"
-    check rec.calls[0].args == @["--dump", tmpFile]
+    check rec.calls[0].args == @["--dump", "--", tmpFile]

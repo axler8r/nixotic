@@ -56,18 +56,27 @@ Examples:
     ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | xargs ax docker image update"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   if not checkDeps(["docker"], errp): return 2
 
   var images: seq[string]
+  var positionalOnly = false
+  for arg in args:
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+    else:
+      images.add(arg)
 
-  if args.len > 0:
-    images = args
-  else:
+  if images.len == 0:
     let listing = runner.capture(
       "docker",
       @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
-    ).output
-    images = filterImages(listing.splitLines())
+    )
+    if listing.exitCode != 0:
+      error("Cannot list Docker images: " & listing.error.strip(), errp)
+      return 1
+    images = filterImages(listing.output.splitLines())
 
   if images.len == 0:
     info("No images to update.", errp)
@@ -81,11 +90,9 @@ Examples:
   # to fold into our own exit code, which the original left unspecified.
   var anyFailed = false
   for image in images:
-    let code = runner.runInherited("docker", @["pull", image])
+    let code = runner.runInherited("docker", @["pull", "--", image])
     if code != 0:
       anyFailed = true
-
-  outp.write("\n")
 
   result = if anyFailed: 1 else: 0
 

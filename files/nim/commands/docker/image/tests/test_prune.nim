@@ -1,4 +1,4 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../prune"
 import "../../../../lib/testing"
 
@@ -16,6 +16,26 @@ suite "ax docker image prune parseDockerList":
     check parseDockerList("\n") == newSeq[string]()
 
 suite "ax docker image prune run":
+  test "invalid arguments cannot list or remove images":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["--bogus"], @["extra"], @["--dry-run"], @["-n"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0
+
+  test "failed listing cannot become empty success or removal":
+    let dir = createTempDir("ax-image-prune-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for listing in ["", "sha256:partial\n"]:
+      let rec = newRecordingRunner(exitCode = 1, output = listing, error = "daemon unavailable")
+      withPath(dir):
+        check run(@[], f, f, rec.runner) == 1
+      check rec.calls.len == 1
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_docker_dangling_images_help.txt"
     let f = open(tmp, fmWrite)

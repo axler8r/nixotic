@@ -46,16 +46,17 @@ suite "ax script create run":
     removeFile(tmp)
     check code == 64
 
-  test "last positional arg wins when multiple are given":
+  test "extra positional arguments are rejected before writing or chmod":
     let target = mkTmpPath("test_write_executable_last_wins")
     let decoy = mkTmpPath("test_write_executable_decoy")
+    let rec = newRecordingRunner()
     withStdin("echo hi\n", proc(inf: File) =
-      let code = run(@[decoy, target], stdout, stderr, inf)
-      check code == 0
+      let code = run(@[decoy, target], stdout, stderr, inf, rec.runner)
+      check code == 64
     )
-    check fileExists(target)
+    check rec.calls.len == 0
+    check not fileExists(target)
     check not fileExists(decoy)
-    removeFile(target)
 
   test "writes shebang, blank line, content, trailing newline -- stdin WITH trailing newline":
     let target = mkTmpPath("test_write_executable_with_nl")
@@ -106,18 +107,18 @@ suite "ax script create run":
     removeFile(target)
     check fpUserExec in perms
 
-  test "prints created-executable-script message to stdout":
+  test "prints created-executable-script status to stderr":
     let target = mkTmpPath("test_write_executable_message")
     let outTmp = getTempDir() / "test_write_executable_message_out.txt"
     let outf = open(outTmp, fmWrite)
     withStdin("echo hi\n", proc(inf: File) =
-      discard run(@[target], outf, stderr, inf)
+      discard run(@[target], stdout, outf, inf)
     )
     outf.close()
     let message = readFile(outTmp)
     removeFile(target)
     removeFile(outTmp)
-    check message == "Created executable script: " & target & "\n"
+    check message.contains("Created executable script: " & target)
 
   test "unwritable target path is a reported error, not a traceback":
     let dir = getTempDir() / "test_write_executable_readonly"
@@ -163,4 +164,13 @@ suite "ax script create run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "chmod"
-    check rec.calls[0].args == @["+x", target]
+    check rec.calls[0].args == @["+x", "--", target]
+
+  test "chmod failure is not successful script creation":
+    let target = mkTmpPath("test_write_executable_chmod_failure")
+    defer:
+      if fileExists(target): removeFile(target)
+    let rec = newRecordingRunner(exitCode = 1)
+    withStdin("echo hi\n", proc(inf: File) =
+      check run(@[target], stdout, stderr, inf, rec.runner) == 1
+    )

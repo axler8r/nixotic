@@ -43,7 +43,7 @@ suite "ax docker image search run":
     check code == 0
     check content.contains("Usage: ax docker image search")
 
-  test "missing search term is exit 1, error on errp, usage reminder on outp":
+  test "missing search term is exit 64 with clean stdout":
     let outTmp = getTempDir() / "test_find_docker_images_noterm_out.txt"
     let errTmp = getTempDir() / "test_find_docker_images_noterm_err.txt"
     let outf = open(outTmp, fmWrite)
@@ -56,8 +56,8 @@ suite "ax docker image search run":
     removeFile(outTmp)
     removeFile(errTmp)
     check code == 64
-    check errContent.contains("Missing search term")
-    check outContent.contains("Usage: ax docker image search <term>...")
+    check errContent.contains("term")
+    check outContent == ""
 
   test "missing search term is checked before checkDeps(docker)":
     # Mirrors the zsh original's ordering: the search-term check runs before

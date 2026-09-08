@@ -1,4 +1,4 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, json, tempfiles]
 import "../browser"
 import "../../../lib/testing"
 
@@ -33,32 +33,51 @@ suite "ax sys browser run":
     check code == 64
     check content.contains("Unknown option: --bogus")
 
-  test "a stray positional arg is silently ignored, not treated as an unknown option":
-    # Unlike Get-Help, this function's flag loop never `break`s on the
-    # first non-flag arg -- "foo" here must not trip the unknown-option
-    # path (exit 1). `xdg-utils` is now a nativeBuildInput/devShell package
-    # (flake.nix), so `checkDeps(["xdg-mime"])` is guaranteed to succeed
-    # here, and `run()` never inspects the queried process's own exit code
-    # -- it only captures stdout -- so this deterministically reaches the
-    # final `return 0`, independent of whatever desktop-file config (or
-    # lack thereof) `xdg-mime` finds. Verified directly: `xdg-mime query
-    # default x-scheme-handler/http` exits 0 with empty output even under
-    # a fully clean HOME/XDG_DATA_DIRS with no mimeapps.list at all.
+  test "a stray positional argument is rejected before querying handlers":
     let tmp = getTempDir() / "test_get_default_browser_stray.txt"
     let f = open(tmp, fmWrite)
-    let code = run(@["foo"], f, f)
+    let rec = newRecordingRunner()
+    let code = run(@["foo"], f, f, rec.runner)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 0
-    check not content.contains("Unknown option")
+    check code == 64
+    check rec.calls.len == 0
+    check content.len > 0
 
-  # The live xdg-mime query path's actual handler *values* are still not
-  # asserted on: those depend on a live desktop session / mimeapps.list
-  # configuration this sandbox doesn't reliably provide, consistent with
-  # the conventions doc's accepted gaps for un-mockable subprocess
-  # passthrough. Only the exit code and absence of an "Unknown option"
-  # message are pinned above.
+  test "JSON output is structured even when stdout is not a TTY":
+    let dir = createTempDir("ax-browser-json-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "xdg-mime", "")
+    let hadOutput = existsEnv("AX_OUTPUT")
+    let savedOutput = getEnv("AX_OUTPUT")
+    putEnv("AX_OUTPUT", "json")
+    defer:
+      if hadOutput: putEnv("AX_OUTPUT", savedOutput)
+      else: delEnv("AX_OUTPUT")
+    let rec = newRecordingRunner(output = "browser.desktop\n")
+    let path = dir / "out"
+    let f = open(path, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, stderr, rec.runner)
+    f.close()
+    check code == 0
+    let data = parseJson(readFile(path))
+    check data == %*[{"scheme": "http", "handler": "browser.desktop"},
+                    {"scheme": "https", "handler": "browser.desktop"}]
+    check rec.calls.len == 2
+
+  test "failed handler query is not reported as an empty default":
+    let dir = createTempDir("ax-browser-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "xdg-mime", "")
+    let rec = newRecordingRunner(exitCode = 1, error = "query failed")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    withPath(dir):
+      check run(@[], f, f, rec.runner) == 1
+    check rec.calls.len == 1
 
   test "characterization: queries http then https scheme handlers":
     let dir = getTempDir() / "char_get_default_browser"

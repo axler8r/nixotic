@@ -1,4 +1,4 @@
-import std/os
+import std/[os, strutils]
 import "../../../lib/output"
 import "../../../lib/process"
 import "../../../lib/spec"
@@ -75,19 +75,28 @@ Examples:
     ax media video convert input.mp4 output.mp4 --orientation horizontal"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var input = ""
   var output = ""
   var orientation = ""
+  var positionalOnly = false
   var i = 0
   while i < args.len:
     let a = args[i]
-    if a == "--orientation":
+    if not positionalOnly and a == "--":
+      positionalOnly = true
+      inc i
+    elif not positionalOnly and a.startsWith("--orientation="):
+      orientation = a[14 .. ^1]
+      inc i
+    elif not positionalOnly and a == "--orientation":
       if i + 1 >= args.len:
         error("Missing value for --orientation", errp)
         return 64
       orientation = args[i + 1]
       i += 2
-    elif a.len > 0 and a[0] == '-':
+    elif not positionalOnly and a.len > 1 and a[0] == '-':
       error("Unknown option: " & a, errp)
       return 64
     elif input.len == 0:
@@ -113,9 +122,9 @@ Examples:
     error("Input file '" & input & "' does not exist", errp)
     return 1
 
-  outp.writeLine("Input file: " & input)
-  outp.writeLine("Output file: " & output)
-  outp.writeLine("Attempting hardware-accelerated flip...")
+  info("Input file: " & input, errp)
+  info("Output file: " & output, errp)
+  info("Attempting hardware-accelerated flip...", errp)
 
   if tryFfmpeg(runner, @[
     "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv",
@@ -124,38 +133,36 @@ Examples:
     "-c:v", "h264_qsv", "-preset", "fast",
     "-c:a", "aac", "-b:a", "128k", output
   ]):
-    outp.writeLine("Intel QSV/VPL hardware acceleration successful!")
+    success("Intel QSV/VPL hardware acceleration successful!", errp)
   elif tryFfmpeg(runner, @[
     "-y", "-i", input, "-vf", "hflip",
     "-c:v", "h264_nvenc", "-preset", "fast",
     "-c:a", "aac", "-b:a", "128k", output
   ]):
-    outp.writeLine("NVIDIA NVENC hardware acceleration successful!")
+    success("NVIDIA NVENC hardware acceleration successful!", errp)
   elif tryFfmpeg(runner, @[
     "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi",
     "-hwaccel_device", "/dev/dri/renderD128",
     "-i", input,
-    "-vf", "scale_vaapi=w=-2:h=-2,hwdownload,format=nv12,hwupload,scale_vaapi=w=iw:h=ih:format=nv12",
+    "-vf", "hwdownload,format=nv12,hflip,hwupload",
     "-c:v", "h264_vaapi",
     "-c:a", "aac", "-b:a", "128k", output
   ]):
-    outp.writeLine("VA-API hardware acceleration successful!")
+    success("VA-API hardware acceleration successful!", errp)
   else:
-    outp.writeLine("All hardware acceleration methods failed, falling back to software processing...")
+    info("All hardware acceleration methods failed, falling back to software processing...", errp)
     # Software fallback: real stdout/stderr reach the terminal live,
     # matching the original's unsuppressed passthrough.
-    discard runner.runInherited("ffmpeg", @[
+    let code = runner.runInherited("ffmpeg", @[
       "-y", "-i", input, "-vf", "hflip",
       "-c:v", "libx264", "-preset", "fast", "-crf", "23",
       "-c:a", "aac", "-b:a", "128k", output
     ])
+    if code != 0:
+      error("Software video encoding failed.", errp)
+      return code
 
-  # Unconditional, even if the software fallback above failed: the zsh
-  # original has no `return` inside the if/elif/else chain, so it always
-  # falls through to this line and the function (and thus the script,
-  # since there's no final `return` after the call either) always reports
-  # success. Preserved faithfully rather than "fixed" -- see task brief.
-  outp.writeLine("Video flip complete: " & output)
+  success("Video flip complete: " & output, errp)
   return 0
 
 when isMainModule:

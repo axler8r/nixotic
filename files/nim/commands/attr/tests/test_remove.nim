@@ -49,4 +49,4 @@ suite "ax attr remove run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "setfattr"
-    check rec.calls[0].args == @["--remove", "user.colour", tmpFile]
+    check rec.calls[0].args == @["--remove", "user.colour", "--", tmpFile]

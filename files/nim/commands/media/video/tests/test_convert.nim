@@ -1,5 +1,6 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../convert"
+import "../../../../lib/process"
 import "../../../../lib/testing"
 
 # The hardware-acceleration fallback chain is characterized below with a
@@ -10,6 +11,46 @@ import "../../../../lib/testing"
 # as a regression net for the later process-layer refactor.
 
 suite "ax media video convert run":
+  test "VAAPI success applies hflip and stops before software fallback":
+    let dir = createTempDir("ax-convert-vaapi-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "ffmpeg", "")
+    let input = dir / "in.mp4"
+    writeFile(input, "")
+    let output = dir / "out.mp4"
+    let rec = newRecordingRunner(replies = @[
+      CommandResult(exitCode: 1),
+      CommandResult(exitCode: 1),
+      CommandResult(exitCode: 0)
+    ])
+    let outPath = dir / "out"
+    let errPath = dir / "err"
+    let outf = open(outPath, fmWrite)
+    let errf = open(errPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[input, "--orientation=horizontal", "--", output],
+                 outf, errf, rec.runner)
+    outf.close()
+    errf.close()
+    check code == 0
+    require rec.calls.len == 3
+    check rec.calls[0].args.contains("h264_qsv")
+    check rec.calls[1].args.contains("h264_nvenc")
+    check rec.calls[2].kind == "capture"
+    check rec.calls[2].cmd == "ffmpeg"
+    check rec.calls[2].args == @[
+      "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi",
+      "-hwaccel_device", "/dev/dri/renderD128", "-i", input,
+      "-vf", "hwdownload,format=nv12,hflip,hwupload",
+      "-c:v", "h264_vaapi", "-c:a", "aac", "-b:a", "128k", output
+    ]
+    let content = readFile(errPath)
+    check content.contains("VA-API hardware acceleration successful!")
+    check content.contains("Video flip complete")
+    check not content.contains("falling back")
+    check readFile(outPath) == ""
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_help.txt"
     let f = open(tmp, fmWrite)
@@ -41,7 +82,7 @@ suite "ax media video convert run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: input file")
+    check content.contains("input")
 
   test "missing output arg is an error":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_output.txt"
@@ -51,9 +92,9 @@ suite "ax media video convert run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: output file")
+    check content.contains("output")
 
-  test "a third positional argument is 'Too many arguments'":
+  test "a third positional argument is an unexpected argument":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_too_many.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["input.mp4", "output.mp4", "extra.mp4"], f, f)
@@ -61,7 +102,7 @@ suite "ax media video convert run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Too many arguments")
+    check content.contains("Unexpected argument: extra.mp4")
 
   test "nonexistent input file is an error, checked before any ffmpeg invocation":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_input.txt"
@@ -178,12 +219,7 @@ exit 0
       "-c:a", "aac", "-b:a", "128k", output
     ]
 
-  test "contract: a failing software fallback still returns 0 (faithful zsh quirk)":
-    # The zsh original has no `return` inside the if/elif/else chain, so it
-    # always falls through to "Video flip complete" and reports success even
-    # when the software fallback itself failed. This pins that quirk against
-    # regression: with every ffmpeg invocation failing (exitCode 1), all
-    # four probes/fallback still run and `run` still returns 0.
+  test "contract: a failing software fallback returns failure, never completion":
     let dir = getTempDir() / "contract_convert_video_all_fail"
     removeDir(dir)
     createDir(dir)
@@ -197,10 +233,12 @@ exit 0
     f.close()
     let content = readFile(outPath)
     removeDir(dir)
-    check code == 0
+    check code == 1
     check rec.calls.len == 4
+    check rec.calls[2].args.contains("hwdownload,format=nv12,hflip,hwupload")
     check content.contains("All hardware acceleration methods failed")
-    check content.contains("Video flip complete")
+    check content.contains("Software video encoding failed")
+    check not content.contains("Video flip complete")
 
   test "missing --orientation is a usage error":
     let tmp = getTempDir() / "test_convert_no_orientation.txt"

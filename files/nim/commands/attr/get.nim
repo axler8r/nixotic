@@ -43,16 +43,19 @@ Examples:
     ax attr get app.name /path/to/directory"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var attribute = ""
   var path = ""
+  var positionalOnly = false
   var i = 0
   while i < args.len:
     let arg = args[i]
-    if arg == "-h" or arg == "--help":
+    if not positionalOnly and (arg == "-h" or arg == "--help"):
       return 0
-    elif arg == "--":
-      break
-    elif arg.len > 0 and arg[0] == '-':
+    elif not positionalOnly and arg == "--":
+      positionalOnly = true
+    elif not positionalOnly and arg.len > 1 and arg[0] == '-':
       error("Unknown option: " & arg, errp)
       return 64
     elif attribute.len == 0:
@@ -71,7 +74,7 @@ Examples:
   if not requireXattrName(attribute, errp): return 64
 
   result = runner.runInherited(
-    "getfattr", @["--name", "user." & attribute, path])
+    "getfattr", @["--name", "user." & attribute, "--", path])
 
 when isMainModule:
   axMain(cmdSpec):

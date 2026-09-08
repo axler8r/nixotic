@@ -40,4 +40,4 @@ suite "ax attr get run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "getfattr"
-    check rec.calls[0].args == @["--name", "user.colour", tmpFile]
+    check rec.calls[0].args == @["--name", "user.colour", "--", tmpFile]

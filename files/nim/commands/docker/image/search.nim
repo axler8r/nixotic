@@ -27,8 +27,11 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
   ## Mirrors the zsh original's `_args` array: every non---raw argument
   ## joins the search term, in the order given, space-separated.
   var terms: seq[string] = @[]
+  var positionalOnly = false
   for arg in args:
-    if arg == "--raw":
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+    elif not positionalOnly and arg == "--raw":
       result.raw = true
     else:
       terms.add(arg)
@@ -74,6 +77,8 @@ Examples:
     ax docker image search postgres official"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   if parsed.searchTerm.len == 0:
     error("Missing search term", errp)
@@ -86,13 +91,16 @@ Examples:
 
   if not checkDeps(["docker"], errp): return 2
 
-  outp.writeLine("Searching for Docker images matching: '" & parsed.searchTerm & "'")
+  info("Searching for Docker images matching: '" & parsed.searchTerm & "'", errp)
 
   let listing = runner.capture(
     "docker",
     @["search", parsed.searchTerm, "--format={{.Name}}|{{.StarCount}}"]
-  ).output
-  var lines = parseDockerList(listing)
+  )
+  if listing.exitCode != 0:
+    error("Cannot search Docker images: " & listing.error.strip(), errp)
+    return 1
+  var lines = parseDockerList(listing.output)
   lines.sort(proc(a, b: string): int = cmp(starCount(b), starCount(a)))
   var rows: seq[seq[string]] = @[]
   for line in lines:
@@ -100,10 +108,10 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Name", "Stars"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Name", "Stars"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

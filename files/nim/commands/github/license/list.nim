@@ -17,14 +17,15 @@ let cmdSpec* = CommandSpec(
 
 type ParsedArgs* = object
   raw*: bool
+  unknownOption*: string
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
-  ## Mirrors the zsh original's case statement, which has no catch-all: any
-  ## argument that isn't --raw is silently ignored, including unrecognized
-  ## flags.
   for arg in args:
     if arg == "--raw":
       result.raw = true
+    elif arg != "--":
+      result.unknownOption = arg
+      return
 
 proc run*(
   args: seq[string],
@@ -46,6 +47,8 @@ Examples:
     ax github license list -o plain | grep mit"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   var ctx = ctxFromEnv()
   if parsed.raw:
@@ -53,12 +56,15 @@ Examples:
 
   if not checkDeps(["curl", "jq"], errp): return 2
 
-  # Neither curl's nor jq's exit code is checked here, matching the zsh
-  # original: `_data=$(curl ... | jq ...)` never tested $? either, so a
-  # failed fetch renders an empty/partial table rather than erroring out.
-  let curlResult = runner.capture("curl", @["-s", "https://api.github.com/licenses"])
+  let curlResult = runner.capture("curl", @["-fsS", "https://api.github.com/licenses"])
+  if curlResult.exitCode != 0:
+    error("Cannot fetch GitHub licenses: " & curlResult.error.strip(), errp)
+    return 1
   let jqResult = runner.capture("jq", @["-r", ".[] | \"\\(.key)|\\(.name)\""],
                                 curlResult.output)
+  if jqResult.exitCode != 0:
+    error("Cannot parse GitHub licenses: " & jqResult.error.strip(), errp)
+    return 1
   var rows: seq[seq[string]] = @[]
   for line in jqResult.output.splitLines():
     if line.len == 0: continue
@@ -66,10 +72,10 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Key", "Name"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Key", "Name"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

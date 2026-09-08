@@ -70,8 +70,11 @@ Examples:
     ax sys swap"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var ctx = ctxFromEnv()
   for arg in args:
+    if arg == "--": break
     if arg == "--raw":
       ctx.output = omPlain
     else:
@@ -81,7 +84,7 @@ Examples:
   var swapRows = collectSwapRows(procDir)
   if swapRows.len == 0:
     info("No processes currently using swap.", errp)
-    return 0
+    if ctx.output != omJson: return 0
 
   swapRows.sort(proc(a, b: SwapRow): int = cmp(b.swapKb, a.swapKb))
 
@@ -91,10 +94,10 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Swap", "PID", "Process"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Swap", "PID", "Process"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

@@ -53,6 +53,8 @@ Examples:
     ax docker image list -o json | jq '.[].repository'"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var ctx = ctxFromEnv()
   var dangling = false
   for arg in args:
@@ -75,8 +77,11 @@ Examples:
     else: @["Repository", "Tag", "Created", "ID"]
 
   let listing = runner.capture(
-    "docker", @["image", "list", format, filter]).output
-  var lines = parseDockerList(listing)
+    "docker", @["image", "list", format, filter])
+  if listing.exitCode != 0:
+    error("Cannot list Docker images: " & listing.error.strip(), errp)
+    return 1
+  var lines = parseDockerList(listing.output)
   lines.sort()
   var rows: seq[seq[string]] = @[]
   for line in lines:
@@ -86,10 +91,10 @@ Examples:
   # unpadded so they remain script- and jq-clean.
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(header, rows, ctx, runner, outp, errp)
+  let renderCode = render(header, rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

@@ -50,6 +50,8 @@ Examples:
     ax docker volume list --dangling"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var ctx = ctxFromEnv()
   var dangling = false
   for arg in args:
@@ -64,13 +66,15 @@ Examples:
   if dangling:
     dockerArgs.add("--filter=dangling=true")
   dockerArgs.add("--format={{.Driver}}|{{.Name}}")
-  let listing = runner.capture("docker", dockerArgs).output
-  let volumes = parseDockerList(listing)
+  let listing = runner.capture("docker", dockerArgs)
+  if listing.exitCode != 0:
+    error("Cannot list Docker volumes: " & listing.error.strip(), errp)
+    return 1
+  let volumes = parseDockerList(listing.output)
 
   if volumes.len == 0:
-    outp.writeLine(
-      if dangling: "No dangling volumes found." else: "No volumes found.")
-    return 0
+    info((if dangling: "No dangling volumes found." else: "No volumes found."), errp)
+    if ctx.output != omJson: return 0
 
   var rows: seq[seq[string]] = @[]
   for line in volumes:
@@ -78,10 +82,10 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Driver", "Volume Name"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Driver", "Volume Name"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

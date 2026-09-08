@@ -1,4 +1,4 @@
-import std/[os, strutils, terminal]
+import std/[os, strutils]
 import "../../lib/context"
 import "../../lib/output"
 import "../../lib/process"
@@ -36,16 +36,12 @@ Examples:
     ax sys browser -o plain | head -1"""
     return 0
 
-  var raw = ctxFromEnv().output == omPlain
+  if not validateArgs(cmdSpec, args, errp): return 64
+
+  var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
-      raw = true
-    elif arg.len > 0 and arg[0] == '-':
-      error("Unknown option: " & arg, errp)
-      return 64
-    # else: a non-flag positional arg is silently ignored, matching the
-    # zsh original's while/case loop, which never `break`s on the first
-    # unmatched arg -- it keeps consuming every remaining arg via `shift`.
+      ctx.output = omPlain
 
   if not checkDeps(["xdg-mime"], errp):
     return 2
@@ -53,19 +49,25 @@ Examples:
   let httpHandler = runner.capture(
     "xdg-mime",
     @["query", "default", "x-scheme-handler/http"]
-  ).output.strip()
+  )
+  if httpHandler.exitCode != 0:
+    error("Cannot query HTTP handler: " & httpHandler.error.strip(), errp)
+    return 1
   let httpsHandler = runner.capture(
     "xdg-mime",
     @["query", "default", "x-scheme-handler/https"]
-  ).output.strip()
+  )
+  if httpsHandler.exitCode != 0:
+    error("Cannot query HTTPS handler: " & httpsHandler.error.strip(), errp)
+    return 1
 
-  if raw or not isatty(outp):
-    outp.writeLine httpHandler
-    outp.writeLine httpsHandler
-  else:
-    outp.writeLine "HTTP:   " & httpHandler
-    outp.writeLine "HTTPS:  " & httpsHandler
-  0
+  if ctx.output == omPlain:
+    outp.writeLine httpHandler.output.strip()
+    outp.writeLine httpsHandler.output.strip()
+    return 0
+  render(@["Scheme", "Handler"],
+         @[@["http", httpHandler.output.strip()],
+           @["https", httpsHandler.output.strip()]], ctx, runner, outp, errp)
 
 when isMainModule:
   axMain(cmdSpec):

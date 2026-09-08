@@ -1,5 +1,6 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../set"
+import "../../../lib/process"
 import "../../../lib/testing"
 
 suite "ax attr set run":
@@ -52,4 +53,29 @@ suite "ax attr set run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "setfattr"
-    check rec.calls[0].args == @["--name", "user.colour", "--value", "red", tmpFile]
+    check rec.calls[0].args == @["--name", "user.colour", "--value", "red", "--", tmpFile]
+
+  test "real defaultRunner xattr set/read/remove roundtrip":
+    let dir = createTempDir("ax-xattr-", "")
+    defer: removeDir(dir)
+    let path = dir / "roundtrip.txt"
+    writeFile(path, "fixture")
+    let value = "spaces, quotes \" and a newline\nvalue"
+    require run(@["review.roundtrip", value, path], runner = defaultRunner) == 0
+    let fetched = defaultRunner.capture("getfattr",
+      @["--only-values", "--name", "user.review.roundtrip", "--", path])
+    check fetched.exitCode == 0
+    check fetched.output == value
+    check defaultRunner.runInherited("setfattr",
+      @["--remove", "user.review.roundtrip", "--", path]) == 0
+    check defaultRunner.capture("getfattr",
+      @["--only-values", "--name", "user.review.roundtrip", "--", path]).exitCode != 0
+
+  test "strict arguments reject before any attribute write":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["comment", "value", "/tmp", "extra"],
+                  @["--force", "comment", "value", "/tmp"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0

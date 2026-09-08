@@ -26,6 +26,18 @@ proc withTempHome(homeDir: string, body: proc()) =
     putEnv("HOME", oldHome)
 
 suite "ax claude init run":
+  test "a lone terminator reaches the repository check rather than usage failure":
+    let dir = mkTmpDir("ax_claude_init_terminator")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    let rec = newRecordingRunner(exitCode = 1)
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    withPath(dir):
+      check run(@["--"], f, f, rec.runner) == 1
+    require rec.calls.len == 1
+    check rec.calls[0].args == @["rev-parse", "--git-dir"]
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_icp_help.txt"
     let f = open(tmp, fmWrite)

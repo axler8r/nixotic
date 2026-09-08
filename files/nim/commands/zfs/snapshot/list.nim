@@ -1,4 +1,4 @@
-import std/[os, terminal]
+import std/[os, strutils, terminal]
 import "../../../lib/context"
 import "../../../lib/output"
 import "../../../lib/process"
@@ -25,21 +25,22 @@ type ParsedArgs* = object
   unknownOption*: string ## empty when no unknown option was encountered
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
-  ## Mirrors the zsh original's `while`/`case` loop: `--raw` sets the flag
-  ## and keeps looping; any other `-`-prefixed token is an unknown option
-  ## and stops the loop immediately (matching the zsh original's `return 1`
-  ## from inside the loop -- not a `break`, an actual early exit of the
-  ## whole function); anything else is treated as the dataset name and
-  ## OVERWRITES `dataset` each time, so with multiple non-flag args the
-  ## LAST one wins.
+  var hasDataset = false
+  var positionalOnly = false
   for arg in args:
-    if arg == "--raw":
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+    elif not positionalOnly and arg == "--raw":
       result.raw = true
-    elif arg.len > 0 and arg[0] == '-':
+    elif not positionalOnly and arg.len > 1 and arg[0] == '-':
       result.unknownOption = arg
       return result
     else:
+      if hasDataset:
+        result.unknownOption = "extra dataset: " & arg
+        return
       result.dataset = arg
+      hasDataset = true
 
 proc run*(
   args: seq[string],
@@ -66,6 +67,8 @@ Examples:
     ax zfs snapshot list -o plain | awk -F'\t' '{print $1}'"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
@@ -74,16 +77,25 @@ Examples:
   if not checkDeps(["zfs"], errp):
     return 2
 
-  # The listing is zfs's own formatting, not the shared renderer: -o plain
-  # (or --raw) maps to zfs list -H. AX_OUTPUT=json is ignored here.
+  let ctx = ctxFromEnv()
+  # Preserve native table/plain output; JSON uses the shared renderer.
   var zfsArgs = @["-r", "-t", "snapshot", "-S", "creation", "-o",
                   "name,used,referenced,creation"]
-  if parsed.raw or ctxFromEnv().output == omPlain or not isatty(outp):
+  if parsed.raw or ctx.output != omTable or not isatty(outp):
     zfsArgs.add("-H")
 
   if parsed.dataset.len > 0:
     zfsArgs.add(parsed.dataset)
 
+  if ctx.output == omJson and not parsed.raw:
+    let listing = runner.capture("zfs", @["list"] & zfsArgs)
+    if listing.exitCode != 0:
+      error("Cannot list ZFS snapshots: " & listing.error.strip(), errp)
+      return 1
+    var rows: seq[seq[string]] = @[]
+    for line in listing.output.splitLines():
+      if line.len > 0: rows.add(line.split('\t', maxsplit = 3))
+    return render(@["Name", "Used", "Referenced", "Creation"], rows, ctx, runner, outp, errp)
   result = runner.runInherited("zfs", @["list"] & zfsArgs)
 
 when isMainModule:

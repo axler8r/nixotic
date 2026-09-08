@@ -39,13 +39,10 @@ Examples:
     echo 'foreach file in *(.); do echo $file; done' | ax script create list-file"""
     return 0
 
-  # No option handling at all -- every positional arg overwrites `filename`
-  # in turn, so the LAST arg wins if more than one is given. This matches
-  # the zsh original's catch-all `case` branch exactly; do not add "too
-  # many arguments" validation the original doesn't have.
-  var filename = ""
-  for a in args:
-    filename = a
+  if not validateArgs(cmdSpec, args, errp): return 64
+
+  let positional = if args[0] == "--": args[1 .. ^1] else: args
+  let filename = positional[0]
 
   if not requireArg(filename, "filename", errp): return 64
   if not checkDeps(["chmod"], errp): return 2
@@ -68,9 +65,11 @@ Examples:
   outFile.writeLine(content)
   outFile.close()
 
-  discard runner.runInherited("chmod", @["+x", filename])
+  if runner.runInherited("chmod", @["+x", "--", filename]) != 0:
+    error("Could not make script executable: " & filename, errp)
+    return 1
 
-  outp.writeLine("Created executable script: " & filename)
+  success("Created executable script: " & filename, errp)
   return 0
 
 when isMainModule:

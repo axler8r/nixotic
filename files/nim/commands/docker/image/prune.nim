@@ -42,20 +42,25 @@ Examples:
     ax docker image prune"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   if not checkDeps(["docker"], errp): return 2
 
   let listing = runner.capture(
     "docker",
     @["image", "list", "--filter=dangling=true", "--format={{.ID}}"]
-  ).output
-  let ids = parseDockerList(listing)
+  )
+  if listing.exitCode != 0:
+    error("Cannot list Docker images: " & listing.error.strip(), errp)
+    return 1
+  let ids = parseDockerList(listing.output)
 
   if ids.len == 0:
-    outp.writeLine("No dangling images to remove.")
+    info("No dangling images to remove.", errp)
     return 0
 
   for id in ids:
-    outp.writeLine("Removing image: " & id)
+    info("Removing image: " & id, errp)
     let code = runner.runInherited("docker", @["rmi", id])
     if code != 0:
       return 1

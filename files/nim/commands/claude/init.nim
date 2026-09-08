@@ -51,9 +51,7 @@ Examples:
     ax claude init"""
     return 0
 
-  if args.len > 0:
-    error("Unexpected argument: " & args[0], errp)
-    return 64
+  if not validateArgs(cmdSpec, args, errp): return 64
 
   if not checkDeps(["git"], errp): return 2
 

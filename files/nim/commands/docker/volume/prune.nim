@@ -42,20 +42,25 @@ Examples:
     ax docker volume prune"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   if not checkDeps(["docker"], errp): return 2
 
   let listing = runner.capture(
     "docker",
     @["volume", "list", "--quiet", "--filter=dangling=true"]
-  ).output
-  let volumes = parseDockerList(listing)
+  )
+  if listing.exitCode != 0:
+    error("Cannot list Docker volumes: " & listing.error.strip(), errp)
+    return 1
+  let volumes = parseDockerList(listing.output)
 
   if volumes.len == 0:
-    outp.writeLine("No dangling volumes to remove.")
+    info("No dangling volumes to remove.", errp)
     return 0
 
   for volume in volumes:
-    outp.writeLine("Removing volume: " & volume)
+    info("Removing volume: " & volume, errp)
     let code = runner.runInherited("docker", @["volume", "rm", volume])
     if code != 0:
       return 1

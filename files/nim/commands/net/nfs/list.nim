@@ -26,14 +26,22 @@ type ParsedArgs* = object
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
   result.server = "localhost"
+  var hasServer = false
+  var positionalOnly = false
   for arg in args:
-    if arg == "--raw":
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+    elif not positionalOnly and arg == "--raw":
       result.raw = true
-    elif arg.len > 0 and arg[0] == '-':
+    elif not positionalOnly and arg.len > 1 and arg[0] == '-':
       result.unknownOption = arg
       return result
     else:
+      if hasServer:
+        result.unknownOption = "extra server: " & arg
+        return
       result.server = arg
+      hasServer = true
 
 proc classifyShowmountError*(output, server: string): string =
   ## Mirrors the zsh original's case-statement substring matching, checked
@@ -86,6 +94,8 @@ Examples:
     ax net nfs list nfs.example.com"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
@@ -109,7 +119,8 @@ Examples:
   let trimmed = exports.strip()
   if trimmed.len == 0 or trimmed == "Export list for " & parsed.server & ":":
     warn("No NFS exports found on '" & parsed.server & "'.", errp)
-    return 0
+    if ctx.output != omJson: return 0
+    return render(@["Export", "Clients"], @[], ctx, runner, outp, errp)
 
   var lineList = exports.splitLines()
   if lineList.len > 0: lineList = lineList[1 .. ^1]
@@ -120,14 +131,14 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Export", "Clients"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Export", "Clients"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
 
   if rows.len > 0:
     info("\nFound " & $rows.len & " export(s) on '" & parsed.server & "'.", errp)
 
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

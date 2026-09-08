@@ -29,6 +29,37 @@ suite "ax docker image update filterImages":
       @["notvsc:latest", "notaxler8r:latest"]
 
 suite "ax docker image update run":
+  test "only the first terminator is consumed, even after an image":
+    let dir = getTempDir() / "contract_update_docker_image_terminator"
+    removeDir(dir)
+    createDir(dir)
+    defer: removeDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["--", "nginx:latest", "--"],
+                  @["nginx:latest", "--", "--"]]:
+      let rec = newRecordingRunner()
+      withPath(dir):
+        check run(args, f, f, rec.runner) == 0
+      require rec.calls.len == 2
+      check rec.calls[0].args == @["pull", "--", "nginx:latest"]
+      check rec.calls[1].args == @["pull", "--", "--"]
+
+  test "a lone terminator still selects the default image listing":
+    let dir = getTempDir() / "contract_update_docker_image_empty_terminator"
+    removeDir(dir)
+    createDir(dir)
+    defer: removeDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    let rec = newRecordingRunner()
+    withPath(dir):
+      check run(@["--"], f, f, rec.runner) == 0
+    require rec.calls.len == 1
+    check rec.calls[0].args == @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_update_docker_image_help.txt"
     let f = open(tmp, fmWrite)
@@ -79,7 +110,7 @@ suite "ax docker image update run":
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @["pull nginx:latest", "pull postgres:16"]
+    check calls == @["pull -- nginx:latest", "pull -- postgres:16"]
 
   test "characterization: lists images with the repository:tag format string":
     let dir = getTempDir() / "char_update_docker_image_list"
@@ -120,8 +151,8 @@ suite "ax docker image update run":
     check code == 0
     check rec.calls.len == 2
     check rec.calls[0].cmd == "docker"
-    check rec.calls[0].args == @["pull", "nginx:latest"]
-    check rec.calls[1].args == @["pull", "redis:7"]
+    check rec.calls[0].args == @["pull", "--", "nginx:latest"]
+    check rec.calls[1].args == @["pull", "--", "redis:7"]
 
   test "contract: a failed pull does not abort the remaining pulls":
     let dir = getTempDir() / "contract_update_docker_image_fail"

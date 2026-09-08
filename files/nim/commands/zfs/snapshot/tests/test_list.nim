@@ -20,13 +20,13 @@ suite "ax zfs snapshot list parseArgs":
     check p.dataset == "dpool/data"
     check p.unknownOption == ""
 
-  test "last-non-flag-arg-wins when multiple dataset-like args are given":
-    # Matches the zsh original's while/case loop, which never breaks on the
-    # first non-flag arg -- it keeps consuming every remaining token, and
-    # each non-flag token overwrites `_dataset`. So the LAST one wins.
+  test "multiple datasets are rejected instead of overwriting the first":
     let p = parseArgs(@["foo", "bar"])
-    check p.dataset == "bar"
-    check p.unknownOption == ""
+    check p.dataset == "foo"
+    check p.unknownOption.len > 0
+    let rec = newRecordingRunner()
+    check run(@["foo", "bar"], runner = rec.runner) == 64
+    check rec.calls.len == 0
 
   test "--raw combined with a dataset arg, in either order":
     let p1 = parseArgs(@["--raw", "dpool/data"])

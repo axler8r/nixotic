@@ -9,14 +9,14 @@ suite "ax github license list parseArgs":
   test "--raw sets the raw flag":
     check parseArgs(@["--raw"]).raw == true
 
-  test "an unrecognized argument is silently ignored":
-    # Matches the zsh original's case statement, which has no catch-all —
-    # anything besides --help/--raw is dropped without error.
-    check parseArgs(@["--bogus"]).raw == false
+  test "an unrecognized argument is reported":
+    check parseArgs(@["--bogus"]).unknownOption == "--bogus"
 
-  test "--raw combined with an ignored argument, in either order":
-    check parseArgs(@["--raw", "--bogus"]).raw == true
-    check parseArgs(@["--bogus", "--raw"]).raw == true
+  test "--raw does not make unexpected arguments valid":
+    let rec = newRecordingRunner()
+    check run(@["--raw", "--bogus"], runner = rec.runner) == 64
+    check run(@["--bogus", "--raw"], runner = rec.runner) == 64
+    check rec.calls.len == 0
 
 suite "ax github license list run":
   test "prints usage and returns 0 for --help":
@@ -73,7 +73,7 @@ suite "ax github license list run":
     check code == 0
     check rec.calls.len == 3
     check rec.calls[0].cmd == "curl"
-    check rec.calls[0].args == @["-s", "https://api.github.com/licenses"]
+    check rec.calls[0].args == @["-fsS", "https://api.github.com/licenses"]
     check rec.calls[1].cmd == "jq"
     check rec.calls[1].args == @["-r", ".[] | \"\\(.key)|\\(.name)\""]
     check rec.calls[1].input == "mit|MIT License\napache-2.0|Apache License 2.0\n"

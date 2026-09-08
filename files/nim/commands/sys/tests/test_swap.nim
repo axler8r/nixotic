@@ -84,7 +84,7 @@ suite "ax sys swap run":
     check code == 64
     check content.contains("Unknown option: --bogus")
 
-  test "prints an info message and returns 0 when nothing is using swap":
+  test "a lone terminator prints the empty-swap report instead of a usage error":
     let dir = getTempDir() / "run_no_swap"
     removeDir(dir)
     createDir(dir)
@@ -94,7 +94,7 @@ suite "ax sys swap run":
     let errTmp = dir / "err.txt"
     let outf = open(outTmp, fmWrite)
     let errf = open(errTmp, fmWrite)
-    let code = run(@[], outf, errf, procDir = dir)
+    let code = run(@["--"], outf, errf, procDir = dir)
     outf.close()
     errf.close()
     let errContent = readFile(errTmp)
