@@ -1,5 +1,7 @@
 import std/[unittest, os]
 import "../vault"
+import "../process"
+import "../testing"
 
 suite "vault.resolveVault":
   test "bare name resolves under $HOME/Vaults with a leading-dot filename":
@@ -47,3 +49,30 @@ suite "vault.mapperPresent":
     # root and a real block device -- not constructible in this sandbox.
     # See the Global Constraints note on this gap.
     check mapperPresent("definitely-not-a-real-mapper-xyz123") == false
+
+suite "vault.backingFileIdle":
+  test "only a successful empty associated-loop query is idle":
+    let f = open(getTempDir() / "test_vault_idle.txt", fmWrite)
+    defer:
+      f.close()
+      removeFile(getTempDir() / "test_vault_idle.txt")
+    for reply in [CommandResult(), CommandResult(output: "/dev/loop7\n"),
+                  CommandResult(exitCode: 1), CommandResult(exitCode: 1, output: "/dev/loop7")]:
+      let rec = newRecordingRunner(replies = @[reply])
+      check backingFileIdle(rec.runner, "/tmp/vault with spaces", f) ==
+          (reply.exitCode == 0 and reply.output.len == 0)
+      check rec.calls.len == 1
+      check rec.calls[0].kind == "capture"
+      check rec.calls[0].cmd == "sudo"
+      check rec.calls[0].args == @["-n", "losetup", "--associated",
+          "/tmp/vault with spaces", "--noheadings", "--output", "NAME"]
+
+  test "inspection exceptions fail closed":
+    let f = open(getTempDir() / "test_vault_idle_exception.txt", fmWrite)
+    defer:
+      f.close()
+      removeFile(getTempDir() / "test_vault_idle_exception.txt")
+    let runner = Runner(captureImpl:
+      proc(cmd: string, args: seq[string], input: string): CommandResult =
+        raise newException(IOError, "injected inspection failure"))
+    check not backingFileIdle(runner, "/tmp/test.vault", f)

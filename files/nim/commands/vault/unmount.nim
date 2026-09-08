@@ -59,7 +59,8 @@ proc run*(
   args: seq[string],
   outp: File = stdout,
   errp: File = stderr,
-  runner: Runner = defaultRunner
+  runner: Runner = defaultRunner,
+  mapperProbe: MapperProbe = mapperPresent
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax vault unmount <name>
@@ -76,34 +77,44 @@ Examples:
     ax vault unmount ~/Vaults/mydata"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   if args.len == 0 or args[0].len == 0:
     error("Mount point or vault name required", errp)
     outp.writeLine("Usage: ax vault unmount <name>")
     return 64
-  let target = args[0]
+  let target = if args[0] == "--": args[1] else: args[0]
 
-  let mountOutput = runner.capture("mount", @[]).output
-  let resolved = resolveTarget(target, mountOutput)
+  if not checkDeps(cmdSpec.deps, errp): return 2
+  let mounted = runner.capture("mount", @[])
+  if mounted.exitCode != 0:
+    error("Cannot inspect mounted vaults", errp)
+    return 1
+  let resolved = resolveTarget(target, mounted.output)
   if resolved.invalid:
     error("Invalid mount point or vault not mounted: " & target, errp)
     return 1
 
-  if not mapperPresent(resolved.mapperName):
+  if not mapperProbe(resolved.mapperName):
     error("Vault mapper not found: " & resolved.mapperName, errp)
     return 1
 
-  if not checkDeps(["mount", "umount", "cryptsetup"], errp): return 2
+  # A live, unmounted mapping is a recovery case: close it without umount "".
+  var canClose = resolved.mountPoint.len == 0
+  result = 1
+  try:
+    if not canClose:
+      outp.writeLine("Unmounting: " & resolved.mountPoint)
+      if runner.runInherited("sudo", @["umount", resolved.mountPoint]) != 0:
+        return 1
+      canClose = true
+    result = 0
+  finally:
+    # Do not close a mapping whose filesystem is still mounted.
+    if canClose and not closeVault(runner, resolved.mapperName, errp):
+      result = 1
 
-  outp.writeLine("Unmounting: " & resolved.mountPoint)
-  if runner.runInherited("sudo", @["umount", resolved.mountPoint]) != 0:
-    return 1
-
-  outp.writeLine("Closing vault: " & resolved.mapperName)
-  if runner.runInherited("sudo", @["cryptsetup", "close", resolved.mapperName]) != 0:
-    return 1
-
+  if result != 0: return result
   outp.writeLine("Vault dismounted successfully")
-  0
 
 when isMainModule:
   axMain(cmdSpec):

@@ -1,8 +1,9 @@
-import std/os
+import std/[os, strutils, posix]
 import "../../lib/output"
 import "../../lib/process"
 import "../../lib/spec"
 import "../../lib/validation"
+import "../../lib/vault"
 
 let cmdSpec* = CommandSpec(
   specVersion: specVersionCurrent,
@@ -20,7 +21,7 @@ let cmdSpec* = CommandSpec(
     FlagSpec(long: "location", takesValue: true,
              description: "directory to store the vault file (default: ~/Vaults)")
   ],
-  deps: @["fallocate", "cryptsetup", "mkdir", "rm"],
+  deps: @["fallocate", "cryptsetup", "mkfs.ext4", "mkdir", "rm"],
   dryRun: false
 )
 
@@ -39,8 +40,24 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
   result.size = "1G"
   result.location = getHomeDir() / "Vaults"
   var i = 0
+  var positionalOnly = false
   while i < args.len:
+    if positionalOnly:
+      result.vaultName = args[i]
+      inc i
+      continue
+    if args[i].startsWith("--size="):
+      result.size = args[i][7 .. ^1]
+      inc i
+      continue
+    if args[i].startsWith("--location="):
+      result.location = args[i][11 .. ^1]
+      inc i
+      continue
     case args[i]
+    of "--":
+      positionalOnly = true
+      inc i
     of "--size":
       if i + 1 >= args.len:
         result.missingFlagValue = "--size"
@@ -82,12 +99,16 @@ Examples:
     ax vault create external --location /mnt/storage"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
     return 64
   if not requireArg(parsed.vaultName, "vault name", errp): return 64
-  if not checkDeps(["fallocate", "cryptsetup", "mkdir", "rm"], errp): return 2
+  if '/' in parsed.vaultName:
+    error("Vault name must be a bare name; use --location for its directory", errp)
+    return 64
+  if not checkDeps(cmdSpec.deps, errp): return 2
 
   let vaultFile = parsed.location / ("." & parsed.vaultName & ".vault")
   let mapperName = parsed.vaultName
@@ -97,7 +118,7 @@ Examples:
     if runner.runInherited("mkdir", @["--parents", parsed.location]) != 0:
       return 1
 
-  if fileExists(vaultFile):
+  if fileExists(vaultFile) or dirExists(vaultFile) or symlinkExists(vaultFile):
     error("Vault already exists: " & vaultFile, errp)
     return 1
 
@@ -117,19 +138,31 @@ Examples:
     discard runner.runInherited("rm", @["--force", vaultFile])
     return 1
 
-  outp.writeLine("Creating ext4 filesystem...")
-  if runner.runInherited("sudo",
-      @["mkfs.ext4", "-L", parsed.vaultName, "/dev/mapper" / mapperName]) != 0:
-    discard runner.runInherited("sudo", @["cryptsetup", "close", mapperName])
-    discard runner.runInherited("rm", @["--force", vaultFile])
-    return 1
+  var formatted = false
+  result = 1
+  try:
+    outp.writeLine("Creating ext4 filesystem...")
+    # Set only the new filesystem root owner. Ordinary mounting must never
+    # rewrite existing file ownership, recursively or otherwise.
+    let rootOwner = "root_owner=" & $getuid() & ":" & $getgid()
+    formatted = runner.runInherited("sudo",
+      @["mkfs.ext4", "-E", rootOwner, "-L", parsed.vaultName,
+        "/dev/mapper" / mapperName]) == 0
+    if formatted: result = 0
+  finally:
+    if not closeVault(runner, mapperName, errp):
+      result = 1
+    elif not formatted:
+      try:
+        if runner.runInherited("rm", @["--force", vaultFile]) != 0:
+          warn("Could not remove failed vault creation: " & vaultFile, errp)
+      except CatchableError as e:
+        warn("Could not remove failed vault creation: " & e.msg, errp)
 
-  outp.writeLine("Closing vault...")
-  discard runner.runInherited("sudo", @["cryptsetup", "close", mapperName])
+  if result != 0: return result
 
   outp.writeLine("Vault created successfully: " & vaultFile)
   outp.writeLine("Mount with: ax vault mount " & parsed.vaultName)
-  0
 
 when isMainModule:
   axMain(cmdSpec):

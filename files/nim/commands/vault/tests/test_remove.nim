@@ -49,7 +49,7 @@ suite "ax vault remove run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: vault name")
+    check content.contains("Missing required argument: name")
 
   test "missing deps is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_remove_vault"
@@ -71,6 +71,8 @@ suite "ax vault remove run":
     removeDir(dir)
     createDir(dir)
     writeFakeExe(dir, "rm", "exit 0")
+    writeFakeExe(dir, "sudo", "exit 0")
+    writeFakeExe(dir, "losetup", "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -82,11 +84,6 @@ suite "ax vault remove run":
     check code == 1
     check content.contains("Vault file not found")
 
-  # No test exercises the "vault is currently mounted" guard here: it
-  # requires mapperPresent to answer true, which needs a real /dev/mapper
-  # node -- the same hard, unfakeable constraint documented for
-  # lib/vault's own mapperPresent tests and for ax vault unmount.
-
   test "contract: --force skips the confirmation prompt entirely and removes the file":
     let dir = getTempDir() / "contract_remove_vault_force"
     removeDir(dir)
@@ -94,6 +91,8 @@ suite "ax vault remove run":
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "rm", "")
+    writeFakeExe(dir, "sudo", "")
+    writeFakeExe(dir, "losetup", "")
     let rec = newRecordingRunner(exitCode = 0)
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -106,9 +105,12 @@ suite "ax vault remove run":
     f.close()
     removeDir(dir)
     check code == 0
-    check rec.calls.len == 1
-    check rec.calls[0].cmd == "rm"
-    check rec.calls[0].args == @["--force", vaultFile]
+    check rec.calls.len == 2
+    check rec.calls[0].cmd == "sudo"
+    check rec.calls[0].args == @["-n", "losetup", "--associated", vaultFile,
+                    "--noheadings", "--output", "NAME"]
+    check rec.calls[1].cmd == "rm"
+    check rec.calls[1].args == @["--force", vaultFile]
 
   test "contract: declining the confirmation prompt aborts without calling rm":
     let dir = getTempDir() / "contract_remove_vault_decline"
@@ -117,6 +119,8 @@ suite "ax vault remove run":
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "rm", "")
+    writeFakeExe(dir, "sudo", "")
+    writeFakeExe(dir, "losetup", "")
     let rec = newRecordingRunner(exitCode = 0)
     let inTmp = dir / "in.txt"
     writeFile(inTmp, "n\n")
@@ -141,6 +145,8 @@ suite "ax vault remove run":
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "rm", "")
+    writeFakeExe(dir, "sudo", "")
+    writeFakeExe(dir, "losetup", "")
     let rec = newRecordingRunner(exitCode = 0)
     let inTmp = dir / "in.txt"
     writeFile(inTmp, "y\n")
@@ -156,6 +162,6 @@ suite "ax vault remove run":
     removeDir(dir)
     check code == 0
     check content.contains("Vault removed successfully")
-    check rec.calls.len == 1
-    check rec.calls[0].cmd == "rm"
-    check rec.calls[0].args == @["--force", vaultFile]
+    check rec.calls.len == 2
+    check rec.calls[1].cmd == "rm"
+    check rec.calls[1].args == @["--force", vaultFile]

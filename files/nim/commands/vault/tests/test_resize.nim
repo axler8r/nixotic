@@ -61,7 +61,7 @@ suite "ax vault resize run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: vault name")
+    check content.contains("Missing required argument: name")
 
   test "missing --size is a requireArg error":
     let tmp = getTempDir() / "test_resize_vault_no_size.txt"
@@ -93,7 +93,7 @@ suite "ax vault resize run":
     let dir = getTempDir() / "stub_resize_vault_missing_file"
     removeDir(dir)
     createDir(dir)
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "stat", "numfmt"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -105,11 +105,6 @@ suite "ax vault resize run":
     removeDir(dir)
     check code == 1
     check content.contains("Vault file not found")
-
-  # No test exercises the "vault is currently mounted" guard here: it
-  # requires mapperPresent to answer true, which needs a real /dev/mapper
-  # node -- the same hard, unfakeable constraint documented for
-  # lib/vault's own mapperPresent tests, ax vault unmount, and ax vault remove.
 
   test "characterization: shrinking is rejected using stat/numfmt-derived byte counts":
     let dir = getTempDir() / "char_resize_vault_shrink"
@@ -124,7 +119,7 @@ case "$1" in
   --to=iec) echo 5G ;;
 esac
 """)
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo"]:
+    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"]:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -145,7 +140,7 @@ esac
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "stat", "echo 100000000")
     writeFakeExe(dir, "numfmt", "exit 1")
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo"]:
+    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"]:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -172,6 +167,7 @@ esac
     writeFakeExe(dir, "resize2fs", "exit 0")
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
+    writeFakeExe(dir, "losetup", "exit 0")
     writeFakeExe(dir, "sudo", """
 """ & fakeRecorder(log) & """
 
@@ -191,10 +187,11 @@ esac
     removeDir(dir)
     check code == 1
     check content.contains("only supports ext4 filesystems (found: btrfs)")
-    check calls[0].startsWith("--length")
+    check calls[0].startsWith("-n losetup --associated")
     check calls[1].startsWith("cryptsetup open")
     check calls[2].startsWith("blkid")
     check calls[3] == "cryptsetup close mydata"
+    check calls.len == 4 # no allocation for an unsupported filesystem
 
   test "characterization: e2fsck exit code 1 (fixed, not clean) still continues to resize2fs":
     let dir = getTempDir() / "char_resize_vault_fsck_fixed"
@@ -210,6 +207,7 @@ esac
     writeFakeExe(dir, "resize2fs", "exit 0")
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
+    writeFakeExe(dir, "losetup", "exit 0")
     writeFakeExe(dir, "sudo", """
 """ & fakeRecorder(log) & """
 
@@ -230,7 +228,7 @@ esac
     removeDir(dir)
     check code == 0
     check content.contains("Vault resized successfully")
-    check calls.len == 6 # open, blkid, resize, e2fsck, resize2fs, close
+    check calls.len == 10 # two loop probes, preflight open/blkid/close, growth open/resize/fsck/resize2fs/close
 
   test "characterization: e2fsck exit code 2 (real error) aborts and re-closes the vault":
     let dir = getTempDir() / "char_resize_vault_fsck_error"
@@ -246,6 +244,7 @@ esac
     writeFakeExe(dir, "resize2fs", "exit 0")
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
+    writeFakeExe(dir, "losetup", "exit 0")
     writeFakeExe(dir, "sudo", """
 """ & fakeRecorder(log) & """
 
@@ -268,7 +267,7 @@ esac
     check content.contains("Filesystem check failed")
     check calls[^1] == "cryptsetup close mydata"
 
-  test "contract: full success path runs fallocate then the sudo open/blkid/resize/e2fsck/resize2fs/close sequence in order":
+  test "contract: filesystem preflight closes before allocation and reopening for growth":
     let dir = getTempDir() / "char_resize_vault_success"
     removeDir(dir)
     createDir(dir)
@@ -282,6 +281,7 @@ esac
     writeFakeExe(dir, "resize2fs", "exit 0")
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
+    writeFakeExe(dir, "losetup", "exit 0")
     writeFakeExe(dir, "sudo", """
 """ & fakeRecorder(log) & """
 
@@ -301,11 +301,15 @@ esac
     removeDir(dir)
     check code == 0
     check content.contains("Vault resized successfully: " & vaultFile & " is now 5G")
-    check calls.len == 7
-    check calls[0].startsWith("--length 5G")
+    check calls.len == 11
+    check calls[0].startsWith("-n losetup --associated")
     check calls[1] == "cryptsetup open --type luks " & vaultFile & " mydata"
     check calls[2].startsWith("blkid")
-    check calls[3] == "cryptsetup resize mydata"
-    check calls[4] == "e2fsck -f /dev/mapper/mydata"
-    check calls[5] == "resize2fs /dev/mapper/mydata"
-    check calls[6] == "cryptsetup close mydata"
+    check calls[3] == "cryptsetup close mydata"
+    check calls[4].startsWith("-n losetup --associated")
+    check calls[5].startsWith("--length 5G")
+    check calls[6] == "cryptsetup open --type luks " & vaultFile & " mydata"
+    check calls[7] == "cryptsetup resize mydata"
+    check calls[8] == "e2fsck -f /dev/mapper/mydata"
+    check calls[9] == "resize2fs /dev/mapper/mydata"
+    check calls[10] == "cryptsetup close mydata"

@@ -1,4 +1,4 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, posix]
 import "../create"
 import "../../../lib/testing"
 
@@ -78,7 +78,7 @@ suite "ax vault create run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: vault name")
+    check content.contains("Missing required argument: name")
 
   test "missing deps is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_new_vault"
@@ -104,7 +104,7 @@ suite "ax vault create run":
     let dir = getTempDir() / "stub_new_vault_exists"
     removeDir(dir)
     createDir(dir)
-    for exe in ["fallocate", "cryptsetup", "mkdir", "rm"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -122,7 +122,7 @@ suite "ax vault create run":
     let dir = getTempDir() / "contract_new_vault_success"
     removeDir(dir)
     createDir(dir)
-    for exe in ["fallocate", "cryptsetup", "sudo", "mkdir", "rm"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "")
     let rec = newRecordingRunner(exitCode = 0)
     let outPath = dir / "out.txt"
@@ -146,7 +146,9 @@ suite "ax vault create run":
     check rec.calls[3].args == @["cryptsetup", "open", "--type", "luks",
                                   dir / "Vaults" / ".mydata.vault", "mydata"]
     check rec.calls[4].cmd == "sudo"
-    check rec.calls[4].args == @["mkfs.ext4", "-L", "mydata", "/dev/mapper/mydata"]
+    check rec.calls[4].args == @["mkfs.ext4", "-E",
+      "root_owner=" & $getuid() & ":" & $getgid(),
+      "-L", "mydata", "/dev/mapper/mydata"]
     check rec.calls[5].cmd == "sudo"
     check rec.calls[5].args == @["cryptsetup", "close", "mydata"]
 
@@ -156,6 +158,7 @@ suite "ax vault create run":
     createDir(dir)
     let log = dir / "calls.log"
     writeFakeExe(dir, "mkdir", "exit 0")
+    writeFakeExe(dir, "mkfs.ext4", "exit 0")
     writeFakeExe(dir, "fallocate", fakeRecorder(log) & "\nexit 0")
     writeFakeExe(dir, "cryptsetup", fakeRecorder(log) & "\nexit 1")
     writeFakeExe(dir, "rm", fakeRecorder(log) & "\nexit 0")
@@ -179,6 +182,7 @@ suite "ax vault create run":
     createDir(dir)
     let log = dir / "calls.log"
     writeFakeExe(dir, "mkdir", "exit 0")
+    writeFakeExe(dir, "mkfs.ext4", "exit 0")
     writeFakeExe(dir, "fallocate", "exit 0")
     writeFakeExe(dir, "cryptsetup", "exit 0")
     writeFakeExe(dir, "rm", fakeRecorder(log) & "\nexit 0")
@@ -201,6 +205,7 @@ suite "ax vault create run":
     createDir(dir)
     let log = dir / "calls.log"
     writeFakeExe(dir, "mkdir", "exit 0")
+    writeFakeExe(dir, "mkfs.ext4", "exit 0")
     writeFakeExe(dir, "fallocate", "exit 0")
     writeFakeExe(dir, "cryptsetup", "exit 0")
     writeFakeExe(dir, "rm", fakeRecorder(log) & "\nexit 0")

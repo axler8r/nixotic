@@ -76,14 +76,9 @@ suite "ax vault unmount run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Mount point or vault name required")
+    check content.contains("Missing required argument: name")
 
-  test "an unresolvable target is an error, checkDeps never reached":
-    # `mount` itself is captured unconditionally, before target
-    # resolution, so it needs a stub even here -- an empty $PATH would
-    # crash on the capture call rather than exercise resolution at all.
-    # umount/cryptsetup are deliberately left absent: if checkDeps ran on
-    # this path, that would be exit 2, not 1.
+  test "dependencies are checked before capturing mount output":
     let dir = getTempDir() / "deps_dismount_vault_invalid"
     removeDir(dir)
     createDir(dir)
@@ -96,14 +91,15 @@ suite "ax vault unmount run":
     f.close()
     let content = readFile(outPath)
     removeDir(dir)
-    check code == 1
-    check content.contains("Invalid mount point or vault not mounted")
+    check code == 2
+    check content.contains("Missing commands:")
 
   test "a resolvable but not-actually-open mapper is 'Vault mapper not found'":
     let dir = getTempDir() / "deps_dismount_vault_mapper_missing"
     removeDir(dir)
     createDir(dir)
-    writeFakeExe(dir, "mount", "exit 0") # empty output: no match at all
+    for exe in cmdSpec.deps:
+      writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -114,15 +110,4 @@ suite "ax vault unmount run":
     removeDir(dir)
     check code == 1
     check content.contains("Vault mapper not found")
-
-  # No test exercises past the mapperPresent(mapperName) guard -- neither
-  # its exit-2 checkDeps branch nor the unmount/close success path -- for
-  # a resolvable target: every such path requires mapperPresent to
-  # answer true, which needs a real /dev/mapper node. Unlike ax vault mount
-  # and ax vault create (whose "already mounted"/opened checks are satisfied by
-  # a fakeable `mount` table or a fakeable `sudo cryptsetup`/`mkfs`
-  # sequence), ax vault unmount's entire reason to run is acting on an
-  # already-open vault, so this is a hard, unfakeable constraint in this
-  # sandbox rather than a "feasible but deferred" gap -- the same one
-  # noted for lib/vault's mapperPresent tests and, later, for
-  # ax vault remove/ax vault resize's mounted-vault guards.
+  # Operational cleanup and open-but-unmounted recovery are in test_safety.

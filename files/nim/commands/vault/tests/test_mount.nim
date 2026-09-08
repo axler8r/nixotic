@@ -52,7 +52,7 @@ suite "ax vault mount run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: vault file")
+    check content.contains("Missing required argument: name")
 
   test "missing deps is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_mount_vault"
@@ -74,7 +74,7 @@ suite "ax vault mount run":
     let dir = getTempDir() / "stub_mount_vault_missing_file"
     removeDir(dir)
     createDir(dir)
-    for exe in ["cryptsetup", "mount", "umount", "chown", "mkdir"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -93,7 +93,7 @@ suite "ax vault mount run":
     createDir(dir)
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
-    for exe in ["cryptsetup", "mount", "umount", "chown", "mkdir"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "")
     let rec = newRecordingRunner(
       output = "/dev/mapper/mydata on " & (dir / "Vaults" / "mydata") &
@@ -111,13 +111,13 @@ suite "ax vault mount run":
     check rec.calls.len == 1
     check rec.calls[0].cmd == "mount"
 
-  test "contract: full success path opens, creates the mount point, mounts, and chowns":
+  test "contract: full success path opens and mounts without changing ownership":
     let dir = getTempDir() / "contract_mount_vault_success"
     removeDir(dir)
     createDir(dir)
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
-    for exe in ["cryptsetup", "mount", "umount", "chown", "mkdir", "sudo", "id"]:
+    for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "")
     let rec = newRecordingRunner(exitCode = 0, output = "1000\n")
     let outPath = dir / "out.txt"
@@ -129,7 +129,7 @@ suite "ax vault mount run":
     f.close()
     removeDir(dir)
     check code == 0
-    check rec.calls.len == 7
+    check rec.calls.len == 4
     check rec.calls[0].cmd == "mount" # already-mounted probe, empty output
     check rec.calls[1].cmd == "sudo"
     check rec.calls[1].args == @["cryptsetup", "open", "--type", "luks",
@@ -138,12 +138,6 @@ suite "ax vault mount run":
     check rec.calls[2].args == @["--parents", mountPoint]
     check rec.calls[3].cmd == "sudo"
     check rec.calls[3].args == @["mount", "/dev/mapper/mydata", mountPoint]
-    check rec.calls[4].cmd == "id"
-    check rec.calls[4].args == @["-u"]
-    check rec.calls[5].cmd == "id"
-    check rec.calls[5].args == @["-g"]
-    check rec.calls[6].cmd == "sudo"
-    check rec.calls[6].args == @["chown", "-R", "1000:1000", mountPoint]
 
   test "characterization: a failing sudo mount rolls back with cryptsetup close":
     let dir = getTempDir() / "char_mount_vault_mount_fails"
