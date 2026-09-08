@@ -8,7 +8,7 @@
 #
 # No filesystem encryption: every dataset is plain ZFS, so the host boots
 # fully unattended and home just mounts. Per-secret encryption is on demand
-# with New-Vault (LUKS vault files under ~/Vaults), not at this layer.
+# with ax vault create (LUKS vault files under ~/Vaults), not at this layer.
 { device
 , swap ? "zram"
 , swapSizeGiB ? null

@@ -1,111 +1,31 @@
-# Nim Function Migration Conventions
+# Nim Command Conventions
 
-Companion to `docs/zsh-functions-conventions.md` — the naming table, output
-contract (stdout=data/stderr=status), `--raw` convention, and help pattern
-described there still apply regardless of implementation language. This doc
-covers what's specific to a Nim port, learned while migrating `Get-Attribute` as
-the pilot.
+Implementation patterns for the compiled toolbelt under `files/nim/`. The
+CLI's design — grammar, verb lexicon, cross-cutting flags, exit codes,
+registry mechanics, and how to add a command — lives in
+`docs/ax-cli-design.md`; this doc covers how a command's Nim is written and
+tested. The surviving zsh functions are governed by
+`docs/zsh-functions-conventions.md`.
 
-## Scope: when to migrate a function
-
-Threshold-based, mapped onto the tier system in
-`docs/zsh-functions-conventions.md`:
-
-- `wrapper` tier (1–15 lines, straight command pass-through, no validation
-  beyond `-h`) → stays zsh, or becomes a `zshalias` entry if it's pure
-  flag-forwarding.
-- `function` tier (16–80 lines) and `script` tier (81+) → migration candidates.
-  Still a per-function judgment call, not an auto-migrate trigger — a
-  `function`-tier script that's just "validate one arg, call one command" can
-  reasonably stay zsh.
-
-No backfill deadline. Un-migrated functions keep working exactly as today,
-indefinitely, via the existing zsh path.
-
-## Migration status
-
-Complete. Every zsh function identified as a migration candidate across the wave
-schedule has been ported to Nim, with two deliberate exceptions, both staying
-zsh indefinitely per the no-backfill-deadline policy above:
-
-- `Mount-Nfs` — considered over-engineered for its actual use; may be removed
-  outright rather than migrated, so it was left as-is pending that decision.
-- `Prepare-NewHost` — left as zsh; no migration planned.
-
-## Repo layout
-
-Mirrors `files/zsh/`:
-
-```
-files/nim/
-├── nim.cfg              # --styleCheck:error — see "Compile flags" below
-├── lib/
-│   ├── output.nim       # replaces lib/output.zsh
-│   ├── validation.nim   # replaces lib/validation.zsh
-│   ├── process.nim      # subprocess execution — see "Process execution" below
-│   ├── cli.nim          # cliMain safety net — see "Error handling" below
-│   ├── testing.nim      # test doubles — see "Test doubles" below
-│   └── tests/
-└── functions/
-    ├── GetAttribute.nim
-    ├── GetAttributes.nim
-    ├── SetAttribute.nim
-    ├── RemoveAttribute.nim
-    └── tests/
-```
-
-`lib/testing.nim` sits directly under `lib/`, not `lib/tests/`, deliberately:
-the flake's test globs are `lib/tests/*.nim` and `functions/tests/*.nim`, and
-`testing.nim` is a helper module `import`ed by other test files, not a test
-suite of its own — placing it under `lib/tests/` would make the check derivation
-try to compile and run it as one.
-
-## Naming: source file vs. installed binary
-
-**The costly lesson from the pilot.** Nim's `import` statement requires the
-target module's basename to be a valid Nim identifier — hyphens aren't allowed,
-even with quoted-path import syntax (`import "../Get-Attribute"` fails to
-compile with `invalid module name`). Compiling a hyphenated filename directly as
-a program's root file (no `import` involved) works fine — that's how the binary
-itself still ends up named correctly — but a _test_ file needs to `import` the
-module to call its `run()` proc, and that's where the hyphen breaks.
-
-So: **the Nim source file drops the hyphen** (PascalCase, e.g.
-`GetAttribute.nim`), while **the installed binary keeps it** (`Get-Attribute`),
-matching the PowerShell Verb-Noun convention that aliases and `$PATH` lookups
-expect.
-
-That mapping is spelled out explicitly per function in `flake.nix`'s `let` block
-as the `nimFunctionBinaries` attrset, not derived from the source filename:
-
-```nix
-nimFunctionBinaries = {
-  "Get-Attribute" = "GetAttribute.nim";
-  "Get-Attributes" = "GetAttributes.nim";
-  "Set-Attribute" = "SetAttribute.nim";
-  "Remove-Attribute" = "RemoveAttribute.nim";
-};
-```
-
-Add one entry like this per migrated function. This is deliberately not
-automated: a generic "strip the hyphen" / "re-insert a hyphen before capitals"
-transform isn't safe in general — e.g. `ConvertTo-H264Video` has two capitalized
-words before the hyphen, so a mechanical reversal would misplace it. One
-explicit entry per function is boring and correct.
-
-The `packages.${system}.nim-functions` derivation's build phase uses this
-attrset to construct one `nim c` invocation per function, and fails loudly if
-any `functions/*.nim` file has no matching entry — no more silently-missing
-binaries.
-
-## Function structure
+## Command structure
 
 ```nim
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"      # ../../../lib from a depth-3 command
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["vault", "mount"],
+  kind: ckVerb,
+  summary: "mount a LUKS vault",
+  usage: "ax vault mount <name> [mountpoint]",
+  args: @[...], flags: @[...],
+  deps: @["cryptsetup", "mount"],   # what checkDeps guards
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -114,349 +34,178 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: ..."""
+    outp.writeLine """Usage: ax vault mount ..."""
     return 0
 
   # manual option parsing over `args`, same shape as the zsh while/case loop
   ...
 
-  if not requireArg(attribute, "attribute", errp): return 1
-  if not checkDeps(["some-tool"], errp): return 2
+  if not requireArg(name, "name", errp): return 64
+  if not checkDeps(["cryptsetup"], errp): return 2
   ...
-  result = runner.runInherited("some-tool", @[...])
+  result = runner.runInherited("cryptsetup", @[...])
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())
 ```
 
-- Help-before-parsing (Pattern 1 from the zsh conventions doc) is unchanged.
-- Logic lives in `run()`, separate from the `when isMainModule` entry point, so
-  `std/unittest` can call `run()` directly with fake argv — no subprocess
-  spawning needed for most test cases.
-- `run()` takes optional `outp`/`errp` `File` params (default `stdout`/`stderr`)
-  so tests can redirect a case to a temp file and assert on captured output
-  (used for the `--help` case in `Get-Attribute`'s tests).
-- A function that spawns any subprocess also takes an optional
-  `runner: Runner = defaultRunner` param, so tests can substitute
-  `newRecordingRunner`'s runner instead — see Process execution and Test doubles
-  below.
-- A function whose zsh original calls `__ax_confirm` also takes an optional
-  `inp: File = stdin` param, appended **after** `runner`, so a test can redirect
-  what the confirmation prompt reads — mirrors how `outp`/`errp` are already
-  redirectable. `Remove-Vault` is the first example.
-- `when isMainModule` calls `cliMain(run(commandLineParams()))`, not a bare
-  `quit(run(...))` — see Error handling and the exit-code contract below.
-- `proc run*` and any helper `proc`s a test needs must be marked `*` (exported)
-  — the test file `import`s the function's module directly by relative path
-  (e.g. `import "../GetAttribute"`).
+- Help-before-parsing is unchanged from the zsh era: the `-h`/`--help` check
+  is the first thing in `run()`.
+- Logic lives in `run()`, separate from the entry point, so `std/unittest`
+  calls `run()` directly with fake argv — no subprocess spawning for most
+  cases.
+- `run()` takes optional `outp`/`errp` `File` params so tests can redirect
+  output to a temp file and assert on it.
+- A command that spawns any subprocess also takes
+  `runner: Runner = defaultRunner`, the seam tests intercept.
+- A command that prompts (`confirm`) also takes `inp: File = stdin`
+  (`ax vault remove`); `ax script create` reads its payload the same way.
+- A list/report command reads its output mode with `ctxFromEnv()`
+  (`lib/context.nim`) and renders through `output.render()` — never by
+  formatting JSON or tables by hand.
+- `proc run*` and any helper a test needs are exported (`*`); the test file
+  imports the module by relative path (`import "../mount"`).
 
-## The `ax` module
+`axMain` (`lib/spec.nim`) supersedes the old `cliMain` for commands: it
+answers `--ax-spec` with the spec as JSON, refuses `AX_DRY_RUN=1` when the
+spec does not declare dry-run support, and keeps the CatchableError-to-exit-1
+boundary that preserves stdout=data/stderr=status instead of printing a
+traceback. Treat that boundary as a backstop: a local check with a specific
+message ("Not a git repository") still beats the generic exception text.
 
-`files/nim/lib/output.nim` and `validation.nim` replace `lib/output.zsh` and
-`lib/validation.zsh`. Grow this module **only with procs an actual function
-needs** — don't port the full zsh helper surface speculatively.
+## Shared libraries
 
-Ported so far:
+`lib/output.nim` and `lib/validation.nim` hold the generic helper surface
+(`error`, `warn`, `info`, `success`, `confirm`, `render`, `requireArg`,
+`checkDeps`, `requireFile`, ...). Grow them **only with procs an actual
+command needs.** A plain `import "../../lib/output"` brings exported procs
+into scope unqualified — call sites write `error(...)`, not
+`output.error(...)`.
 
-| zsh                                 | Nim                                                                              |
-| ----------------------------------- | -------------------------------------------------------------------------------- |
-| `__ax_error`                        | `output.error*(msg: string, errp: File = stderr)`                                |
-| `__ax_require_arg`                  | `validation.requireArg*(value, name, errp): bool`                                |
-| `__ax_check_deps`                   | `validation.checkDeps*(cmds: openArray[string], errp): bool`                     |
-| `__ax_require_path_target`          | `validation.requirePathTarget*(path, errp): bool`                                |
-| `__ax_require_xattr_name`           | `validation.requireXattrName*(attribute, errp): bool`                            |
-| `__ax_require_writable_path_target` | `validation.requireWritablePathTarget*(path, errp): bool`                        |
-| `__ax_info`                         | `output.info*(msg: string, errp: File = stderr)`                                 |
-| `__ax_success`                      | `output.success*(msg: string, errp: File = stderr)`                              |
-| `__ax_require_file`                 | `validation.requireFile*(path, errp): bool`                                      |
-| `__ax_warn`                         | `output.warn*(msg: string, errp: File = stderr)`                                 |
-| `__ax_confirm`                      | `output.confirm*(message: string, inp: File = stdin, outp: File = stdout): bool` |
-| `__ax_table`                        | `output.table*(data: string, raw, runner, outp, errp): int`                      |
-| `__ax_require_dir`                  | `validation.requireDir*(path, errp): bool`                                       |
+Colour is suppressed when the stream isn't a TTY or `NO_COLOR` is set to
+**any** value including empty (`existsEnv`, matching zsh's `${NO_COLOR+x}`
+set-ness test); `AX_COLOR=always|never` (from `--color`) overrides that
+detection. `info`/`success` are suppressed under `AX_QUIET`; `error`/`warn`
+never are.
 
-**Not yet ported** (add when the first function that needs one migrates):
-`__ax_verbose`, `__ax_require_root`, `__ax_require_extension`.
+When several commands in the same family reimplement identical logic, that
+logic gets its own small `lib/<family>.nim` rather than being force-fit into
+the generic surface: `lib/vault.nim`, `lib/devenv.nim` (which also carries
+the `ax dev create`/`ax dev templates` template roster — separate binaries
+with disjoint filesets can only share code through `lib/`), `lib/git.nim`,
+and `lib/fdscan.nim`. Each gets its own `lib/tests/test_<family>.nim`.
 
-Naming convention: procs drop the `__ax_` prefix and use camelCase (Nim style).
-Functions import `output` and `validation` as needed with a plain
-`import "../lib/output"` / `import "../lib/validation"` (no `as` alias), which
-brings their exported procs into scope unqualified — call sites write
-`error(...)`, `requireArg(...)`, and `checkDeps(...)`, not `output.error(...)`
-or `validation.requireArg(...)`. Reach for a module-qualified call only if two
-imported modules ever export a proc with the same name and a collision needs
-resolving; that hasn't happened yet.
-
-Output contract carries over exactly: stdout for data, stderr for status; color
-suppressed when stderr isn't a TTY, or when `NO_COLOR` is set to **any** value
-including empty string (`os.existsEnv("NO_COLOR")`, not a truthiness check on
-its value — this matches zsh's `${NO_COLOR+x}` set-ness test, which a naive
-`getEnv("NO_COLOR") == ""` check would get wrong).
-
-## Family-specific shared libraries
-
-Not every shared Nim module is a growth of the generic `ax` module
-(`output.nim`/`validation.nim`). When several functions in the same _family_
-independently reimplement identical logic in zsh, that logic gets its own small
-`lib/<family>.nim` instead of being force-fit into `ax` or duplicated per
-function — `lib/vault.nim` (`resolveVault`, `mapperPresent`), forced by the
-Vault family (`Mount-Vault`, `Remove-Vault`, `Resize-Vault` all resolve a bare
-name-or-path input to a vault file + mapper name the same way), is the first
-instance of this pattern. `lib/devenv.nim` (`formatPackageLines`,
-`flakeNixContent`, `scaffoldDevEnvironment`), forced by the dev-environment
-scaffolder family, is the second. `lib/git.nim` (`requireGitRepo`,
-`gitCurrentBranch`, `requireCleanGitWorktree`, `requireBranchExists`,
-`requireNotBranch`, `requireWipBranch`), a port of the existing
-`files/zsh/lib/git.zsh` rather than logic newly extracted from duplicated zsh,
-is the third — and the first of these three whose zsh source file is _not_
-deleted after the port, since `Update-GitWIPBranchHistory` (excluded from
-migration) still sources it. `lib/fdscan.nim` (`buildFdArgs`, `findFiles`,
-`isTextMimeType`, `mimeType`), forced by the fd-scan family
-(`Find-MixedIndentation`, `Measure-Words`, `Show-FileSizeHistogram` all build
-`fd` arguments from `-e`/`--all` and word-split its output the same way; two of
-the three also classify files via `file --brief --mime-type`), is the fourth.
-
-These modules follow the same import convention as `ax`: a plain
-`import "../lib/vault"` brings its exported procs into scope unqualified. They
-are not tracked in the "ported so far" / "not yet ported" tables above — those
-are specific to the generic `ax` surface — but do get their own
-`lib/tests/test_<family>.nim` file, picked up as its own check derivation the
-same way as everything else in `lib/tests/`.
-
-`lib/git.nim` breaks one `ax`-established convention deliberately: its
-`require*` procs return `int`, not `bool`. The zsh original's
-`__ax_require_git_repo` calls `__ax_check_deps git` internally and its callers
-propagate `$?` verbatim, so callers need to distinguish "git is missing" (2)
-from "not a repository" (1) — a `bool` can't carry that third state. Every other
-`require*`-shaped proc in this codebase (`validation.nim`'s, `lib/vault.nim`'s)
-returns `bool` because none of them wrap a `checkDeps` call themselves; reach
-for the `int` shape only when a helper genuinely needs to convey more than
-pass/fail.
+`lib/git.nim` breaks one convention deliberately: its `require*` procs return
+`int`, not `bool`, because `requireGitRepo` wraps a `checkDeps` call and its
+callers must distinguish "git is missing" (2) from "not a repository" (1).
+Reach for the `int` shape only when a helper genuinely conveys more than
+pass/fail. Its zsh source (`files/zsh/lib/git.zsh`) stays in the repo:
+`Update-GitWIPBranchHistory` still sources it.
 
 ## Regex avoidance
 
-No function has needed `std/re` so far, and none should reach for it casually:
-it wraps a runtime `libpcre`, a new build dependency this project's Nix
-derivations don't currently carry. Simple format checks
-(`New-PythonDevEnvironment`'s `3.12`, `New-DotNetDevEnvironment`'s `8`/`9`/`10`,
-`New-ElixirDevEnvironment`'s `1.17`) are all doable with `strutils.split` plus a
-charset check (`allCharsInSet`), the same approach `validation.nim`'s
-`xattrChars` already uses for attribute-name validation. Reach for `std/re` only
-if a genuinely regex-shaped requirement shows up that a manual check can't
-express reasonably.
+No command has needed `std/re`, and none should reach for it casually: it
+wraps a runtime `libpcre` this project's derivations don't carry. Simple
+format checks (`ax dev create`'s `3.12`/`8`/`1.17` targets,
+`ax git tag create`'s tag parsing) are all `strutils.split` plus
+`allCharsInSet`, the approach `validation.nim`'s `xattrChars` already uses.
 
 ## Process execution
 
-Every subprocess a function spawns goes through `files/nim/lib/process.nim`.
-Never call `std/osproc`'s `startProcess` or `execProcess` directly from a
-`functions/*.nim` file. `run()` takes an optional
-`runner: Runner = defaultRunner` parameter and calls through it, which is also
-the seam tests use to intercept the spawn (see Test doubles below).
+Every subprocess goes through `lib/process.nim`. Never call `std/osproc`
+directly from a command. Three primitives, one per shape of use:
 
-A privileged command needs no special handling: it is just
-`runner.runInherited("sudo", @[real_cmd, ...])`. `sudo`'s own
-password/passphrase prompt streams live because `runInherited` connects the
-child to the parent's real stdin/stdout/stderr, the same as any other
-interactive child process. `checkDeps` lists the real command (`cryptsetup`,
-`mount`, ...), never `sudo` itself, matching the zsh originals — none of them
-check for `sudo`'s presence either.
+- `runner.runInherited(cmd, args)` — child gets the parent's real
+  stdin/stdout/stderr. For output that streams live (`zfs list`,
+  `docker pull`). Returns the exit code. A privileged command is just
+  `runner.runInherited("sudo", @[realCmd, ...])`; `checkDeps` lists the real
+  command, never `sudo`.
+- `runner.capture(cmd, args, input = "")` — both streams captured and
+  drained concurrently, optional stdin payload. For output the command
+  parses before it reaches the user. Returns `CommandResult`.
+- `runner.runQuiet(cmd, args)` — discards both streams, returns the exit
+  code.
 
-Three primitives, one per shape of subprocess use:
+Draining is not optional: `osproc` gives each stream a small fixed pipe, and
+a child that fills an undrained pipe blocks forever — `capture` drains both
+concurrently on separate threads, and `runQuiet` is built on `capture` for
+the same reason.
 
-- `runner.runInherited(cmd, args)` — connects the child directly to the parent's
-  real stdin/stdout/stderr. Use when the child's own output should stream to the
-  user live (`zfs list`, `nix flake update`, `docker rmi`). Returns the child's
-  exit code.
-- `runner.capture(cmd, args, input = "")` — runs the child with both output
-  streams captured and drained concurrently, optionally writing `input` to its
-  stdin. Use when the function parses or transforms the output before it reaches
-  the user (`Get-Help` piping a queried command's `--help` output through
-  `bat`). Returns a `CommandResult` (`exitCode`, `output`, `error`).
-- `runner.runQuiet(cmd, args)` — runs the child, discards both streams, returns
-  only the exit code. Use when only success/failure matters and nothing is ever
-  shown.
+`capture`'s early-exit contract: a child that exits, or closes stdin, before
+consuming all of `input` is not an error — the write stops, the child is
+reaped, and the call returns its real exit code with whatever it emitted. A
+pager or `head`-shaped filter exiting early is the normal case. Also:
+`capture`'s output is the child's bytes verbatim (no trailing-newline
+normalisation) — consumers drop empty lines or `strip()` accordingly.
 
-Draining is not optional. `osproc` gives each stream its own OS pipe with a
-small fixed buffer; a child that writes past it blocks until something reads
-that pipe. Reading one stream to completion before starting the other deadlocks
-the parent as soon as a child writes enough to both — `capture`'s real
-implementation drains stdout and stderr concurrently on separate threads
-specifically to avoid this, and `runQuiet` is built on top of `capture` rather
-than a simpler discard-both call for the same reason.
-
-`capture` also has an early-exit contract worth knowing before relying on it: a
-child that exits, or closes its stdin, before consuming all of `input` is not an
-error. The write simply stops there; the drain threads are still joined, the
-child is still reaped, and `capture` returns its real exit code along with
-whatever it did emit before exiting. A program piping into a pager or a
-`head`-shaped filter exiting early is the normal case, not a fault — a caller
-that must know the payload arrived in full has to arrange its own
-acknowledgement, because `capture` itself never raises for this.
-
-One divergence from `osproc`'s `execProcess` is invisible to the argv-pinning
-tests and worth knowing if `capture`/`runQuiet` grow a new consumer:
-`execProcess` used to append a trailing newline to output that lacked one, while
-`capture`'s `output`/`error` are the child's bytes verbatim. Today this is
-correctly absorbed at all four consumers — `UpdateDockerImage.nim`'s
-`filterImages` and `RemoveDockerDanglingImages.nim`/
-`RemoveDockerDanglingVolumes.nim`'s `parseDockerList` all drop empty lines, and
-`GetDefaultBrowser.nim` strips its result — but a future consumer must not
-assume a trailing newline is there.
-
-## Error handling and the exit-code contract
-
-| Exit code     | Meaning                                                                                                                                                                                                                                                                                            |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0`           | Success                                                                                                                                                                                                                                                                                            |
-| `1`           | Usage error (bad or missing argument, unknown flag) or a validation failure (`requireArg`, `requirePathTarget`, etc. returning `false`)                                                                                                                                                            |
-| `2`           | A required external command is missing (`checkDeps` returning `false`)                                                                                                                                                                                                                             |
-| anything else | Command-specific. A passthrough function should normally return the subprocess's own exit code (for example, `Get-ZfsSnapshots` returns whatever `zfs list` exited with); an orchestration function may deliberately normalize or combine failures, but that policy must be documented and tested. |
-
-`files/nim/lib/cli.nim`'s `cliMain` template is the top-level safety net: every
-function's `when isMainModule` block reads `cliMain(run(commandLineParams()))`,
-which catches any `CatchableError` escaping `run()`, prints it as an `Error:`
-line on stderr (via the same unqualified `error(...)` from `output`), and exits
-`1` — this preserves the stdout=data/stderr=status contract instead of letting a
-raw Nim traceback reach the user. Treat it as a backstop, not the primary
-error-reporting mechanism: a local `try/except` inside `run()` is still
-preferred wherever a specific message ("Not a git repository") beats the generic
-exception text `cliMain` would otherwise print. `InitializeClaudeProject.nim`
-has several such local checks.
-
-## Resource ownership
-
-Process handles are owned entirely inside `process.nim`. `startProcess`'s result
-is a local variable in `realRunInherited`/`realCapture`, closed via
-`defer: p.close()` (or an explicit `finally`, for `capture`, once its drain
-threads have joined) before the proc returns. A function's `run()` never sees a
-`Process` value and never closes one — it only ever sees the `Runner` it was
-given and the `int`/`CommandResult` a call through it returns.
+Process handles are owned entirely inside `process.nim`; a command's `run()`
+only ever sees the `Runner` it was given and the values a call through it
+returns.
 
 ## Test doubles
 
-Two mechanisms exist; which one applies depends on what's under test.
+Two mechanisms; which applies depends on what's under test.
 
-**`newRecordingRunner`** (`lib/testing.nim`) is the default for a function's own
-tests. It spawns nothing: pass `rec.runner` as `run()`'s `runner` argument, call
-`run()`, then assert on `rec.calls` — each entry records the `kind`
-(`"inherited"`/`"capture"`), `cmd`, `args`, and any `input` that call carried.
-Its canned `exitCode`/`output`/`error` (set at construction) become what every
-`capture`/`runQuiet` call through it sees, so a test can also drive a function's
-post-processing of subprocess output without touching a real process. This is
-what argv-pinning "contract" tests in `functions/tests/` use, e.g.
-`test_enter_nix_shell.nim`'s "contract: nix shell is called with
-nixpkgs#-prefixed installables".
+**`newRecordingRunner`** (`lib/testing.nim`) is the default for a command's
+own tests. It spawns nothing: pass `rec.runner` as `run()`'s `runner`
+argument, then assert on `rec.calls` — each entry records the kind
+(`"inherited"`/`"capture"`), `cmd`, `args`, and `input`. Its canned
+`exitCode`/`output`/`error` are what every call through it sees, so a test
+drives post-processing of subprocess output without a real process. This is
+what argv-pinning "contract" tests use.
 
-**`withPath` + `writeFakeExe`** (also `lib/testing.nim`) cover two cases
-`newRecordingRunner` can't: `lib/process.nim`'s own tests, which must exercise a
-real `fork`/`exec` round trip against `realRunInherited`/ `realCapture` rather
-than the interception seam, and a function's dependency-missing branch, which
-depends on `findExe` genuinely failing to find something on `$PATH`.
-`withPath(dir): body` replaces `$PATH` with `dir` for the block's duration;
-`writeFakeExe(dir, name, script)` writes an executable `/bin/sh` script at
-`dir/name` standing in for a real command (the pristine `$PATH`, captured once
-at module load, is baked into the stub so its own body can still shell out to
-real utilities like `cat`/`wc` even while the test process's `$PATH` is the
-fixture directory).
+**`withPath` + `writeFakeExe`** cover what the recorder can't:
+`lib/process.nim`'s own fork/exec round-trip tests, and the
+dependency-missing branch, which needs `findExe` to genuinely fail.
+`withPath(dir): body` swaps `$PATH` for the block; `writeFakeExe` writes a
+`/bin/sh` stand-in (with the pristine `$PATH` baked in so the fake's own body
+can still call real utilities).
 
-One wrinkle worth knowing: a `newRecordingRunner` contract test can still need a
-`withPath`/`writeFakeExe` stub, purely to get a `checkDeps` call to pass before
-the recording runner's interception ever matters. The test sandbox has no
-`docker` or `zfs` in `nativeBuildInputs`, so e.g.
-`test_update_docker_image.nim`'s contract tests write an empty-bodied `docker`
-stub under `withPath` before calling `run()` — `checkDeps` finds it on `$PATH`
-and passes, but the stub is never actually executed, because `rec.runner`
-intercepts the spawn that `checkDeps`'s pass unlocks.
+The common wrinkle: a recorder-based contract test often still needs a
+`writeFakeExe` stub purely so `checkDeps` passes — the sandbox has no
+`docker`/`zfs`; the stub is found on `$PATH` but never executed because
+`rec.runner` intercepts the spawn its presence unlocks.
+
+`lib/testing.nim` sits directly under `lib/`, not `lib/tests/`, deliberately:
+it is a helper module imported by test files, and the flake's test glob would
+otherwise compile it as a suite of its own.
 
 ## Testing
 
-`std/unittest` (stdlib, no nimble dependency) covers the `ax` module and each
-function's `run()`. `flake.nix` turns every `lib/tests/*.nim` and
-`functions/tests/*.nim` file into its own check derivation, named
-`nixotic-nim-test-<file stem>` and discovered by reading the two directories at
-eval time — adding a test file is enough, there is no list to update. All of
-them run under `nix flake check`, so a broken function fails the same gate as a
-broken Nix expression, and a failure names the offending suite directly.
+`std/unittest` (stdlib, no nimble dependency). One test file per command at
+`commands/<group>/[<subgroup>/]tests/test_<leaf>.nim`; shared-module suites
+in `lib/tests/`. `flake.nix` turns every test file into its own check
+derivation, discovered from the tree at eval time — adding a file is enough.
+All run under `nix flake check`, and a failure names the suite.
 
-Each check is fileset-scoped rather than taking the whole `files/nim` tree, so
-editing one function does not invalidate every other function's test, and Nix
-runs the suites in parallel. A `lib/tests` check sees `nim.cfg` plus `lib/`; a
-`functions/tests` check sees that plus the single function module under test.
-The subject module is found by reading the test's own `import "../<Module>"`
-line, which is why that import must appear literally, on its own line, in every
-`functions/tests/*.nim` file — the flake throws at eval time if it is missing. A
-test needing a second function module is not currently expressible; add an
-explicit `extraFiles` entry to `mkNimTest` if that day comes.
+Each check is fileset-scoped: a command test sees `nim.cfg` + `lib/` +
+`lexicon.json` + the one command module it exercises, derived from the test's
+own path — so editing one command invalidates only its own build and test,
+and Nix runs suites in parallel.
 
-Dependency checks are testable in both directions, not just the happy path.
-`checkDeps` calls `findExe`, which reads `$PATH` at **runtime** — `nim c -r`
-compiles the test binary and only then runs it, so there's no sense in which a
-dependency is present or absent "at compile time." Point `withPath` (see Test
-doubles above) at an empty directory to construct the "command missing" branch:
-`checkDeps` fails and the function returns exit code `2` with a
-`Missing commands: ...` message on stderr —
-`functions/tests/test_get_zfs_snapshots.nim` and
-`test_convert_to_video_horizontal.nim` cover this branch for real. It is not
-untestable; six test files that once carried a comment claiming otherwise have
-since been rewritten to prove it.
-
-Some test cases still need a genuinely-present tool for a value beyond "present
-or absent" — e.g. `Get-Attribute`'s tests exercise `getfattr`, from the `attr`
-package, for real past the `checkDeps` call. Add that package to the `checks`
-derivation's `nativeBuildInputs`, and to the devShell's `packages` for local
-runs — and consider a comment in the test file noting the dependency, since a
-missing one produces confusing failures that look like validation bugs. Both
-places are the same list: `nimToolchain` in `flake.nix` feeds the test
-derivations' `nativeBuildInputs` and the devShell's `packages`, so they cannot
-drift apart.
-
-The non-TTY and `NO_COLOR` branches of `output.error` are covered without any
-special terminal setup. The color-enabled branch needs a pseudo-terminal on this
-Linux-only project; that coverage is feasible, but deferred because its value is
-currently lower than the subprocess and CLI-contract tests. Do not describe it
-as an untestable or permanent gap.
-
-## Local development
-
-`devShells.${system}.default` in `flake.nix` provides `nim` (plus whatever
-runtime deps the ported functions need, e.g. `attr`) for editor/`nim-lsp`
-support. `.envrc` (`use flake`) activates it via direnv on `cd`. Neither is
-required for the actual build — `nix build`/`nix flake check` are self-contained
-via `nativeBuildInputs` — this is purely local ergonomics.
+Dependency checks are testable in both directions: `findExe` reads `$PATH` at
+runtime, so pointing `withPath` at an empty directory constructs the
+"command missing" branch for real (exit 2, `Missing commands:` on stderr). A
+test needing a genuinely-present tool past the `checkDeps` gate (the attr
+suite uses real `getfattr`) gets it from `nimToolchain` in `flake.nix`, which
+feeds both the check derivations' `nativeBuildInputs` and the devShell — one
+list, cannot drift.
 
 ## Compile flags
 
-`files/nim/nim.cfg` sets `--styleCheck:error`. Both the function builds and the
-test builds pick it up automatically — every derivation roots its source at
-`files/nim` and runs `nim c` from that directory, and Nim reads `nim.cfg`
-relative to the directory a compile is invoked from. `nim.cfg` is therefore part
-of the shared fileset each derivation is scoped to; dropping it would silently
-disable the style gate rather than fail. The two builds are otherwise
-deliberately asymmetric: the package build passes `-d:release`, the test build
-does not, trading compile speed and optimization for live `assert`/`doAssert`
-checks and readable stack traces in a test binary. Don't "fix" this to match —
-see the comment beside `mkNimTest` in `flake.nix`.
+`files/nim/nim.cfg` sets `--styleCheck:error`; every derivation roots its
+source at `files/nim` so it always applies. The package build passes
+`-d:release`, the test build deliberately does not — live
+`assert`/`doAssert` and readable stack traces are worth more in a test binary
+than speed. Don't "fix" this to match; see the comment beside `mkNimTest` in
+`flake.nix`. Resist `--warningAsError`: compiling a command module as a
+test's import dependency triggers benign `UnusedImport` warnings for
+entry-point-only imports.
 
-Resist adding `--warningAsError` or similar for a stricter test gate. Compiling
-a function file as a test's `import` dependency (rather than as its own
-main-module program) triggers a benign `UnusedImport` warning for `../lib/cli`:
-every function does `import "../lib/cli"` for `cliMain`, but `cliMain` is only
-ever referenced inside that file's own `when isMainModule` block, which a test
-build never compiles. Turning warnings into errors would fail every function's
-test on this false positive.
+## Local development
 
-## Integration gaps found while porting the Attribute family
-
-The two gaps flagged after the `Get-Attribute` pilot drove these changes:
-
-- `packages.${system}.nim-functions` builds from an explicit
-  `nimFunctionBinaries` attrset (binary name → source file) and fails the build
-  if any `functions/*.nim` file has no entry — no more silently-missing
-  binaries.
-- `files/zsh/functions/Get-UserFunctions` reads `$NIXOTIC_NIM_FUNCTIONS_BIN`
-  (set in `home/zsh.nix`'s `programs.zsh.sessionVariables`) and merges
-  Nim-installed binaries into its existing tables, tagged `(compiled)`.
-  Description extraction is not fully closed: it takes the first non-empty line
-  after `Usage:`, so functions whose help starts with a `Description:` heading
-  are currently listed with that literal heading instead of the following
-  descriptive text. Fix the parser or standardize the help shape before treating
-  this integration as complete.
+`devShells.${system}.default` provides `nim` plus the runtime deps for
+editor/`nim-lsp` support; `.envrc` (`use flake`) activates it via direnv.
+Neither is required for the build — `nix build`/`nix flake check` are
+self-contained.

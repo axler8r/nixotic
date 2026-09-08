@@ -15,7 +15,7 @@ The `stable` branch is the source of truth.
 ### 1. Update Stable
 
 ```bash
-Update-GitStableBranch
+ax git stable sync
 ```
 
 This command refuses dirty worktrees and fast-forwards `stable` from
@@ -24,7 +24,7 @@ This command refuses dirty worktrees and fast-forwards `stable` from
 ### 2. Create a WIP Branch
 
 ```bash
-New-GitWIPBranch
+ax git wip start
 ```
 
 This creates and switches to `wip/YYYYMMDD-<random7>` from a clean `stable`
@@ -66,7 +66,7 @@ the completion command would make rebases invisible and harder to review.
 ### 5. Complete the WIP Branch
 
 ```bash
-Complete-GitWIPBranch
+ax git wip finish
 ```
 
 This switches to `stable` and runs `git merge --ff-only <current-wip-branch>`.
@@ -77,7 +77,7 @@ bisectable. If `stable` cannot be fast-forwarded, the command refuses.
 ### 6. Cleanup
 
 ```bash
-Remove-GitWIPBranch <wip-branch>
+ax git wip drop <wip-branch>
 ```
 
 Cleanup stays explicit. The branch name is required, and only merged `wip/*`
@@ -88,7 +88,7 @@ branches can be deleted.
 | Practice                                   | Reason                                                 |
 | ------------------------------------------ | ------------------------------------------------------ |
 | Keep all active work on `wip/*` branches   | Enforces the intended `stable -> wip/* -> stable` flow |
-| Let `New-GitWIPBranch` create branch names | Keeps branch creation consistent                       |
+| Let `ax git wip start` create branch names | Keeps branch creation consistent                       |
 | Keep history curation explicit             | Avoids hidden rebases during completion                |
 | Keep cleanup explicit                      | Avoids hidden deletion of the wrong branch             |
 | Separate `flake.lock` updates              | Makes regressions easier to identify                   |
