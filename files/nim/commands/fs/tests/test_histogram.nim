@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../ShowFileSizeHistogram"
-import "../../lib/testing"
+import "../histogram"
+import "../../../lib/testing"
 
-suite "Show-FileSizeHistogram parseArgs":
+suite "ax fs histogram parseArgs":
   test "no args: directory empty, no flags":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -16,7 +16,7 @@ suite "Show-FileSizeHistogram parseArgs":
   test "-e is repeatable and preserves order":
     check parseArgs(@["-e", "jpg", "-e", "png"]).extensions == @["jpg", "png"]
 
-suite "Show-FileSizeHistogram binIndex":
+suite "ax fs histogram binIndex":
   test "a size under the first limit lands in bin 0":
     check binIndex(500) == 0
 
@@ -27,7 +27,7 @@ suite "Show-FileSizeHistogram binIndex":
     check binIndex(1073741824) == 7
     check binIndex(999999999999) == 7
 
-suite "Show-FileSizeHistogram formatSizeLabel":
+suite "ax fs histogram formatSizeLabel":
   test "bytes under 1KB print as a bare byte count":
     check formatSizeLabel(500) == "500 B"
 
@@ -36,7 +36,7 @@ suite "Show-FileSizeHistogram formatSizeLabel":
     check formatSizeLabel(1572864) == "1.5 MB"
     check formatSizeLabel(2147483648) == "2.0 GB"
 
-suite "Show-FileSizeHistogram run":
+suite "ax fs histogram run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_show_file_size_histogram_help.txt"
     let f = open(tmp, fmWrite)
@@ -45,16 +45,16 @@ suite "Show-FileSizeHistogram run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Show-FileSizeHistogram")
+    check content.contains("Usage: ax fs histogram")
 
-  test "--raw is an unknown-option error, exit 1":
+  test "--raw is an unknown-option error, exit 64":
     let tmp = getTempDir() / "test_show_file_size_histogram_raw.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--raw"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --raw")
 
   test "a nonexistent directory is exit 1 with a Directory not found error":
@@ -83,7 +83,7 @@ suite "Show-FileSizeHistogram run":
     check content.contains("Missing commands: fd")
 
   test "contract: files are binned by size and rendered via table, always non-raw":
-    # Show-FileSizeHistogram never calls `file` (no MIME filtering), so
+    # ax fs histogram never calls `file` (no MIME filtering), so
     # only one external answer varies — fd's listing — and a single
     # RecordingRunner canned output can safely serve that, since nothing
     # else routed through the same runner (the eventual `column` call)

@@ -1,9 +1,30 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/fdscan"
+import "../../lib/context"
+import "../../lib/fdscan"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["fs", "histogram"],
+  kind: ckReport,
+  summary: "histogram of file sizes in a directory tree",
+  usage: "ax fs histogram [-e ext] [--all] [dir]",
+  args: @[
+    ArgSpec(name: "dir", required: false,
+            description: "target directory (default: current directory)")
+  ],
+  flags: @[
+    FlagSpec(long: "", short: "e", takesValue: true,
+             description: "only count files with this extension (repeatable)"),
+    FlagSpec(long: "all", takesValue: false,
+             description: "include hidden files and ignored files")
+  ],
+  deps: @["fd"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   extensions*: seq[string]
@@ -61,7 +82,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Show-FileSizeHistogram [opts] [directory]
+    outp.writeLine """Usage: ax fs histogram [opts] [directory]
 
 Display a histogram of file sizes in a directory tree.
 Uses logarithmic bins (powers of 10) by default for a natural
@@ -76,16 +97,16 @@ Arguments:
     directory   Target directory (default: current directory)
 
 Examples:
-    Show-FileSizeHistogram
-    Show-FileSizeHistogram ~/projects
-    Show-FileSizeHistogram -e jpg -e png
-    Show-FileSizeHistogram --all"""
+    ax fs histogram
+    ax fs histogram ~/projects
+    ax fs histogram -e jpg -e png
+    ax fs histogram --all"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
-    return 1
+    return 64
 
   let dir = if parsed.directory.len > 0: parsed.directory else: "."
   if not requireDir(dir, errp): return 1
@@ -116,20 +137,25 @@ Examples:
     if c > maxCount: maxCount = c
 
   const barWidth = 30
-  var lines: seq[string] = @[]
+  var rows: seq[seq[string]] = @[]
   for i in 0 ..< binLabels.len:
     let count = binCounts[i]
     let barLen = if maxCount > 0: count * barWidth div maxCount else: 0
     let bar = "█".repeat(barLen) & " ".repeat(barWidth - barLen)
-    lines.add(binLabels[i] & "|" & bar & "|" & $count)
+    rows.add @[binLabels[i], bar, $count]
 
-  outp.writeLine("")
+  let ctx = ctxFromEnv()
+  if ctx.output == omTable:
+    outp.writeLine("")
   info($totalFiles & " files, " & formatSizeLabel(totalBytes), errp)
-  outp.writeLine("")
-  discard table("Range|Distribution|Files\n" & lines.join("\n"), false, runner,
-                outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Range", "Distribution", "Files"], rows, ctx, runner,
+                 outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

@@ -47,7 +47,6 @@
       nimFunctionBinaries = {
         "Get-Verb" = "GetVerb.nim";
         "Show-Verb" = "ShowVerb.nim";
-        "Sync-FileIndex" = "SyncFileIndex.nim";
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
         "Get-Help" = "GetHelp.nim";
         "Get-DefaultBrowser" = "GetDefaultBrowser.nim";
@@ -57,9 +56,6 @@
         "Get-GitHubLicenses" = "GetGitHubLicenses.nim";
         "Get-SwapUsage" = "GetSwapUsage.nim";
         "Get-NfsExports" = "GetNfsExports.nim";
-        "Find-MixedIndentation" = "FindMixedIndentation.nim";
-        "Measure-Words" = "MeasureWords.nim";
-        "Show-FileSizeHistogram" = "ShowFileSizeHistogram.nim";
       };
 
       # Fails at eval time (before any build runs) if functions/*.nim and

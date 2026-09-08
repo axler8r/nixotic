@@ -1,9 +1,30 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/fdscan"
+import "../../../lib/context"
+import "../../../lib/fdscan"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["fs", "indent", "check"],
+  kind: ckVerb,
+  summary: "find files mixing tab and space indentation",
+  usage: "ax fs indent check [-e ext] [--all] [dir]",
+  args: @[
+    ArgSpec(name: "dir", required: false,
+            description: "target directory (default: current directory)")
+  ],
+  flags: @[
+    FlagSpec(long: "", short: "e", takesValue: true,
+             description: "only check files with this extension (repeatable)"),
+    FlagSpec(long: "all", takesValue: false,
+             description: "include hidden files and ignored files")
+  ],
+  deps: @["fd", "file"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   extensions*: seq[string]
@@ -63,7 +84,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Find-MixedIndentation [opts] [directory]
+    outp.writeLine """Usage: ax fs indent check [opts] [directory]
 
 Find files that use both tabs and spaces for indentation.
 Files using only tabs or only spaces are fine — only mixed
@@ -80,16 +101,16 @@ Arguments:
     directory   Target directory (default: current directory)
 
 Examples:
-    Find-MixedIndentation
-    Find-MixedIndentation ~/projects
-    Find-MixedIndentation -e py -e js
-    Find-MixedIndentation --all"""
+    ax fs indent check
+    ax fs indent check ~/projects
+    ax fs indent check -e py -e js
+    ax fs indent check --all"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
-    return 1
+    return 64
 
   let dir = if parsed.directory.len > 0: parsed.directory else: "."
   if not requireDir(dir, errp): return 1
@@ -124,19 +145,24 @@ Examples:
             $skipped & " skipped)", errp)
     return 0
 
-  var lines: seq[string] = @[]
+  var ctx = ctxFromEnv()
+  if parsed.raw:
+    ctx.output = omPlain
+  var rows: seq[seq[string]] = @[]
   for r in results:
-    lines.add(r.relPath & "|" & insertSep($r.tabLines, ',') & "|" &
-              insertSep($r.spaceLines, ','))
+    rows.add @[r.relPath, insertSep($r.tabLines, ','),
+               insertSep($r.spaceLines, ',')]
 
-  outp.writeLine("")
-  discard table("File|Tabs|Spaces\n" & lines.join("\n"), parsed.raw, runner,
-                outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["File", "Tabs", "Spaces"], rows, ctx, runner, outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   warn($mixed & " file(s) with mixed indentation (" & $checked &
        " checked, " & $skipped & " skipped)", errp)
 
   return 1
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

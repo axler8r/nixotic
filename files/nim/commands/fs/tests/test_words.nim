@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../MeasureWords"
-import "../../lib/testing"
+import "../words"
+import "../../../lib/testing"
 
-suite "Measure-Words parseArgs":
+suite "ax fs words parseArgs":
   test "no args: directory empty, topN defaults to 15":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -20,7 +20,7 @@ suite "Measure-Words parseArgs":
     let p = parseArgs(@["--bogus"])
     check p.unknownOption == "--bogus"
 
-suite "Measure-Words extractExtension":
+suite "ax fs words extractExtension":
   test "returns the extension without a leading dot":
     check extractExtension("foo.py") == "py"
     check extractExtension("archive.tar.gz") == "gz"
@@ -28,7 +28,7 @@ suite "Measure-Words extractExtension":
   test "returns empty string for a file with no extension":
     check extractExtension("Makefile") == ""
 
-suite "Measure-Words countWords":
+suite "ax fs words countWords":
   test "counts whitespace-separated tokens across the whole file":
     let dir = getTempDir() / "count_words"
     removeDir(dir)
@@ -42,7 +42,7 @@ suite "Measure-Words countWords":
   test "returns zero for a missing file":
     check countWords("/definitely/not/a/real/path.txt") == 0
 
-suite "Measure-Words run":
+suite "ax fs words run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_measure_words_help.txt"
     let f = open(tmp, fmWrite)
@@ -51,16 +51,16 @@ suite "Measure-Words run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Measure-Words")
+    check content.contains("Usage: ax fs words")
 
-  test "an unknown option is an error, exit 1":
+  test "an unknown option is an error, exit 64":
     let tmp = getTempDir() / "test_measure_words_bogus.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--bogus"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "a nonexistent directory is exit 1 with a Directory not found error":
@@ -114,7 +114,7 @@ suite "Measure-Words run":
     removeDir(dir)
     check code == 0
     check stdinContent == "Extension|Words|Files|Share\n" &
-      ".py|3|1|60%\n.md|2|1|40%\nTotal|5|2|100%"
+      ".py|3|1|60%\n.md|2|1|40%\nTotal|5|2|100%\n"
 
   test "no text files found is a warning, exit 0":
     let dir = getTempDir() / "run_no_text_files"

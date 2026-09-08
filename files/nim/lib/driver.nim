@@ -290,7 +290,11 @@ proc describeBlock(tag: string, pairs: seq[(string, string)],
 
 proc flagSpecsFor(s: CommandSpec): string =
   for f in s.flags:
-    var entry = "'--" & f.long & "[" & zqEscape(f.description) & "]"
+    let name =
+      if f.long.len > 0: "--" & f.long
+      elif f.short.len > 0: "-" & f.short
+      else: continue
+    var entry = "'" & name & "[" & zqEscape(f.description) & "]"
     if f.takesValue:
       entry.add ":value:"
     entry.add "'"

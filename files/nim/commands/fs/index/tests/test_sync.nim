@@ -1,12 +1,12 @@
 import std/[unittest, os, strutils]
-import "../SyncFileIndex"
+import "../sync"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
   removeDir(result)
   createDir(result)
 
-suite "Sync-FileIndex run":
+suite "ax fs index sync run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_sync_file_index_help.txt"
     let f = open(tmp, fmWrite)
@@ -15,7 +15,7 @@ suite "Sync-FileIndex run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Sync-FileIndex")
+    check content.contains("Usage: ax fs index sync")
 
   test "fails when the index file does not exist":
     let dir = mkTmpDir("sfi_missing_track")

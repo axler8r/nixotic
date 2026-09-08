@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../FindMixedIndentation"
-import "../../lib/testing"
+import "../check"
+import "../../../../lib/testing"
 
-suite "Find-MixedIndentation parseArgs":
+suite "ax fs indent check parseArgs":
   test "no args: directory empty, no flags":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -27,7 +27,7 @@ suite "Find-MixedIndentation parseArgs":
     check p.unknownOption == "--bogus"
     check p.directory == ""
 
-suite "Find-MixedIndentation countTabSpaceLines":
+suite "ax fs indent check countTabSpaceLines":
   test "counts lines starting with a tab separately from lines starting with a space":
     let dir = getTempDir() / "count_tab_space_lines"
     removeDir(dir)
@@ -42,7 +42,7 @@ suite "Find-MixedIndentation countTabSpaceLines":
   test "returns zero/zero for a missing file":
     check countTabSpaceLines("/definitely/not/a/real/path.txt") == (0, 0)
 
-suite "Find-MixedIndentation stripDirPrefix":
+suite "ax fs indent check stripDirPrefix":
   test "strips the directory plus a slash from a matching file path":
     check stripDirPrefix("./foo.py", ".") == "foo.py"
     check stripDirPrefix("/tmp/proj/src/foo.py", "/tmp/proj") == "src/foo.py"
@@ -53,7 +53,7 @@ suite "Find-MixedIndentation stripDirPrefix":
   test "returns the file unchanged when it doesn't start with the prefix":
     check stripDirPrefix("other/foo.py", "/tmp/proj") == "other/foo.py"
 
-suite "Find-MixedIndentation run":
+suite "ax fs indent check run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_find_mixed_indentation_help.txt"
     let f = open(tmp, fmWrite)
@@ -62,16 +62,16 @@ suite "Find-MixedIndentation run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Find-MixedIndentation")
+    check content.contains("Usage: ax fs indent check")
 
-  test "an unknown option is an error, exit 1":
+  test "an unknown option is an error, exit 64":
     let tmp = getTempDir() / "test_find_mixed_indentation_bogus.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--bogus"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "a nonexistent directory is exit 1 with a Directory not found error":
@@ -130,7 +130,7 @@ suite "Find-MixedIndentation run":
     let stdinContent = readFile(stdinLog)
     removeDir(dir)
     check code == 1
-    check stdinContent == "File|Tabs|Spaces\nmixed.py|1|1"
+    check stdinContent == "File|Tabs|Spaces\nmixed.py|1|1\n"
 
   test "files where file --mime-type isn't text/* are skipped entirely":
     # Here a single RecordingRunner canned answer is fine: it only needs to

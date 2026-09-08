@@ -1,9 +1,27 @@
 import std/[os, tables, sets, algorithm, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/validation"
+import "../../../lib/context"
+import "../../../lib/output"
+import "../../../lib/spec"
+import "../../../lib/validation"
 
-const selfName = "Sync-FileIndex"
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["fs", "index", "sync"],
+  kind: ckVerb,
+  summary: "reconcile a tickmark index file with directory contents",
+  usage: "ax fs index sync [-f INDEX_FILE] [-n] [dir]",
+  args: @[
+    ArgSpec(name: "dir", required: false,
+            description: "directory to scan (default: the index file's directory)")
+  ],
+  flags: @[
+    FlagSpec(long: "file", short: "f", takesValue: true,
+             description: "index file to reconcile (default: _TRACK in dir)")
+  ],
+  dryRun: true
+)
+
+const selfName = "ax-fs-index-sync"
 
 proc matchesGlob(name, pattern: string): bool =
   if pattern.len == 0: return false
@@ -37,7 +55,7 @@ proc run*(
   errp: File = stderr
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Sync-FileIndex [-f INDEX_FILE] [--dry-run] [DIRECTORY]
+    outp.writeLine """Usage: ax fs index sync [-f INDEX_FILE] [-n] [DIRECTORY]
 
 Reconcile a tickmark index file with actual directory contents.
 New files are appended with an empty mark; deleted files are removed.
@@ -45,7 +63,7 @@ Existing marks are preserved.
 
 Options:
     -f, --file INDEX_FILE  Index file to reconcile (default: _TRACK in DIRECTORY)
-    --dry-run              Show what would be added or removed without writing changes
+    -n, --dry-run          Show what would be added or removed without writing changes
     -h, --help             Show this help message
 
 Arguments:
@@ -55,16 +73,18 @@ Environment:
     TRACK_EXCLUDE_GLOB     Colon-separated filename globs to exclude (e.g. "*.sh:reconcile-*")
 
 Examples:
-    Sync-FileIndex
-    Sync-FileIndex /path/to/dir
-    Sync-FileIndex -f /path/to/_TRACK
-    Sync-FileIndex --dry-run
-    TRACK_EXCLUDE_GLOB="*.sh" Sync-FileIndex"""
+    ax fs index sync
+    ax fs index sync /path/to/dir
+    ax fs index sync -f /path/to/_TRACK
+    ax fs index sync -n
+    TRACK_EXCLUDE_GLOB="*.sh" ax fs index sync"""
     return 0
 
   var trackFile = ""
   var dir = ""
-  var dryRun = false
+  # The driver consumes -n and passes it down as AX_DRY_RUN; a literal
+  # --dry-run still works for direct libexec invocation.
+  var dryRun = ctxFromEnv().dryRun
   var i = 0
   while i < args.len:
     let arg = args[i]
@@ -74,7 +94,7 @@ Examples:
     elif arg == "-f" or arg == "--file":
       if i + 1 >= args.len:
         error("Missing value for " & arg, errp)
-        return 1
+        return 64
       trackFile = args[i + 1]
       i += 2
     elif arg.len > 2 and arg[0] == '-' and arg[1] == 'f':
@@ -155,4 +175,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

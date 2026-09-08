@@ -1,9 +1,32 @@
 import std/[os, algorithm, strutils, tables]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/fdscan"
+import "../../lib/context"
+import "../../lib/fdscan"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["fs", "words"],
+  kind: ckReport,
+  summary: "count words across text files, per extension",
+  usage: "ax fs words [-e ext] [-n count] [--all] [dir]",
+  args: @[
+    ArgSpec(name: "dir", required: false,
+            description: "target directory (default: current directory)")
+  ],
+  flags: @[
+    FlagSpec(long: "", short: "e", takesValue: true,
+             description: "only count files with this extension (repeatable)"),
+    FlagSpec(long: "", short: "n", takesValue: true,
+             description: "show top N extensions (default: 15)"),
+    FlagSpec(long: "all", takesValue: false,
+             description: "include hidden files and ignored files")
+  ],
+  deps: @["fd", "file"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   extensions*: seq[string]
@@ -62,7 +85,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Measure-Words [opts] [directory]
+    outp.writeLine """Usage: ax fs words [opts] [directory]
 
 Count words across all text files in a directory tree.
 Uses fd to discover files (respects .gitignore) and native word counting.
@@ -79,17 +102,17 @@ Arguments:
     directory   Target directory (default: current directory)
 
 Examples:
-    Measure-Words
-    Measure-Words ~/projects/docs
-    Measure-Words -e md -e txt
-    Measure-Words -n 5
-    Measure-Words --all"""
+    ax fs words
+    ax fs words ~/projects/docs
+    ax fs words -e md -e txt
+    ax fs words -n 5
+    ax fs words --all"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
-    return 1
+    return 64
 
   let dir = if parsed.directory.len > 0: parsed.directory else: "."
   if not requireDir(dir, errp): return 1
@@ -129,23 +152,28 @@ Examples:
     let byCount = cmp(extWords[b], extWords[a])
     if byCount != 0: byCount else: cmp(a, b))
 
-  var lines: seq[string] = @[]
+  var ctx = ctxFromEnv()
+  if parsed.raw:
+    ctx.output = omPlain
+  var rows: seq[seq[string]] = @[]
   var shown = 0
   for ext in extList:
     if shown >= parsed.topN: break
     let words = extWords[ext]
     let pct = words * 100 div totalWords
-    lines.add("." & ext & "|" & insertSep($words, ',') & "|" & $extFiles[ext] &
-              "|" & $pct & "%")
+    rows.add @["." & ext, insertSep($words, ','), $extFiles[ext], $pct & "%"]
     inc shown
 
-  lines.add("Total|" & insertSep($totalWords, ',') & "|" & $totalFiles & "|100%")
+  rows.add @["Total", insertSep($totalWords, ','), $totalFiles, "100%"]
 
-  outp.writeLine("")
-  discard table("Extension|Words|Files|Share\n" & lines.join("\n"), parsed.raw,
-                runner, outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Extension", "Words", "Files", "Share"], rows, ctx, runner,
+                 outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())
