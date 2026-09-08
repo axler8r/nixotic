@@ -33,13 +33,15 @@
       nimDir = ./files/nim;
 
       # nim.cfg + lib/*.nim + lexicon.json shared by every command.
-      # lib/tests is excluded so editing a lib test doesn't invalidate every
-      # function's build cache. lexicon.json rides along because
+      # Tests and their helper are excluded from production compilation.
+      # lexicon.json rides along because
       # lib/lexicon.nim embeds it with staticRead.
       nimShared = lib.fileset.difference
         (lib.fileset.unions
           [ (nimDir + "/nim.cfg") (nimDir + "/lib") (nimDir + "/lexicon.json") ])
-        (nimDir + "/lib/tests");
+        (lib.fileset.unions [ (nimDir + "/lib/tests") (nimDir + "/lib/testing.nim") ]);
+
+      nimTestShared = lib.fileset.union nimShared (nimDir + "/lib/testing.nim");
 
       # Toolchain plus every runtime dependency the tests exercise for real
       # (not just past a checkDeps guard). Shared with the devShell so a local
@@ -60,23 +62,28 @@
       # a test only rebuilds when its own fileset changes, and Nix runs the
       # suites in parallel rather than serially in a single buildPhase.
       #
-      # Deliberately built WITHOUT -d:release, unlike mkAxCommand below:
-      # live `assert`/`doAssert` checks and readable stack traces are worth
-      # more in a test binary than the speed release mode buys. Do not "fix"
-      # this to match the package build.
+      # Deliberately built WITHOUT -d:release for readable stack/line traces.
+      # Nim release mode retains assertions; doAssert is always enabled.
       mkNimTest = { name, testPath, extraFiles ? [ ] }:
         pkgs.stdenv.mkDerivation {
           pname = "nixotic-nim-test-${name}";
           version = "0.1.0";
           src = lib.fileset.toSource {
             root = nimDir;
-            fileset = lib.fileset.unions ([ nimShared (nimDir + "/${testPath}") ] ++ extraFiles);
+            fileset = lib.fileset.unions ([ nimTestShared (nimDir + "/${testPath}") ] ++ extraFiles);
           };
           nativeBuildInputs = nimToolchain;
           buildPhase = ''
             runHook preBuild
-            nim c -r --nimcache:"$TMPDIR/nimcache" -o:"$TMPDIR/${name}" ${testPath}
+            nim c --parallelBuild:"$NIX_BUILD_CORES" \
+              --nimcache:"$TMPDIR/nimcache" -o:"$TMPDIR/${name}" ${testPath}
             runHook postBuild
+          '';
+          doCheck = true;
+          checkPhase = ''
+            runHook preCheck
+            timeout --kill-after=5s 120s "$TMPDIR/${name}"
+            runHook postCheck
           '';
           installPhase = ''
             runHook preInstall
@@ -174,7 +181,7 @@
           buildPhase = ''
             runHook preBuild
             mkdir -p $out/libexec/ax
-            nim c -d:release --nimcache:.nimcache \
+            nim c -d:release --parallelBuild:"$NIX_BUILD_CORES" --nimcache:.nimcache \
               -o:"$out/libexec/ax/${binName src}" "commands/${relCommands src}"
             runHook postBuild
           '';
@@ -192,7 +199,8 @@
         buildPhase = ''
           runHook preBuild
           mkdir -p $out/bin
-          nim c -d:release -d:axVersion=${axVersion} --nimcache:.nimcache \
+          nim c -d:release -d:axVersion=${axVersion} \
+            --parallelBuild:"$NIX_BUILD_CORES" --nimcache:.nimcache \
             -o:$out/bin/ax ax.nim
           runHook postBuild
         '';
@@ -213,7 +221,7 @@
           (src: "ln -s ${mkAxCommand src}/libexec/ax/${binName src} $out/libexec/ax/${binName src}")
           checkedCommandSources}
         "$out/bin/ax" self build-registry > $out/share/ax/registry.json
-        cp ${nimDir}/commands/groups.json $out/share/ax/groups.json
+        cp ${nimDir + "/commands/groups.json"} $out/share/ax/groups.json
         "$out/bin/ax" self completion zsh > $out/share/zsh/site-functions/_ax
       '';
 
@@ -221,16 +229,20 @@
       # (commands/<dir>/tests/test_<leaf>.nim -> commands/<dir>/<leaf>.nim)
       # -- mechanical rather than content-parsed, unlike the retired
       # nimTestSubject import scraping.
-      axTestSubject = testSrc:
+      axTestSubjects = testSrc:
         let
           rel = relCommands testSrc;
           subjRel = lib.replaceStrings [ "/tests/test_" ] [ "/" ] rel;
         in
         if !(lib.hasInfix "/tests/test_" rel) then
           throw "flake.nix: commands/${rel} is not named tests/test_<leaf>.nim"
+        # The family safety matrix deliberately exercises all vault commands.
+        else if rel == "vault/tests/test_safety.nim" then
+          map (leaf: axCommandsDir + "/vault/${leaf}.nim")
+            [ "create" "mount" "remove" "resize" "unmount" ]
         else if !(builtins.pathExists (axCommandsDir + "/${subjRel}")) then
           throw "flake.nix: commands/${rel} has no subject module at commands/${subjRel}"
-        else axCommandsDir + "/${subjRel}";
+        else [ (axCommandsDir + "/${subjRel}") ];
 
       axTests = map
         (t:
@@ -243,7 +255,7 @@
           mkNimTest {
             inherit name;
             testPath = "commands/${rel}";
-            extraFiles = [ (axTestSubject t) ];
+            extraFiles = axTestSubjects t;
           })
         (lib.filter
           (p: lib.hasSuffix ".nim" (toString p)
@@ -319,6 +331,22 @@
         # check` reports the failing suite by name and reruns only what changed.
         (lib.listToAttrs (map (d: lib.nameValuePair d.pname d) (nimTests ++ axTests)))
         // {
+          ax-integration = pkgs.stdenv.mkDerivation {
+            pname = "nixotic-ax-integration";
+            version = axVersion;
+            src = lib.fileset.toSource {
+              root = nimDir;
+              fileset = lib.fileset.union nimShared (nimDir + "/tests");
+            };
+            nativeBuildInputs = nimToolchain ++ [ pkgs.jq ];
+            AX_DRIVER = "${axDriver}/bin/ax";
+            buildPhase = ''
+              runHook preBuild
+              timeout --kill-after=5s 180s bash tests/integration.sh
+              runHook postBuild
+            '';
+            installPhase = "touch $out";
+          };
           ax-smoke =
             pkgs.runCommand "nixotic-ax-smoke"
               { nativeBuildInputs = [ pkgs.jq pkgs.zsh ]; }
@@ -353,7 +381,7 @@
                 }
 
                 # every registry leaf is a lexicon verb or report-noun
-                jq -e --slurpfile lex ${nimDir}/lexicon.json '
+                jq -e --slurpfile lex ${nimDir + "/lexicon.json"} '
                   ([.[].path | last]
                    - ([$lex[0].verbs[].name] + $lex[0].reportNouns)) == []
                 ' $ax/share/ax/registry.json > /dev/null || {
