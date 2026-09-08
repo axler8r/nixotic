@@ -36,7 +36,7 @@ Examples:
 
 proc stripTrailingSlash*(path: string): string =
   ## Mirrors zsh's `${_arg%/}` — removes at most one trailing `/`.
-  if path.len > 0 and path[^1] == '/':
+  if path.len > 1 and path[^1] == '/':
     path[0 ..^ 2]
   else:
     path
@@ -48,7 +48,7 @@ proc resolveGivenDirs*(args: seq[string], errp: File = stderr): seq[string] =
   result = @[]
   for arg in args:
     let stripped = stripTrailingSlash(arg)
-    if dirExists(stripped / ".git"):
+    if dirExists(stripped / ".git") or fileExists(stripped / ".git"):
       result.add(stripped)
     else:
       warn("Not a git repository: " & arg, errp)
@@ -57,9 +57,9 @@ proc scanCurrentDirGitRepos*(root: string): seq[string] =
   ## One-level-only scan of `root`'s immediate subdirectories, mirroring
   ## the zsh `*/` glob — not recursive. Returns absolute paths.
   result = @[]
-  for kind, path in walkDir(root):
+  for kind, path in walkDir(root, checkDir = true):
     if kind == pcDir or kind == pcLinkToDir:
-      if dirExists(path / ".git"):
+      if dirExists(path / ".git") or fileExists(path / ".git"):
         result.add(path)
 
 proc run*(
@@ -72,14 +72,27 @@ proc run*(
     outp.writeLine(usage)
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   if not checkDeps(["git", "parallel"], errp): return 2
 
   var dirs: seq[string]
+  var positional: seq[string]
+  var positionalOnly = false
+  for arg in args:
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+    else:
+      positional.add(arg)
 
-  if args.len > 0:
-    dirs = resolveGivenDirs(args, errp)
+  if positional.len > 0:
+    dirs = resolveGivenDirs(positional, errp)
   else:
-    dirs = scanCurrentDirGitRepos(getCurrentDir())
+    try:
+      dirs = scanCurrentDirGitRepos(getCurrentDir())
+    except CatchableError as e:
+      error(e.msg, errp)
+      return 1
 
   if dirs.len == 0:
     info("No git repositories found.", errp)

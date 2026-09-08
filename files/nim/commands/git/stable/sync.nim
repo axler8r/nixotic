@@ -32,6 +32,8 @@ Requirements:
   - origin remote exists"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var code = requireGitRepo(runner, errp)
   if code != 0: return code
   code = requireCleanGitWorktree(runner, errp)

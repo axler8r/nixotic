@@ -17,6 +17,27 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 suite "ax git repo sync run":
+  test "a terminator after a repository is not treated as another path":
+    let dir = mkTmpDir("ax_repo_sync_terminator")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let repoDir = dir / "repo"
+    createDir(repoDir / ".git")
+    let rec = newRecordingRunner()
+    let outPath = dir / "out"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[repoDir, "--"], f, f, rec.runner)
+    f.close()
+    check code == 0
+    require rec.calls.len == 1
+    check rec.calls[0].args == @[
+      "echo {} && git -C {} pull && git -C {} submodule update", ":::", repoDir
+    ]
+    check not readFile(outPath).contains("Not a git repository")
+
   test "-h/--help prints usage and returns 0, checked before checkDeps":
     for flag in ["-h", "--help"]:
       let tmp = getTempDir() / ("test_ugr_help_" & flag.replace("-", "") & ".txt")
@@ -28,7 +49,7 @@ suite "ax git repo sync run":
       check code == 0
       check content.contains("Usage: ax git repo sync")
 
-  test "empty result (no args, no git dirs found) uses info, not warn, and returns 0":
+  test "empty result (lone terminator, no git dirs found) uses info, not warn, and returns 0":
     # git/parallel are stubbed on a fixture $PATH via withPath so checkDeps
     # passes regardless of this sandbox's real binaries; neither stub is
     # ever run, since an empty scan returns before `parallel` is reached.
@@ -44,7 +65,7 @@ suite "ax git repo sync run":
     let f = open(tmp, fmWrite)
     var code: int
     withPath(depsDir):
-      code = run(@[], f, f)
+      code = run(@["--"], f, f)
     f.close()
     setCurrentDir(oldDir)
     let content = readFile(tmp)

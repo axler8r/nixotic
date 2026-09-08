@@ -16,8 +16,9 @@ proc mkTmpDir(name: string): string =
 proc runGit(dir: string, args: varargs[string]) =
   let p = startProcess(findExe("git"), workingDir = dir, args = @args,
                         options = {poUsePath})
-  discard p.waitForExit()
+  let code = p.waitForExit()
   p.close()
+  doAssert code == 0, "git fixture failed: " & $(@args)
 
 proc initRepoOnStable(dir: string) =
   ## A one-commit repo whose current branch is explicitly named "stable",
@@ -107,6 +108,19 @@ suite "git.gitCurrentBranch":
     check content.contains("Git HEAD is detached. Switch to a branch first.")
 
 suite "git.requireCleanGitWorktree":
+  test "failed status with empty stdout is not a clean worktree":
+    let rec = newRecordingRunner()
+    rec.runner.captureImpl = proc(cmd: string, args: seq[string], input: string): CommandResult =
+      rec.calls.add(CallRecord(kind: "capture", cmd: cmd, args: args, input: input))
+      if args[0] == "status":
+        CommandResult(exitCode: 128, error: "index unreadable")
+      else:
+        CommandResult(exitCode: 0)
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    check requireCleanGitWorktree(rec.runner, f) == 1
+    check rec.calls.len == 2
+
   test "succeeds on a clean worktree":
     let dir = mkTmpDir("git_clean_ok")
     initRepoOnStable(dir)

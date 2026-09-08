@@ -31,7 +31,11 @@ proc gitCurrentBranch*(runner: Runner = defaultRunner, errp: File = stderr): str
 proc requireCleanGitWorktree*(runner: Runner = defaultRunner, errp: File = stderr): int =
   let repoCode = requireGitRepo(runner, errp)
   if repoCode != 0: return repoCode
-  let status = runner.capture("git", @["status", "--porcelain"]).output.strip()
+  let res = runner.capture("git", @["status", "--porcelain"])
+  if res.exitCode != 0:
+    error("Could not inspect Git worktree: " & res.error.strip(), errp)
+    return 1
+  let status = res.output.strip()
   if status.len > 0:
     error("Git worktree must be clean.", errp)
     errp.writeLine(status)

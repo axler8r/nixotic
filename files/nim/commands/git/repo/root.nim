@@ -21,7 +21,10 @@ proc isGitRepo*(dir: string, runner: Runner): bool =
 proc gitRemoteFetchUrl*(dir: string, runner: Runner): string =
   ## Returns "origin"'s fetch URL if present, else the first remote `git
   ## remote -v` lists; "" if the directory has no remotes at all.
-  let listing = runner.capture("git", @["-C", dir, "remote", "-v"]).output
+  let res = runner.capture("git", @["-C", dir, "remote", "-v"])
+  if res.exitCode != 0:
+    raise newException(IOError, "Cannot list remotes for '" & dir & "': " & res.error.strip())
+  let listing = res.output
   var firstUrl = ""
   for line in listing.splitLines():
     if line.len == 0: continue
@@ -35,7 +38,7 @@ proc gitRemoteFetchUrl*(dir: string, runner: Runner): string =
 proc collectRepoRows*(baseDir: string, runner: Runner): seq[tuple[url, path: string]] =
   result = @[]
   var dirs: seq[string] = @[]
-  for kind, path in walkDir(baseDir):
+  for kind, path in walkDir(baseDir, checkDir = true):
     if kind != pcDir: continue
     if path.extractFilename.startsWith("."): continue
     dirs.add(path)
@@ -64,6 +67,8 @@ Examples:
     ax git repo root"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
@@ -71,7 +76,12 @@ Examples:
 
   if not checkDeps(["git"], errp): return 2
 
-  let repoRows = collectRepoRows(baseDir, runner)
+  var repoRows: seq[tuple[url, path: string]]
+  try:
+    repoRows = collectRepoRows(baseDir, runner)
+  except CatchableError as e:
+    error(e.msg, errp)
+    return 1
   var rows: seq[seq[string]] = @[]
   for r in repoRows:
     rows.add @[r.url, r.path]
@@ -80,10 +90,10 @@ Examples:
   # and json output stay unpadded so they remain script- and jq-clean.
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Remote", "Path"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["Remote", "Path"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

@@ -16,25 +16,20 @@ let cmdSpec* = CommandSpec(
 )
 
 proc extractCommitType*(subject: string): string =
-  ## Mirrors the zsh original's `^([a-z]+)(!)?(\([^)]*\))?:` extraction:
-  ## a leading run of lowercase letters, optionally followed by "!",
-  ## optionally followed by a "(...)" scope, then a literal ":". Returns
-  ## the leading letters (group 1), or "" if the subject doesn't match
-  ## this exact shape. No std/re -- see docs/nim-functions-conventions.md's
-  ## "Regex avoidance" section.
+  ## Conventional commits: type(scope)!: subject; scope and ! are optional.
   var i = 0
   while i < subject.len and subject[i] in {'a'..'z'}:
     inc i
   if i == 0:
     return ""
   let typ = subject[0 ..< i]
-  if i < subject.len and subject[i] == '!':
-    inc i
   if i < subject.len and subject[i] == '(':
     let closeIdx = subject.find(')', i)
-    if closeIdx == -1:
+    if closeIdx <= i + 1 or subject[i + 1 ..< closeIdx].contains('('):
       return ""
     i = closeIdx + 1
+  if i < subject.len and subject[i] == '!':
+    inc i
   if i < subject.len and subject[i] == ':':
     return typ
   ""
@@ -58,7 +53,10 @@ proc parseLastTag*(tag: string): tuple[major, minor: int, valid: bool] =
     return (0, 0, false)
   if segments[1].len == 0 or not segments[1].allCharsInSet({'0'..'9'}):
     return (0, 0, false)
-  (parseInt(segments[0]), parseInt(segments[1]), true)
+  try:
+    (parseInt(segments[0]), parseInt(segments[1]), true)
+  except ValueError:
+    (0, 0, false)
 
 proc run*(
   args: seq[string],
@@ -84,19 +82,29 @@ Requirements:
   - HEAD not already tagged"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   # The driver consumes -n and passes it down as AX_DRY_RUN; a literal
   # --dry-run still works for direct libexec invocation.
-  let dryRun = ctxFromEnv().dryRun or (args.len > 0 and args[0] == "--dry-run")
+  let dryRun = ctxFromEnv().dryRun or "--dry-run" in args or "-n" in args
 
   let repoCode = requireGitRepo(runner, errp)
   if repoCode != 0: return repoCode
 
-  let existing = runner.capture("git", @["tag", "--points-at", "HEAD"]).output.strip()
+  let existingResult = runner.capture("git", @["tag", "--points-at", "HEAD"])
+  if existingResult.exitCode != 0:
+    error("Cannot inspect HEAD tags: " & existingResult.error.strip(), errp)
+    return 1
+  let existing = existingResult.output.strip()
   if existing.len > 0:
     error("HEAD is already tagged: " & existing, errp)
     return 1
 
-  let subject = runner.capture("git", @["log", "-1", "--format=%s"]).output.strip()
+  let logResult = runner.capture("git", @["log", "-1", "--format=%s"])
+  if logResult.exitCode != 0:
+    error("Cannot read HEAD commit: " & logResult.error.strip(), errp)
+    return 1
+  let subject = logResult.output.strip()
   let commitType = extractCommitType(subject)
   if commitType.len == 0:
     success("No tag needed: could not determine a commit type.", errp)
@@ -110,11 +118,23 @@ Requirements:
     success("No tag needed for type: " & commitType & ".", errp)
     return 0
 
-  let tagList = runner.capture("git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"]).output
-  let lastTagLine = if tagList.len > 0: tagList.splitLines()[0] else: ""
-  let parsed = parseLastTag(lastTagLine)
-  var major = if parsed.valid: parsed.major else: 0
-  var minor = if parsed.valid: parsed.minor else: 0
+  let tagList = runner.capture("git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"])
+  if tagList.exitCode != 0:
+    error("Cannot list previous tags: " & tagList.error.strip(), errp)
+    return 1
+  var major = 0
+  var minor = 0
+  for line in tagList.output.splitLines():
+    let parsed = parseLastTag(line)
+    if parsed.valid and (parsed.major > major or
+        (parsed.major == major and parsed.minor > minor)):
+      major = parsed.major
+      minor = parsed.minor
+
+  if (tier == "major" and major == high(int)) or
+      (tier == "minor" and minor == high(int)):
+    error("Tag version exceeds supported integer range.", errp)
+    return 1
 
   if tier == "major":
     major += 1

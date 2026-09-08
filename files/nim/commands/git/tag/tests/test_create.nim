@@ -1,5 +1,6 @@
-import std/[unittest, os, osproc, streams, strutils]
+import std/[unittest, os, osproc, streams, strutils, tempfiles]
 import "../create"
+import "../../../../lib/process"
 import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
@@ -33,8 +34,10 @@ suite "ax git tag create extractCommitType":
   test "a type with a bang, no scope":
     check extractCommitType("feat!: breaking change") == "feat"
 
-  test "a type with both a bang and a scope, in that order":
-    check extractCommitType("feat!(nim): breaking change") == "feat"
+  test "a breaking marker follows the scope, never precedes it":
+    check extractCommitType("feat(nim)!: breaking change") == "feat"
+    check extractCommitType("feat!(nim): breaking change") == ""
+    check extractCommitType("feat(): empty scope") == ""
 
   test "an uppercase subject (e.g. a GitHub merge commit) has no type":
     check extractCommitType("Merge pull request #5") == ""
@@ -46,6 +49,8 @@ suite "ax git tag create extractCommitType":
     check extractCommitType("feat(nim: add x") == ""
 
 suite "ax git tag create parseLastTag":
+  test "oversized numeric versions are invalid, not exceptions":
+    check not parseLastTag("v999999999999999999999999.0.0+20260101120000").valid
   test "a well-formed tag parses its major/minor":
     let p = parseLastTag("v1.2.0+20260101120000")
     check p.valid == true
@@ -64,7 +69,68 @@ suite "ax git tag create parseLastTag":
   test "a tag missing the v prefix is invalid":
     check parseLastTag("1.2.0+20260101120000").valid == false
 
+proc tagRunner(subject, tags: string, failedPhase = ""): RecordingRunner =
+  var replies = @[
+    CommandResult(exitCode: 0), # repository check
+    CommandResult(exitCode: 0), # HEAD tags
+    CommandResult(exitCode: 0, output: subject),
+    CommandResult(exitCode: 0, output: tags)
+  ]
+  for i, phase in ["tag --points-at", "log -1", "tag -l"]:
+    if phase == failedPhase:
+      replies[i + 1] = CommandResult(exitCode: 128, error: "Git query failed")
+  newRecordingRunner(replies = replies)
+
 suite "ax git tag create run":
+  test "failed tag and log queries never create a tag":
+    let dir = createTempDir("ax-tag-query-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    let expectedArgs = @[
+      @["tag", "--points-at", "HEAD"],
+      @["log", "-1", "--format=%s"],
+      @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"]
+    ]
+    for i, phase in ["tag --points-at", "log -1", "tag -l"]:
+      let rec = tagRunner("feat: change", "", phase)
+      let outPath = dir / "out"
+      let errPath = dir / "err"
+      let outf = open(outPath, fmWrite)
+      let errf = open(errPath, fmWrite)
+      var code: int
+      withPath(dir):
+        code = run(@[], outf, errf, rec.runner)
+      outf.close()
+      errf.close()
+      check code == 1
+      require rec.calls.len == i + 2
+      check rec.calls[^1].args == expectedArgs[i]
+      for call in rec.calls:
+        check call.kind != "inherited"
+      check readFile(outPath) == ""
+      check readFile(errPath).contains("Git query failed")
+      check not readFile(errPath).contains("Tagged ")
+
+  test "highest valid version wins despite malformed tags and unordered listing":
+    let dir = createTempDir("ax-tags-", "")
+    defer: removeDir(dir)
+    let path = dir / "out"
+    let f = open(path, fmWrite)
+    let rec = tagRunner("defect(core): fix", "v999.0.0+bad\n" &
+      "v2.5.0+20260101000000\nv1.9.0+20260101000000\n" &
+      "v999999999999999999999999.0.0+20260101000000\n")
+    let code = run(@["--dry-run"], f, stderr, rec.runner)
+    f.close()
+    check code == 0
+    check readFile(path).startsWith("v2.6.0+")
+    for call in rec.calls:
+      check call.kind != "inherited"
+
+  test "unexpected arguments never reach Git":
+    let rec = newRecordingRunner()
+    check run(@["--dry-run", "extra"], runner = rec.runner) == 64
+    check rec.calls.len == 0
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_new_git_tag_help.txt"
     let f = open(tmp, fmWrite)

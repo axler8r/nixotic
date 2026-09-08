@@ -38,11 +38,10 @@ Requirements:
   - Branch cannot be the current branch"""
     return 0
 
-  let branch = if args.len > 0: args[0] else: ""
+  if not validateArgs(cmdSpec, args, errp): return 64
+
+  let branch = if args[0] == "--": args[1] else: args[0]
   if not requireArg(branch, "wip branch name", errp): return 64
-  if args.len > 1:
-    error("Too many arguments", errp)
-    return 64
 
   var code = requireGitRepo(runner, errp)
   if code != 0: return code

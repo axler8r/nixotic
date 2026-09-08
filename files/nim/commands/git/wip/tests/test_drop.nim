@@ -1,5 +1,7 @@
 import std/[unittest, os, osproc, strutils]
 import "../drop"
+import "../../../../lib/process"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -22,6 +24,35 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "branch", "-m", "stable")
 
 suite "ax git wip drop run":
+  test "leading and trailing terminators preserve the branch being deleted":
+    let dir = mkTmpDir("ax_wip_drop_terminator")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["--", "wip/test"], @["wip/test", "--"]]:
+      let rec = newRecordingRunner(replies = @[
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 0, output: "stable\n"),
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 0)
+      ])
+      withPath(dir):
+        check run(args, f, f, rec.runner) == 0
+      require rec.calls.len == 6
+      check rec.calls[^1].args == @["branch", "-d", "wip/test"]
+
+  test "invalid arguments cannot inspect or delete branches":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["wip/test", "extra"], @["--force", "wip/test"],
+                  @["--dry-run", "wip/test"], @["-n", "wip/test"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)
@@ -50,7 +81,7 @@ suite "ax git wip drop run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing required argument: wip branch name")
+    check content.contains("branch")
 
   test "more than one argument is an error":
     let tmp = getTempDir() / "test_remove_git_wip_branch_extra.txt"
@@ -60,7 +91,7 @@ suite "ax git wip drop run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Too many arguments")
+    check content.contains("Unexpected argument: extra")
 
   test "a non-wip branch name is rejected":
     let dir = mkTmpDir("remove_git_wip_not_wip")

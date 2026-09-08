@@ -17,6 +17,26 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 suite "ax git repo optimize run":
+  test "attached log value and terminator match the split-value invocation":
+    let dir = mkTmpDir("ax_repo_optimize_attached")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let repoDir = dir / "repo"
+    createDir(repoDir / ".git")
+    let logPath = dir / "jobs=latest.log"
+    let split = newRecordingRunner()
+    let attached = newRecordingRunner()
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    withPath(dir):
+      check run(@["--log", logPath, repoDir], f, f, split.runner) == 0
+      check run(@["--log=" & logPath, "--", repoDir], f, f, attached.runner) == 0
+    require split.calls.len == 1
+    require attached.calls.len == 1
+    check attached.calls[0].args == split.calls[0].args
+    check attached.calls[0].args[3 .. 4] == @["--joblog", logPath]
+
   test "--help short-circuits before checkDeps, returns 0":
     let tmp = getTempDir() / "test_igro_help_dashdash.txt"
     let f = open(tmp, fmWrite)
@@ -27,17 +47,10 @@ suite "ax git repo optimize run":
     check code == 0
     check content.contains("Usage: ax git repo optimize")
 
-  test "-h does NOT short-circuit before checkDeps (asymmetry vs --help)":
-    # git/parallel are stubbed on a fixture $PATH via withPath, so checkDeps
-    # succeeds regardless of this sandbox's real binaries and -h reaches
-    # the option loop's own -h|--help handling, which also returns 0 --
-    # proving the two help paths are separate, not unified. Neither stub is
-    # ever actually run: -h returns before run() reaches `parallel`.
+  test "-h short-circuits before dependency checks":
     let dir = getTempDir() / "deps_igro_dash_h"
     removeDir(dir)
     createDir(dir)
-    writeFakeExe(dir, "git", "")
-    writeFakeExe(dir, "parallel", "")
     let tmp = getTempDir() / "test_igro_help_dash_h.txt"
     let f = open(tmp, fmWrite)
     var code: int

@@ -1,4 +1,4 @@
-import std/os
+import std/[os, strutils]
 import "../../../lib/output"
 import "../../../lib/process"
 import "../../../lib/spec"
@@ -33,7 +33,7 @@ proc filterGitDirs*(dirs: seq[string]): seq[string] =
   ## `[[ -d "$_dir" && -d "$_dir/.git" ]]` filter.
   result = @[]
   for dir in dirs:
-    if dirExists(dir) and dirExists(dir / ".git"):
+    if dirExists(dir) and (dirExists(dir / ".git") or fileExists(dir / ".git")):
       result.add(dir)
 
 proc run*(
@@ -42,20 +42,32 @@ proc run*(
   errp: File = stderr,
   runner: Runner = defaultRunner
 ): int =
-  # First help check: a literal `--help` short-circuits before ANYTHING
-  # else, including checkDeps — does NOT match `-h`. This is a faithful
-  # port of a real asymmetry in the zsh original, not a redesign.
-  if args.len > 0 and args[0] == "--help":
+  if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
     return 0
+
+  if not validateArgs(cmdSpec, args, errp): return 64
 
   if not checkDeps(["git", "parallel"], errp): return 2
 
   var logPath = ""
   var dirs: seq[string] = @[]
+  var positionalOnly = false
   var i = 0
   while i < args.len:
     let arg = args[i]
+    if positionalOnly:
+      dirs.add(arg)
+      inc i
+      continue
+    if arg == "--":
+      positionalOnly = true
+      inc i
+      continue
+    if arg.startsWith("--log="):
+      logPath = arg[6 .. ^1]
+      inc i
+      continue
     case arg
     of "--log":
       inc i
@@ -66,7 +78,7 @@ proc run*(
       outp.writeLine(usage)
       return 0
     else:
-      if arg.len > 0 and arg[0] == '-':
+      if arg.len > 1 and arg[0] == '-':
         error("Unknown option: " & arg, errp)
         return 64
       else:

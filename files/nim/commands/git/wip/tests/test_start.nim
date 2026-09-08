@@ -2,6 +2,8 @@
 # in flake.nix's nimToolchain).
 import std/[unittest, os, osproc, streams, strutils]
 import "../start"
+import "../../../../lib/process"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -55,6 +57,38 @@ suite "ax git wip start generateWipBranchName":
     check name == ""
 
 suite "ax git wip start run":
+  test "queued status failure is not a clean worktree and cannot create a branch":
+    let dir = mkTmpDir("ax_wip_start_status_failure")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    let rec = newRecordingRunner(replies = @[
+      CommandResult(exitCode: 0),
+      CommandResult(exitCode: 0),
+      CommandResult(exitCode: 128, error: "status query failed")
+    ])
+    let outPath = dir / "out"
+    let f = open(outPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f, rec.runner)
+    f.close()
+    check code == 1
+    require rec.calls.len == 3
+    check rec.calls[0].args == @["rev-parse", "--is-inside-work-tree"]
+    check rec.calls[1].args == @["rev-parse", "--is-inside-work-tree"]
+    check rec.calls[2].args == @["status", "--porcelain"]
+    let content = readFile(outPath)
+    check content.contains("Could not inspect Git worktree: status query failed")
+    check not content.contains("Created ")
+
+  test "invalid arguments cannot inspect or create branches":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["extra"], @["--bogus"], @["--dry-run"], @["-n"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_new_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)

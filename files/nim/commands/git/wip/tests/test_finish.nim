@@ -1,5 +1,6 @@
 import std/[unittest, os, osproc, streams, strutils]
 import "../finish"
+import "../../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -22,6 +23,14 @@ proc initRepoOnStable(dir: string) =
   runGit(dir, "branch", "-m", "stable")
 
 suite "ax git wip finish run":
+  test "invalid arguments cannot inspect, checkout, or merge branches":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["extra"], @["--bogus"], @["--dry-run"], @["-n"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_complete_git_wip_branch_help.txt"
     let f = open(tmp, fmWrite)
