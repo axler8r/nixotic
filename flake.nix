@@ -51,16 +51,9 @@
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
         "Get-Help" = "GetHelp.nim";
         "Get-DefaultBrowser" = "GetDefaultBrowser.nim";
-        "Update-DevEnvironment" = "UpdateDevEnvironment.nim";
         "Write-Executable" = "WriteExecutable.nim";
-        "Enter-NixShell" = "EnterNixShell.nim";
         "ConvertTo-VideoHorizontal" = "ConvertToVideoHorizontal.nim";
         "Get-ZfsSnapshots" = "GetZfsSnapshots.nim";
-        "New-ToolDevEnvironment" = "NewToolDevEnvironment.nim";
-        "New-PythonDevEnvironment" = "NewPythonDevEnvironment.nim";
-        "New-DotNetDevEnvironment" = "NewDotNetDevEnvironment.nim";
-        "New-ElixirDevEnvironment" = "NewElixirDevEnvironment.nim";
-        "Remove-DevEnvironment" = "RemoveDevEnvironment.nim";
         "Get-GitHubLicenses" = "GetGitHubLicenses.nim";
         "Get-SwapUsage" = "GetSwapUsage.nim";
         "Get-NfsExports" = "GetNfsExports.nim";

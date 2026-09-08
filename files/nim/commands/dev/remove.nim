@@ -1,7 +1,20 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["dev", "remove"],
+  kind: ckVerb,
+  summary: "remove the dev environment from the current directory",
+  usage: "ax dev remove [--gc]",
+  flags: @[
+    FlagSpec(long: "gc", takesValue: false,
+             description: "run nix store gc after removal")
+  ],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   gc*: bool
@@ -33,7 +46,7 @@ proc run*(
   inp: File = stdin
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Remove-DevEnvironment [opts]
+    outp.writeLine """Usage: ax dev remove [opts]
 
 Description:
     Remove a direnv + Nix Flakes development environment from the current
@@ -46,17 +59,17 @@ Options:
     --gc          Run nix store gc after removal
 
 Examples:
-    Remove-DevEnvironment        # Remove dev environment in current directory
-    Remove-DevEnvironment --gc   # Remove and collect unreachable Nix store paths"""
+    ax dev remove        # Remove dev environment in current directory
+    ax dev remove --gc   # Remove and collect unreachable Nix store paths"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
-    return 1
+    return 64
   if parsed.unexpectedArg.len > 0:
     error("Unexpected argument: " & parsed.unexpectedArg, errp)
-    return 1
+    return 64
 
   if not fileExists("flake.nix"):
     error("No flake.nix found in current directory", errp)
@@ -82,4 +95,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

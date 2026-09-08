@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../EnterNixShell"
-import "../../lib/testing"
+import "../shell"
+import "../../../lib/testing"
 
-suite "Enter-NixShell buildInstallables":
+suite "ax dev shell buildInstallables":
   test "bare package name gets nixpkgs# prefixed":
     check buildInstallables(@["jq"]) == @["nixpkgs#jq"]
 
@@ -13,14 +13,14 @@ suite "Enter-NixShell buildInstallables":
     check buildInstallables(@["jq", "github:foo/bar#baz", "ripgrep"]) ==
       @["nixpkgs#jq", "github:foo/bar#baz", "nixpkgs#ripgrep"]
 
-suite "Enter-NixShell buildShellName":
+suite "ax dev shell buildShellName":
   test "uses original args, space-joined, not the nixpkgs#-prefixed installables":
     check buildShellName(@["jq", "github:foo/bar#baz"]) == "jq github:foo/bar#baz"
 
   test "single package":
     check buildShellName(@["jq"]) == "jq"
 
-suite "Enter-NixShell run":
+suite "ax dev shell run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_enter_nix_shell_help.txt"
     let f = open(tmp, fmWrite)
@@ -29,7 +29,7 @@ suite "Enter-NixShell run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Enter-NixShell")
+    check content.contains("Usage: ax dev shell")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_enter_nix_shell_h.txt"
@@ -39,27 +39,27 @@ suite "Enter-NixShell run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Enter-NixShell")
+    check content.contains("Usage: ax dev shell")
 
-  test "unknown option errors and exits 1":
+  test "unknown option errors and exits 64":
     let tmp = getTempDir() / "test_enter_nix_shell_bogus.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--bogus"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
-  test "no packages given emits both error and info, exits 1":
+  test "no packages given emits both error and info, exits 64":
     let tmp = getTempDir() / "test_enter_nix_shell_no_packages.txt"
     let f = open(tmp, fmWrite)
     let code = run(@[], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
-    check content.contains("Usage: Enter-NixShell packages...")
+    check code == 64
+    check content.contains("Usage: ax dev shell <packages...>")
     check content.contains("Use --help for more information")
 
   test "characterization: installables argv and IN_NIX_SHELL/name environment":

@@ -1,8 +1,18 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["dev", "update"],
+  kind: ckVerb,
+  summary: "advance flake.lock and reload the direnv environment",
+  usage: "ax dev update",
+  deps: @["direnv", "nix"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -11,7 +21,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Update-DevEnvironment
+    outp.writeLine """Usage: ax dev update
 
 Description:
     Update a direnv + Nix Flakes development environment in the current
@@ -22,7 +32,7 @@ Options:
     -h, --help    Show this help message
 
 Examples:
-    Update-DevEnvironment        # Update flake inputs and reload environment"""
+    ax dev update        # Update flake inputs and reload environment"""
     return 0
 
   if not checkDeps(["direnv", "nix"], errp): return 2
@@ -38,4 +48,5 @@ Examples:
   return runner.runInherited("direnv", @["reload"])
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

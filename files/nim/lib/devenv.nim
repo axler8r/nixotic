@@ -1,12 +1,34 @@
 ## Shared flake.nix content builder and file-writing sequence for the
-## dev-environment scaffolder family (New-ToolDevEnvironment,
-## New-PythonDevEnvironment, New-DotNetDevEnvironment,
-## New-ElixirDevEnvironment). Each caller builds its own package list and
-## optional env-attrs block, then hands both to flakeNixContent and the
-## resulting text to scaffoldDevEnvironment.
+## dev-environment scaffolder (ax dev create). The command builds a
+## package list and optional env-attrs block per template, then hands
+## both to flakeNixContent and the resulting text to
+## scaffoldDevEnvironment. The template roster lives here so
+## ax dev create and ax dev templates (separate binaries with disjoint
+## filesets) share one definition.
 import std/[os, strutils]
 import output
 import process
+
+type DevTemplate* = object
+  name*: string
+  description*: string
+
+const devTemplates* = [
+  DevTemplate(name: "tool",
+              description: "ad-hoc tool shell; packages required"),
+  DevTemplate(name: "python",
+              description: "Python + uv; --target 3.12 selects a version"),
+  DevTemplate(name: "dotnet",
+              description: ".NET SDK; --target 8|9|10, default all three"),
+  DevTemplate(name: "elixir",
+              description: "Elixir; --target 1.17 selects a version")
+]
+
+proc isDevTemplate*(name: string): bool =
+  for t in devTemplates:
+    if t.name == name:
+      return true
+  false
 
 proc formatPackageLines*(prefix: string, names: openArray[string]): seq[string] =
   ## One "            <prefix><name>" line per name (12-space indent),

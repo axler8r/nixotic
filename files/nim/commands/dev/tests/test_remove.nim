@@ -1,9 +1,9 @@
 import std/[unittest, os, strutils]
-import "../RemoveDevEnvironment"
-import "../../lib/process"
-import "../../lib/testing"
+import "../remove"
+import "../../../lib/process"
+import "../../../lib/testing"
 
-suite "Remove-DevEnvironment parseArgs":
+suite "ax dev remove parseArgs":
   test "no args: gc false, no errors":
     let p = parseArgs(@[])
     check p.gc == false
@@ -27,7 +27,7 @@ suite "Remove-DevEnvironment parseArgs":
     check p.gc == true
     check p.unexpectedArg == "extra"
 
-suite "Remove-DevEnvironment run":
+suite "ax dev remove run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_dev_environment_help.txt"
     let f = open(tmp, fmWrite)
@@ -36,7 +36,7 @@ suite "Remove-DevEnvironment run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-DevEnvironment")
+    check content.contains("Usage: ax dev remove")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_remove_dev_environment_h.txt"
@@ -46,7 +46,7 @@ suite "Remove-DevEnvironment run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-DevEnvironment")
+    check content.contains("Usage: ax dev remove")
 
   test "an unknown option is an error":
     let tmp = getTempDir() / "test_remove_dev_environment_unknown.txt"
@@ -55,7 +55,7 @@ suite "Remove-DevEnvironment run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "an unexpected positional argument is an error":
@@ -65,7 +65,7 @@ suite "Remove-DevEnvironment run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unexpected argument: extra")
 
   test "no flake.nix in the current directory is an error":

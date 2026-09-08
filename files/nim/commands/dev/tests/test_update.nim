@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../UpdateDevEnvironment"
-import "../../lib/testing"
+import "../update"
+import "../../../lib/testing"
 
-suite "Update-DevEnvironment run":
+suite "ax dev update run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_update_dev_environment_help.txt"
     let f = open(tmp, fmWrite)
@@ -11,7 +11,7 @@ suite "Update-DevEnvironment run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-DevEnvironment")
+    check content.contains("Usage: ax dev update")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_update_dev_environment_h.txt"
@@ -21,7 +21,7 @@ suite "Update-DevEnvironment run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-DevEnvironment")
+    check content.contains("Usage: ax dev update")
 
   test "no flake.nix in current directory is an error":
     # Real, deterministic logic that doesn't require nix/direnv to actually
