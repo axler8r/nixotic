@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../UpdateDockerImage"
-import "../../lib/testing"
+import "../update"
+import "../../../../lib/testing"
 
-suite "Update-DockerImage filterImages":
+suite "ax docker image update filterImages":
   test "drops a line with a vsc prefix":
     check filterImages(@["vsc-foo:latest", "nginx:latest"]) == @["nginx:latest"]
 
@@ -28,7 +28,7 @@ suite "Update-DockerImage filterImages":
     check filterImages(@["notvsc:latest", "notaxler8r:latest"]) ==
       @["notvsc:latest", "notaxler8r:latest"]
 
-suite "Update-DockerImage run":
+suite "ax docker image update run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_update_docker_image_help.txt"
     let f = open(tmp, fmWrite)
@@ -37,7 +37,7 @@ suite "Update-DockerImage run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-DockerImage")
+    check content.contains("Usage: ax docker image update")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_update_docker_image_h.txt"
@@ -47,7 +47,7 @@ suite "Update-DockerImage run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Update-DockerImage")
+    check content.contains("Usage: ax docker image update")
 
   test "missing docker is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_update_docker_image"

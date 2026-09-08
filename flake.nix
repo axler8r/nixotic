@@ -50,9 +50,6 @@
         "Sync-FileIndex" = "SyncFileIndex.nim";
         "Initialize-ClaudeProject" = "InitializeClaudeProject.nim";
         "Get-Help" = "GetHelp.nim";
-        "Update-DockerImage" = "UpdateDockerImage.nim";
-        "Remove-DockerDanglingImages" = "RemoveDockerDanglingImages.nim";
-        "Remove-DockerDanglingVolumes" = "RemoveDockerDanglingVolumes.nim";
         "Get-DefaultBrowser" = "GetDefaultBrowser.nim";
         "Update-DevEnvironment" = "UpdateDevEnvironment.nim";
         "Write-Executable" = "WriteExecutable.nim";
@@ -65,10 +62,6 @@
         "New-ElixirDevEnvironment" = "NewElixirDevEnvironment.nim";
         "Remove-DevEnvironment" = "RemoveDevEnvironment.nim";
         "Get-GitHubLicenses" = "GetGitHubLicenses.nim";
-        "Get-DockerImages" = "GetDockerImages.nim";
-        "Get-DanglingDockerImages" = "GetDanglingDockerImages.nim";
-        "Get-DockerDanglingVolumes" = "GetDockerDanglingVolumes.nim";
-        "Find-DockerImages" = "FindDockerImages.nim";
         "Get-SwapUsage" = "GetSwapUsage.nim";
         "Get-NfsExports" = "GetNfsExports.nim";
         "Find-MixedIndentation" = "FindMixedIndentation.nim";

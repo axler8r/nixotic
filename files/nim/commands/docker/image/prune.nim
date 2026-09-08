@@ -1,7 +1,18 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["docker", "image", "prune"],
+  kind: ckVerb,
+  summary: "remove all dangling Docker images",
+  usage: "ax docker image prune",
+  deps: @["docker"],
+  dryRun: false
+)
 
 proc parseDockerList*(output: string): seq[string] =
   ## Splits `docker ... list` output on newlines, dropping the empty
@@ -20,7 +31,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Remove-DockerDanglingImages
+    outp.writeLine """Usage: ax docker image prune
 
 Remove all dangling Docker images (images without a tag).
 
@@ -28,7 +39,7 @@ Options:
     -h, --help    Show this help message
 
 Examples:
-    Remove-DockerDanglingImages"""
+    ax docker image prune"""
     return 0
 
   if not checkDeps(["docker"], errp): return 2
@@ -52,4 +63,5 @@ Examples:
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

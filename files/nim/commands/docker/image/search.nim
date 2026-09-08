@@ -1,8 +1,23 @@
 import std/[os, algorithm, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/context"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["docker", "image", "search"],
+  kind: ckVerb,
+  summary: "search Docker Hub for images",
+  usage: "ax docker image search <term>...",
+  args: @[
+    ArgSpec(name: "term", required: true, variadic: true,
+            description: "one or more words to search for")
+  ],
+  deps: @["docker"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   raw*: bool
@@ -43,27 +58,31 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Find-DockerImages [--raw] <search-term>
+    outp.writeLine """Usage: ax docker image search <term>...
 
 Search Docker Hub for images by name pattern.
 
 Options:
     -h, --help    Show this help message
-    --raw         Plain text output
+    --raw         Deprecated alias for -o plain
 
 Arguments:
-    <search-term>  One or more words to search for
+    <term>        One or more words to search for
 
 Examples:
-    Find-DockerImages nginx
-    Find-DockerImages --raw postgres official"""
+    ax docker image search nginx
+    ax docker image search postgres official"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.searchTerm.len == 0:
     error("Missing search term", errp)
-    outp.writeLine("Usage: Find-DockerImages [--raw] <search-term>")
-    return 1
+    outp.writeLine("Usage: ax docker image search <term>...")
+    return 64
+
+  var ctx = ctxFromEnv()
+  if parsed.raw:
+    ctx.output = omPlain
 
   if not checkDeps(["docker"], errp): return 2
 
@@ -73,13 +92,19 @@ Examples:
     "docker",
     @["search", parsed.searchTerm, "--format={{.Name}}|{{.StarCount}}"]
   ).output
-  var rows = parseDockerList(listing)
-  rows.sort(proc(a, b: string): int = cmp(starCount(b), starCount(a)))
+  var lines = parseDockerList(listing)
+  lines.sort(proc(a, b: string): int = cmp(starCount(b), starCount(a)))
+  var rows: seq[seq[string]] = @[]
+  for line in lines:
+    rows.add line.split("|")
 
-  outp.writeLine("")
-  discard table("Name|Stars\n" & rows.join("\n"), parsed.raw, runner, outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Name", "Stars"], rows, ctx, runner, outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

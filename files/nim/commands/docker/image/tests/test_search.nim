@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../FindDockerImages"
-import "../../lib/testing"
+import "../search"
+import "../../../../lib/testing"
 
-suite "Find-DockerImages parseArgs":
+suite "ax docker image search parseArgs":
   test "no args: raw false, empty search term":
     let p = parseArgs(@[])
     check p.raw == false
@@ -22,7 +22,7 @@ suite "Find-DockerImages parseArgs":
     check p2.raw == true
     check p2.searchTerm == "nginx"
 
-suite "Find-DockerImages run":
+suite "ax docker image search run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_find_docker_images_help.txt"
     let f = open(tmp, fmWrite)
@@ -31,7 +31,7 @@ suite "Find-DockerImages run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Find-DockerImages")
+    check content.contains("Usage: ax docker image search")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_find_docker_images_h.txt"
@@ -41,7 +41,7 @@ suite "Find-DockerImages run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Find-DockerImages")
+    check content.contains("Usage: ax docker image search")
 
   test "missing search term is exit 1, error on errp, usage reminder on outp":
     let outTmp = getTempDir() / "test_find_docker_images_noterm_out.txt"
@@ -55,9 +55,9 @@ suite "Find-DockerImages run":
     let errContent = readFile(errTmp)
     removeFile(outTmp)
     removeFile(errTmp)
-    check code == 1
+    check code == 64
     check errContent.contains("Missing search term")
-    check outContent.contains("Usage: Find-DockerImages [--raw] <search-term>")
+    check outContent.contains("Usage: ax docker image search <term>...")
 
   test "missing search term is checked before checkDeps(docker)":
     # Mirrors the zsh original's ordering: the search-term check runs before
@@ -73,7 +73,7 @@ suite "Find-DockerImages run":
       code = run(@["--raw"], f, f)
     f.close()
     removeDir(dir)
-    check code == 1
+    check code == 64
 
   test "missing docker is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_find_docker_images"
@@ -111,4 +111,4 @@ suite "Find-DockerImages run":
     check rec.calls[0].args == @["search", "nginx", "--format={{.Name}}|{{.StarCount}}"]
     check rec.calls[1].cmd == "column"
     check rec.calls[1].input == "Name|Stars\n" &
-      "nginx|15000\nnginxinc/nginx-unprivileged|300\nbitnami/nginx|100"
+      "nginx|15000\nnginxinc/nginx-unprivileged|300\nbitnami/nginx|100\n"

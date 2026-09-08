@@ -1,8 +1,22 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["docker", "image", "update"],
+  kind: ckVerb,
+  summary: "pull Docker images to their latest versions",
+  usage: "ax docker image update [image...]",
+  args: @[
+    ArgSpec(name: "image", required: false, variadic: true,
+            description: "image names (repo:tag); default: all installed images")
+  ],
+  deps: @["docker"],
+  dryRun: false
+)
 
 proc filterImages*(lines: seq[string]): seq[string] =
   ## Mirrors the zsh original's `sed '/^vsc/d; /^axler8r/d; /<none>/d;
@@ -25,7 +39,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Update-DockerImage [image...]
+    outp.writeLine """Usage: ax docker image update [image...]
 
 Pull Docker images to their latest versions. With no arguments, updates all
 installed images (excluding devcontainer, vsc, and local axler8r images).
@@ -37,9 +51,9 @@ Arguments:
     image         One or more image names (repo:tag)
 
 Examples:
-    Update-DockerImage
-    Update-DockerImage nginx:latest postgres:16
-    Get-DockerImages --raw | awk -F'|' 'NR>1{print $1":"$2}' | xargs Update-DockerImage"""
+    ax docker image update
+    ax docker image update nginx:latest postgres:16
+    ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | xargs ax docker image update"""
     return 0
 
   if not checkDeps(["docker"], errp): return 2
@@ -76,4 +90,5 @@ Examples:
   result = if anyFailed: 1 else: 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())
