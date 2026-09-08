@@ -1,8 +1,26 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["attr", "set"],
+  kind: ckVerb,
+  summary: "set one extended attribute",
+  usage: "ax attr set <attribute> <value> <path>",
+  args: @[
+    ArgSpec(name: "attribute", required: true,
+            description: "the attribute to set"),
+    ArgSpec(name: "value", required: true,
+            description: "the value to store"),
+    ArgSpec(name: "path", required: true,
+            description: "the file or directory to write")
+  ],
+  deps: @["setfattr"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -11,7 +29,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Set-Attribute [opts] <attribute> <value> <path>
+    outp.writeLine """Usage: ax attr set [opts] <attribute> <value> <path>
 
 Set an attribute on a file or directory.
 
@@ -24,8 +42,8 @@ Arguments:
     <path>       The path to the file or directory.
 
 Examples:
-    Set-Attribute comment "This is a test" /path/to/file
-    Set-Attribute app.name "MyApp" /path/to/directory"""
+    ax attr set comment "This is a test" /path/to/file
+    ax attr set app.name "MyApp" /path/to/directory"""
     return 0
 
   var attribute = ""
@@ -40,7 +58,7 @@ Examples:
       break
     elif arg.len > 0 and arg[0] == '-':
       error("Unknown option: " & arg, errp)
-      return 1
+      return 64
     elif attribute.len == 0:
       attribute = arg
     elif value.len == 0:
@@ -49,18 +67,19 @@ Examples:
       path = arg
     else:
       error("Too many arguments", errp)
-      return 1
+      return 64
     inc i
 
-  if not requireArg(attribute, "attribute", errp): return 1
-  if not requireArg(value, "value", errp): return 1
-  if not requireArg(path, "path", errp): return 1
+  if not requireArg(attribute, "attribute", errp): return 64
+  if not requireArg(value, "value", errp): return 64
+  if not requireArg(path, "path", errp): return 64
   if not checkDeps(["setfattr"], errp): return 2
   if not requireWritablePathTarget(path, errp): return 1
-  if not requireXattrName(attribute, errp): return 1
+  if not requireXattrName(attribute, errp): return 64
 
   result = runner.runInherited(
     "setfattr", @["--name", "user." & attribute, "--value", value, path])
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

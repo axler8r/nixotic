@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../SetAttribute"
-import "../../lib/testing"
+import "../set"
+import "../../../lib/testing"
 
-suite "Set-Attribute run":
+suite "ax attr set run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_set_attribute_help.txt"
     let f = open(tmp, fmWrite)
@@ -11,25 +11,25 @@ suite "Set-Attribute run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Set-Attribute")
+    check content.contains("Usage: ax attr set")
 
   test "fails when the attribute argument is missing":
-    check run(@[]) == 1
+    check run(@[]) == 64
 
   test "fails when the value argument is missing":
-    check run(@["comment"]) == 1
+    check run(@["comment"]) == 64
 
   test "fails when the path argument is missing":
-    check run(@["comment", "hello"]) == 1
+    check run(@["comment", "hello"]) == 64
 
   test "fails on an unknown option":
-    check run(@["-x", "comment", "hello", "/tmp"]) == 1
+    check run(@["-x", "comment", "hello", "/tmp"]) == 64
 
   test "fails with too many positional arguments":
-    check run(@["comment", "hello", "/tmp", "extra"]) == 1
+    check run(@["comment", "hello", "/tmp", "extra"]) == 64
 
   test "fails on an invalid attribute name":
-    check run(@["bad name!", "hello", getTempDir()]) == 1
+    check run(@["bad name!", "hello", getTempDir()]) == 64
 
   test "fails when the path does not exist":
     check run(@["comment", "hello", "/definitely/not/a/real/path/xyz123"]) == 1

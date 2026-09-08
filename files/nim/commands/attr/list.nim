@@ -1,8 +1,22 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["attr", "list"],
+  kind: ckVerb,
+  summary: "list every extended attribute",
+  usage: "ax attr list <path>",
+  args: @[
+    ArgSpec(name: "path", required: true,
+            description: "the file or directory to read")
+  ],
+  deps: @["getfattr"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -11,23 +25,21 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-Attribute [opts] <attribute> <path>
+    outp.writeLine """Usage: ax attr list <path>
 
-Get an attribute on a file or directory.
+List all attributes on a file or directory.
 
 Options:
     -h, --help    Show this help message
 
 Arguments:
-    <attribute>  The attribute to get.
     <path>       The path to the file or directory.
 
 Examples:
-    Get-Attribute comment /path/to/file
-    Get-Attribute app.name /path/to/directory"""
+    ax attr list /path/to/file
+    ax attr list /path/to/directory"""
     return 0
 
-  var attribute = ""
   var path = ""
   var i = 0
   while i < args.len:
@@ -38,24 +50,21 @@ Examples:
       break
     elif arg.len > 0 and arg[0] == '-':
       error("Unknown option: " & arg, errp)
-      return 1
-    elif attribute.len == 0:
-      attribute = arg
+      return 64
     elif path.len == 0:
       path = arg
     else:
       error("Too many arguments", errp)
-      return 1
+      return 64
     inc i
 
-  if not requireArg(attribute, "attribute", errp): return 1
-  if not requireArg(path, "path", errp): return 1
+  if not requireArg(path, "path", errp): return 64
   if not checkDeps(["getfattr"], errp): return 2
   if not requirePathTarget(path, errp): return 1
-  if not requireXattrName(attribute, errp): return 1
 
   result = runner.runInherited(
-    "getfattr", @["--name", "user." & attribute, path])
+    "getfattr", @["--dump", path])
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetAttributes"
-import "../../lib/testing"
+import "../list"
+import "../../../lib/testing"
 
-suite "Get-Attributes run":
+suite "ax attr list run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_attributes_help.txt"
     let f = open(tmp, fmWrite)
@@ -11,16 +11,16 @@ suite "Get-Attributes run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-Attributes")
+    check content.contains("Usage: ax attr list")
 
   test "fails when the path argument is missing":
-    check run(@[]) == 1
+    check run(@[]) == 64
 
   test "fails on an unknown option":
-    check run(@["-x", "/tmp"]) == 1
+    check run(@["-x", "/tmp"]) == 64
 
   test "fails with too many positional arguments":
-    check run(@["/tmp", "extra"]) == 1
+    check run(@["/tmp", "extra"]) == 64
 
   test "fails when the path does not exist":
     check run(@["/definitely/not/a/real/path/xyz123"]) == 1

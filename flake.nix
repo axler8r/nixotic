@@ -45,10 +45,6 @@
       # below fails loudly if a functions/*.nim file is ever added without a
       # matching entry.
       nimFunctionBinaries = {
-        "Get-Attribute" = "GetAttribute.nim";
-        "Get-Attributes" = "GetAttributes.nim";
-        "Set-Attribute" = "SetAttribute.nim";
-        "Remove-Attribute" = "RemoveAttribute.nim";
         "Get-Verb" = "GetVerb.nim";
         "Show-Verb" = "ShowVerb.nim";
         "Sync-FileIndex" = "SyncFileIndex.nim";

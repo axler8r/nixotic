@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../RemoveAttribute"
-import "../../lib/testing"
+import "../remove"
+import "../../../lib/testing"
 
-suite "Remove-Attribute run":
+suite "ax attr remove run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_attribute_help.txt"
     let f = open(tmp, fmWrite)
@@ -11,22 +11,22 @@ suite "Remove-Attribute run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-Attribute")
+    check content.contains("Usage: ax attr remove")
 
   test "fails when the attribute argument is missing":
-    check run(@[]) == 1
+    check run(@[]) == 64
 
   test "fails when the path argument is missing":
-    check run(@["comment"]) == 1
+    check run(@["comment"]) == 64
 
   test "fails on an unknown option":
-    check run(@["-x", "comment", "/tmp"]) == 1
+    check run(@["-x", "comment", "/tmp"]) == 64
 
   test "fails with too many positional arguments":
-    check run(@["comment", "/tmp", "extra"]) == 1
+    check run(@["comment", "/tmp", "extra"]) == 64
 
   test "fails on an invalid attribute name":
-    check run(@["bad name!", getTempDir()]) == 1
+    check run(@["bad name!", getTempDir()]) == 64
 
   test "fails when the path does not exist":
     check run(@["comment", "/definitely/not/a/real/path/xyz123"]) == 1
