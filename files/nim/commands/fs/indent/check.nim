@@ -34,33 +34,51 @@ type ParsedArgs* = object
   unknownOption*: string
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
+  var positionalOnly = false
+  var hasDirectory = false
   var i = 0
   while i < args.len:
-    let arg = args[i]
+    var arg = args[i]
+    var value = ""
+    var attachedValue = false
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+      inc i
+      continue
+    if positionalOnly or arg == "-" or not arg.startsWith("-"):
+      if hasDirectory:
+        result.unknownOption = "extra directory: " & arg
+        return
+      result.directory = arg
+      hasDirectory = true
+      inc i
+      continue
+    if arg.startsWith("-e") and arg.len > 2:
+      attachedValue = true
+      value = arg[2 .. ^1]
+      if value[0] in {'=', ':'}: value = value[1 .. ^1]
+      arg = "-e"
+    elif arg == "-e":
+      inc i
+      if i < args.len: value = args[i]
     case arg
     of "--all": result.allFlag = true
     of "--raw": result.raw = true
     of "-e":
-      inc i
-      if i < args.len: result.extensions.add(args[i])
-      else: result.extensions.add("")
+      if value.strip().len == 0 or (not attachedValue and value.startsWith("-")):
+        result.unknownOption = "-e requires a nonempty extension"
+        return
+      result.extensions.add(value)
     else:
-      if arg.len > 0 and arg[0] == '-':
-        result.unknownOption = arg
-        return result
-      else:
-        result.directory = arg
+      result.unknownOption = arg
+      return
     inc i
 
 proc countTabSpaceLines*(path: string): tuple[tabLines, spaceLines: int] =
   ## Mirrors `grep -cP '^\t'` and `grep -cP '^ '`: a line's first character
   ## is tab, space, or neither, so a single pass suffices.
   result = (0, 0)
-  var content: string
-  try:
-    content = readFile(path)
-  except IOError, OSError:
-    return
+  let content = readFile(path)
   for line in content.splitLines():
     if line.len == 0: continue
     if line[0] == '\t': inc result.tabLines
@@ -107,6 +125,8 @@ Examples:
     ax fs indent check --all"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
@@ -116,10 +136,18 @@ Examples:
   if not requireDir(dir, errp): return 1
   if not checkDeps(["fd", "file"], errp): return 2
 
-  let files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  var ctx = ctxFromEnv()
+  if parsed.raw: ctx.output = omPlain
+  var files: seq[string]
+  try:
+    files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  except CatchableError as e:
+    error(e.msg, errp)
+    return 1
   if files.len == 0:
     info("No files found in '" & dir & "'", errp)
-    return 0
+    if ctx.output != omJson: return 0
+    return render(@["File", "Tabs", "Spaces"], @[], ctx, runner, outp, errp)
 
   var mixed = 0
   var checked = 0
@@ -127,15 +155,17 @@ Examples:
   var results: seq[tuple[tabLines, spaceLines: int, relPath: string]] = @[]
 
   for file in files:
-    let mime = mimeType(runner, file)
-    if not isTextMimeType(mime):
-      inc skipped
-      continue
-    if getFileSize(file) == 0:
-      inc skipped
-      continue
-    inc checked
-    let counts = countTabSpaceLines(file)
+    var counts: tuple[tabLines, spaceLines: int]
+    try:
+      let mime = mimeType(runner, file)
+      if not isTextMimeType(mime) or getFileSize(file) == 0:
+        inc skipped
+        continue
+      counts = countTabSpaceLines(file)
+      inc checked
+    except CatchableError as e:
+      error("Cannot inspect '" & file & "': " & e.msg, errp)
+      return 1
     if counts.tabLines > 0 and counts.spaceLines > 0:
       inc mixed
       results.add((counts.tabLines, counts.spaceLines, stripDirPrefix(file, dir)))
@@ -143,11 +173,9 @@ Examples:
   if mixed == 0:
     success("No mixed indentation found (" & $checked & " files checked, " &
             $skipped & " skipped)", errp)
-    return 0
+    if ctx.output != omJson: return 0
+    return render(@["File", "Tabs", "Spaces"], @[], ctx, runner, outp, errp)
 
-  var ctx = ctxFromEnv()
-  if parsed.raw:
-    ctx.output = omPlain
   var rows: seq[seq[string]] = @[]
   for r in results:
     rows.add @[r.relPath, insertSep($r.tabLines, ','),
@@ -155,7 +183,8 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["File", "Tabs", "Spaces"], rows, ctx, runner, outp, errp)
+  let renderCode = render(@["File", "Tabs", "Spaces"], rows, ctx, runner, outp, errp)
+  if renderCode != 0: return renderCode
   if ctx.output == omTable:
     outp.writeLine("")
   warn($mixed & " file(s) with mixed indentation (" & $checked &

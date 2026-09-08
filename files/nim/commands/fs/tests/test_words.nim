@@ -1,8 +1,21 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../words"
+import "../../../lib/process"
+import "../../../lib/spec"
 import "../../../lib/testing"
 
 suite "ax fs words parseArgs":
+  test "validated attached values and terminator retain their meaning":
+    let args = @["-emd", "-e:txt", "-e=py", "-e=-suffix", "--top=2", "--", "--all"]
+    check validateArgs(cmdSpec, args)
+    let p = parseArgs(args)
+    check p.unknownOption == ""
+    check p.extensions == @["md", "txt", "py", "-suffix"]
+    check p.topN == 2
+    check p.directory == "--all"
+    check not p.allFlag
+    check parseArgs(@["-"]).directory == "-"
+
   test "no args: directory empty, topN defaults to 15":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -10,8 +23,22 @@ suite "ax fs words parseArgs":
     check p.allFlag == false
     check p.raw == false
 
-  test "-n overrides the top-N count":
-    check parseArgs(@["-n", "5"]).topN == 5
+  test "--top overrides the top-N count in split and attached forms":
+    check parseArgs(@["--top", "5"]).topN == 5
+    check parseArgs(@["--top=5"]).topN == 5
+
+  test "invalid counts and extensions are rejected without subprocess calls":
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    for args in @[@["--top", "0"], @["--top", "-2"], @["--top=oops"],
+                  @["--top", "999999999999999999999999"], @["-n", "5"],
+                  @["-e"], @["-e", ""], @["-e", "   "], @["one", "two"]]:
+      let rec = newRecordingRunner()
+      check run(args, f, f, rec.runner) == 64
+      check rec.calls.len == 0
+
+  test "attached extension is accepted":
+    check parseArgs(@["-emd"]).extensions == @["md"]
 
   test "-e is repeatable and preserves order":
     check parseArgs(@["-e", "md", "-e", "txt"]).extensions == @["md", "txt"]
@@ -39,10 +66,49 @@ suite "ax fs words countWords":
     removeDir(dir)
     check n == 5
 
-  test "returns zero for a missing file":
-    check countWords("/definitely/not/a/real/path.txt") == 0
+  test "missing file is an error rather than a zero count":
+    expect IOError:
+      discard countWords("/definitely/not/a/real/path.txt")
 
 suite "ax fs words run":
+  test "queued discovery or MIME failures cannot emit partial word totals":
+    let dir = createTempDir("ax-words-scan-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "fd", "")
+    writeFakeExe(dir, "file", "")
+    let first = dir / "first.txt"
+    let second = dir / "second.txt"
+    writeFile(first, "one two")
+    writeFile(second, "three")
+    for failedCall in 0 .. 2:
+      var replies = @[
+        CommandResult(exitCode: 0, output: first & "\0" & second & "\0"),
+        CommandResult(exitCode: 0, output: "text/plain\n"),
+        CommandResult(exitCode: 0, output: "text/plain\n")
+      ]
+      replies[failedCall].exitCode = 1
+      replies[failedCall].error = "scanner failed"
+      let rec = newRecordingRunner(replies = replies)
+      let outPath = dir / "out"
+      let errPath = dir / "err"
+      let outf = open(outPath, fmWrite)
+      let errf = open(errPath, fmWrite)
+      var code: int
+      withPath(dir):
+        code = run(@[dir], outf, errf, rec.runner)
+      outf.close()
+      errf.close()
+      check code == 1
+      require rec.calls.len == failedCall + 1
+      check rec.calls[0].cmd == "fd"
+      if failedCall > 0:
+        check rec.calls[^1].cmd == "file"
+      check readFile(outPath) == ""
+      let message = readFile(errPath)
+      check message.contains("scanner failed")
+      check not message.contains("No text files found")
+      check not message.contains("No words found")
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_measure_words_help.txt"
     let f = open(tmp, fmWrite)
@@ -99,7 +165,7 @@ suite "ax fs words run":
     createDir(scanDir)
     writeFile(scanDir / "a.py", "one two three")
     writeFile(scanDir / "b.md", "four five")
-    writeFakeExe(dir, "fd", "printf '%s\\n%s\\n' " &
+    writeFakeExe(dir, "fd", "printf '%s\\0%s\\0' " &
       (scanDir / "a.py").quoteShell & " " & (scanDir / "b.md").quoteShell)
     writeFakeExe(dir, "file", "echo text/plain")
     let stdinLog = dir / "column_stdin.log"

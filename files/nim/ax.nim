@@ -8,7 +8,6 @@ import lib/cli
 import lib/context
 import lib/driver
 import lib/output
-import lib/process
 import lib/spec
 
 const axVersion {.strdefine.} = "dev"
@@ -18,31 +17,20 @@ proc execBinary(binPath: string, args: seq[string], ctx: Ctx): int =
   ## signals pass straight through). Ctx travels via the environment.
   exportCtx(ctx)
   let argv = allocCStringArray(@[binPath] & args)
+  defer: deallocCStringArray(argv)
   discard execv(binPath.cstring, argv)
   error("cannot exec " & binPath & ": " & $strerror(errno))
   1
 
-proc commandHelp(binPath: string, extraArgs: seq[string] = @[],
-                 runner: Runner = defaultRunner): int =
-  ## `ax help <full path>` / `ax <full path> --help`: the binary's own
-  ## --help output through the bat pipeline Get-Help used to provide.
-  let cr = runner.capture(binPath, extraArgs & @["--help"])
-  if cr.error.len > 0:
-    stderr.write(cr.error)
-  if cr.exitCode != 0:
-    stdout.write(cr.output)
-    return cr.exitCode
-  renderHelp(cr.output)
-
 proc helpCmd(specs: seq[CommandSpec], groups: auto,
              paths: seq[seq[string]], words: seq[string],
-             libexecDir: string): int =
+             libexecDir: string, ctx: Ctx): int =
   if words.len == 0:
     return renderHelp(overviewText(specs, groups, axVersion))
   let res = resolveCommand(words, words.len, paths)
   case res.kind
   of rkFull:
-    commandHelp(libexecDir / ("ax-" & res.path.join("-")))
+    commandHelp(libexecDir / ("ax-" & res.path.join("-")), ctx)
   of rkPrefix:
     renderHelp(subtreeText(specs, groups, words))
   of rkNone:
@@ -50,44 +38,16 @@ proc helpCmd(specs: seq[CommandSpec], groups: auto,
     # ANY command's --help through bat (`ax help git commit`, `ax help fd`;
     # the `help`/`h` aliases lean on this daily).
     if findExe(words[0]).len > 0:
-      return commandHelp(words[0], words[1 .. ^1])
+      return commandHelp(words[0], ctx, words[1 .. ^1])
     error("no such command or group: ax " & words.join(" "))
     if res.children.len > 0:
       stderr.writeLine("Available here: " & res.children.join(", "))
     64
 
-proc selfCmd(words: seq[string], ctx: Ctx, libexecDir, registryFile,
-             groupsFile: string): int =
-  if words.len == 0:
-    error("usage: ax self <commands|completion|doctor|new-command|build-registry>")
-    return 64
-  case words[0]
-  of "build-registry":
-    buildRegistry(libexecDir)
-  of "completion":
-    if words.len < 2 or words[1] notin ["zsh", "bash", "nu"]:
-      error("usage: ax self completion <zsh|bash|nu>")
-      return 64
-    let specs = loadRegistry(registryFile)
-    let groups = loadGroups(groupsFile)
-    case words[1]
-    of "zsh": stdout.write(completionZsh(specs, groups))
-    of "bash": stdout.write(completionBash(specs, groups))
-    else: stdout.write(completionNu(specs, groups))
-    0
-  of "commands":
-    selfCommands(loadRegistry(registryFile),
-                 listZshFunctions(getHomeDir() / ".zsh" / "functions"), ctx)
-  of "doctor":
-    selfDoctor(loadRegistry(registryFile))
-  of "new-command":
-    newCommand(words[1 .. ^1], getCurrentDir() / "files" / "nim" / "commands")
-  else:
-    error("unknown self command: " & words[0])
-    64
-
 proc main(): int =
   let ex = extractCommon(commandLineParams(), ctxFromEnv())
+  # Builtins, diagnostics, help children and renderers all read AX_* too.
+  exportCtx(ex.ctx)
   if ex.badFlag.len > 0:
     error(ex.badFlag)
     return 64
@@ -104,7 +64,20 @@ proc main(): int =
   # CREATES the registry during the package build.
   if ex.words.len > 0 and ex.words[0] == "self":
     return selfCmd(ex.words[1 .. ^1], ex.ctx, libexecDir, registryFile,
-                   groupsFile)
+                   groupsFile, help = ex.help)
+  if ex.words.len > 1 and ex.words[0 .. 1] == @["help", "self"]:
+    return selfCmd(ex.words[2 .. ^1], ex.ctx, libexecDir, registryFile,
+                   groupsFile, help = true)
+  if ex.words.len > 0 and ex.words[0] == "version":
+    if ex.help:
+      return renderHelp("Usage: ax version\nPrint the ax version.\n")
+    if ex.words.len != 1:
+      error("usage: ax version")
+      return 64
+    echo "ax " & axVersion
+    return 0
+  if ex.words.len > 1 and ex.words[0 .. 1] == @["help", "version"]:
+    return renderHelp("Usage: ax version\nPrint the ax version.\n")
 
   let specs = loadRegistry(registryFile)
   let groups = loadGroups(groupsFile)
@@ -115,10 +88,7 @@ proc main(): int =
 
   case ex.words[0]
   of "help":
-    return helpCmd(specs, groups, paths, ex.words[1 .. ^1], libexecDir)
-  of "version":
-    echo "ax " & axVersion
-    return 0
+    return helpCmd(specs, groups, paths, ex.words[1 .. ^1], libexecDir, ex.ctx)
   else:
     discard
 
@@ -127,7 +97,12 @@ proc main(): int =
   of rkFull:
     let binPath = libexecDir / ("ax-" & res.path.join("-"))
     if ex.help:
-      return commandHelp(binPath)
+      return commandHelp(binPath, ex.ctx)
+    for s in specs:
+      if s.path == res.path:
+        if not validateInvocation(s, res.rest, ex.ctx.dryRun):
+          return 64
+        break
     execBinary(binPath, res.rest, ex.ctx)
   of rkPrefix:
     if ex.help:

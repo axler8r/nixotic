@@ -1,8 +1,20 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../histogram"
+import "../../../lib/process"
+import "../../../lib/spec"
 import "../../../lib/testing"
 
 suite "ax fs histogram parseArgs":
+  test "validated attached values and terminator retain their meaning":
+    let args = @["-ejpg", "-e:png", "-e=gif", "-e=-suffix", "--", "--all"]
+    check validateArgs(cmdSpec, args)
+    let p = parseArgs(args)
+    check p.unknownOption == ""
+    check p.extensions == @["jpg", "png", "gif", "-suffix"]
+    check p.directory == "--all"
+    check not p.allFlag
+    check parseArgs(@["-"]).directory == "-"
+
   test "no args: directory empty, no flags":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -37,6 +49,30 @@ suite "ax fs histogram formatSizeLabel":
     check formatSizeLabel(2147483648) == "2.0 GB"
 
 suite "ax fs histogram run":
+  test "queued discovery failure never looks like an empty tree":
+    let dir = createTempDir("ax-histogram-scan-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "fd", "")
+    let rec = newRecordingRunner(replies = @[
+      CommandResult(exitCode: 1, error: "scanner failed")
+    ])
+    let outPath = dir / "out"
+    let errPath = dir / "err"
+    let outf = open(outPath, fmWrite)
+    let errf = open(errPath, fmWrite)
+    var code: int
+    withPath(dir):
+      code = run(@[dir], outf, errf, rec.runner)
+    outf.close()
+    errf.close()
+    check code == 1
+    require rec.calls.len == 1
+    check rec.calls[0].cmd == "fd"
+    check readFile(outPath) == ""
+    let message = readFile(errPath)
+    check message.contains("File discovery failed: scanner failed")
+    check not message.contains("No files found")
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_show_file_size_histogram_help.txt"
     let f = open(tmp, fmWrite)
@@ -100,7 +136,7 @@ suite "ax fs histogram run":
     let bigPath = scanDir / "bigger.txt"
     writeFile(smallPath, "x")
     writeFile(bigPath, "x".repeat(2000))
-    let rec = newRecordingRunner(exitCode = 0, output = smallPath & "\n" & bigPath & "\n")
+    let rec = newRecordingRunner(exitCode = 0, output = smallPath & "\0" & bigPath & "\0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

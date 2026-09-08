@@ -3,7 +3,7 @@
 ## completion generation. Everything here is pure or stream-injected so
 ## lib/tests can exercise it; ax.nim is the thin main that wires this to
 ## the real filesystem, environment, and exec.
-import std/[algorithm, json, os, sequtils, strutils, tables, terminal]
+import std/[algorithm, json, os, posix, sequtils, strutils, tables, terminal]
 import context
 import lexicon
 import output
@@ -54,6 +54,7 @@ proc extractCommon*(args: seq[string], base: Ctx): Extracted =
     of "--":
       passthrough = true
       result.resolvable = result.words.len
+      result.words.add a
       inc i
     of "-o", "--output":
       let v = needValue(a, ["table", "plain", "json"])
@@ -142,9 +143,20 @@ proc resolveCommand*(words: seq[string], resolvable: int,
 
 # ------------------------------------------------------------ registry files
 
+proc addRegistrySpec(specs: var seq[CommandSpec], s: CommandSpec) =
+  for existing in specs:
+    let depth = min(existing.path.len, s.path.len)
+    if existing.path[0 ..< depth] == s.path[0 ..< depth]:
+      raise newException(ValueError, "duplicate or overlapping command path: " &
+                          s.path.join(" "))
+  specs.add s
+
 proc loadRegistry*(file: string): seq[CommandSpec] =
-  for n in parseJson(readFile(file)):
-    result.add commandSpecFromJson(n)
+  let node = parseJson(readFile(file))
+  if node.kind != JArray:
+    raise newException(ValueError, "registry must be a JSON array")
+  for n in node:
+    result.addRegistrySpec(commandSpecFromJson(n))
 
 proc registryPaths*(specs: seq[CommandSpec]): seq[seq[string]] =
   specs.mapIt(it.path)
@@ -153,7 +165,17 @@ proc loadGroups*(file: string): OrderedTable[string, string] =
   ## groups.json: space-joined group path -> one-line summary. JsonNode
   ## objects preserve insertion order, so the file's order is the display
   ## order.
-  for k, v in parseJson(readFile(file)):
+  let node = parseJson(readFile(file))
+  if node.kind != JObject:
+    raise newException(ValueError, "groups must be a JSON object")
+  for k, v in node:
+    let words = k.split(' ')
+    if words.len notin 1 .. 2 or words.anyIt(not validPathSegment(it)) or
+       words[0] in ["help", "version", "self"]:
+      raise newException(ValueError, "invalid group path: " & k)
+    if v.kind != JString or v.getStr.strip().len == 0 or
+       v.getStr.contains({'\n', '\r', '\0'}):
+      raise newException(ValueError, "group summary must be a nonempty single line: " & k)
     result[k] = v.getStr
 
 # ------------------------------------------------------------------ building
@@ -165,13 +187,21 @@ proc buildRegistry*(libexecDir: string, runner: Runner = defaultRunner,
   ## emit the sorted registry JSON on stdout. Any failure is fatal — this
   ## runs inside the package build, so a bad spec fails the build.
   var names: seq[string]
-  for kind, path in walkDir(libexecDir):
-    let name = extractFilename(path)
-    if name.startsWith("ax-"):
-      names.add name
+  try:
+    for kind, path in walkDir(libexecDir, checkDir = true):
+      let name = extractFilename(path)
+      if name.startsWith("ax-"):
+        if kind notin {pcFile, pcLinkToFile}:
+          error("not a command binary: " & path, errp)
+          return 1
+        names.add name
+  except OSError as e:
+    error(e.msg, errp)
+    return 1
   names.sort()
 
   var arr = newJArray()
+  var specs: seq[CommandSpec]
   for name in names:
     let cr = runner.capture(libexecDir / name, @["--ax-spec"])
     if cr.exitCode != 0:
@@ -182,23 +212,13 @@ proc buildRegistry*(libexecDir: string, runner: Runner = defaultRunner,
     try:
       node = parseJson(cr.output)
       cmdSpec = commandSpecFromJson(node)
+      specs.addRegistrySpec(cmdSpec)
     except CatchableError as e:
       error(name & " --ax-spec is not a valid spec: " & e.msg, errp)
-      return 1
-    if cmdSpec.specVersion != specVersionCurrent:
-      error(name & ": unsupported specVersion " & $cmdSpec.specVersion, errp)
-      return 1
-    if cmdSpec.path.len < 2 or cmdSpec.path.len > 3:
-      error(name & ": path depth must be 2 or 3, got " &
-            $cmdSpec.path.len, errp)
       return 1
     if "ax-" & cmdSpec.path.join("-") != name:
       error(name & ": spec path '" & cmdSpec.path.join(" ") &
             "' does not match the binary name", errp)
-      return 1
-    if not isAllowedLeaf(cmdSpec.path[^1]):
-      error(name & ": leaf '" & cmdSpec.path[^1] &
-            "' is not a lexicon verb or report-noun", errp)
       return 1
     arr.add node
   outp.writeLine(arr.pretty())
@@ -274,7 +294,32 @@ proc renderHelp*(text: string, runner: Runner = defaultRunner,
     errp.write(cr.error)
   cr.exitCode
 
+proc commandHelp*(binPath: string, ctx: Ctx, extraArgs: seq[string] = @[],
+                  runner: Runner = defaultRunner, outp: File = stdout,
+                  errp: File = stderr): int =
+  ## Help children and the renderer use the same resolved context as exec.
+  exportCtx(ctx)
+  let cr = runner.capture(binPath, extraArgs & @["--help"])
+  if cr.error.len > 0:
+    errp.write(cr.error)
+  if cr.exitCode != 0:
+    outp.write(cr.output)
+    return cr.exitCode
+  renderHelp(cr.output, runner, outp, errp)
+
 # ---------------------------------------------------------------------- self
+
+proc selfHelpText*(words: seq[string]): string =
+  ## Empty means an unknown builtin. No registry or filesystem access.
+  if words.len == 0:
+    return "Usage: ax self <commands|completion|doctor|new-command|build-registry>\n"
+  case words[0]
+  of "commands": "Usage: ax self commands\nList ax commands and zsh functions.\n"
+  of "completion": "Usage: ax self completion <zsh|bash|nu>\n"
+  of "doctor": "Usage: ax self doctor\nAudit declared dependencies.\n"
+  of "new-command": "Usage: ax self new-command <group> [<subgroup>] <leaf>\n"
+  of "build-registry": "Usage: ax self build-registry\nEmit validated registry JSON.\n"
+  else: ""
 
 proc listZshFunctions*(dir: string): seq[string] =
   ## The surviving PascalCase zsh functions, for `ax self commands` — the
@@ -327,7 +372,7 @@ import "$LIB/validation"
 let cmdSpec* = CommandSpec(
   specVersion: specVersionCurrent,
   path: @[$PATHSEQ],
-  kind: ckVerb,
+  kind: $KIND,
   summary: "TODO one line, lowercase first word",
   usage: "ax $PATHWORDS",
   deps: @[],
@@ -349,6 +394,7 @@ Options:
     -h, --help    Show this help message""\"
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   # TODO: requireArg/checkDeps guards, then the work.
   0
 
@@ -374,19 +420,25 @@ suite "ax $PATHWORDS run":
 """
 
 proc newCommand*(words: seq[string], commandsDir: string,
-                 outp: File = stdout, errp: File = stderr): int =
+                 outp: File = stdout, errp: File = stderr,
+                 dryRun: bool = false): int =
   ## `ax self new-command <group> [<subgroup>] <leaf>`: scaffolds the
   ## module and its test under commands/, and seeds a groups.json entry
   ## when the group is new. There is no name mapping to update — the
   ## path IS the mapping.
+  if dryRun:
+    error("ax self new-command does not support --dry-run", errp)
+    return 64
   if words.len < 2 or words.len > 3:
     error("usage: ax self new-command <group> [<subgroup>] <leaf>", errp)
     return 64
   for w in words:
-    if w.len == 0 or w[0] notin {'a'..'z'} or
-       not w.allCharsInSet({'a'..'z', '0'..'9'}):
+    if not validPathSegment(w):
       error("segment '" & w & "' must match [a-z][a-z0-9]*", errp)
       return 64
+  if words[0] in ["help", "version", "self"]:
+    error("reserved builtin group: " & words[0], errp)
+    return 64
   let leaf = words[^1]
   if not isAllowedLeaf(leaf):
     error("leaf '" & leaf & "' is not a lexicon verb or report-noun " &
@@ -400,8 +452,69 @@ proc newCommand*(words: seq[string], commandsDir: string,
   let subdir = commandsDir / words[0 ..< ^1].join("/")
   let module = subdir / (leaf & ".nim")
   let test = subdir / "tests" / ("test_" & leaf & ".nim")
-  if fileExists(module):
-    error("already exists: " & module, errp)
+  let groupsFile = commandsDir / "groups.json"
+
+  # Preflight EVERY output and its ancestors before creating anything.
+  # Refuse symlinks (including dangling ones) rather than writing outside
+  # the source tree. Check groups before modules, not after writing them.
+  proc entryExists(path: string): bool =
+    try:
+      discard getFileInfo(path, followSymlink = false)
+      true
+    except OSError as e:
+      if e.errorCode == ENOENT: return false
+      raise
+
+  proc checkParent(path: string) =
+    var parent = absolutePath(path).parentDir
+    var nearest = true
+    while parent.len > 0:
+      if entryExists(parent):
+        if symlinkExists(parent) or not dirExists(parent):
+          raise newException(ValueError, "unsafe scaffold directory: " & parent)
+        let mode = if nearest: W_OK or X_OK else: X_OK
+        if access(parent.cstring, mode) != 0:
+          raise newException(ValueError, "scaffold directory is not accessible: " & parent)
+        nearest = false
+      let next = parent.parentDir
+      if next == parent: break
+      parent = next
+
+  var groups: OrderedTable[string, string]
+  var seeded = false
+  var groupsText = ""
+  try:
+    for source in walkDirRec(commandsDir, checkDir = true):
+      let relative = relativePath(source, commandsDir)
+      if not relative.endsWith(".nim") or "/tests/" in relative:
+        continue
+      let existing = relative[0 ..< relative.len - 4].split('/')
+      let depth = min(existing.len, words.len)
+      if existing[0 ..< depth] == words[0 ..< depth]:
+        raise newException(ValueError,
+          "command path overlaps existing source: " & relative)
+    for path in [module, test]:
+      checkParent(path)
+      if entryExists(path):
+        raise newException(ValueError, "already exists: " & path)
+    checkParent(groupsFile)
+    if symlinkExists(groupsFile) or not fileExists(groupsFile):
+      raise newException(ValueError, "groups.json must be an existing regular file")
+    groups = loadGroups(groupsFile)
+    for depth in 1 ..< words.len:
+      let key = words[0 ..< depth].join(" ")
+      if key notin groups:
+        groups[key] = "TODO one-line summary"
+        seeded = true
+    if seeded:
+      if access(groupsFile.cstring, W_OK) != 0:
+        raise newException(ValueError, "groups.json is not writable")
+      var node = newJObject()
+      for k, v in groups:
+        node[k] = %v
+      groupsText = node.pretty() & "\n"
+  except CatchableError as e:
+    error(e.msg, errp)
     return 1
 
   # lib/ relative to the module's directory: commands/<g>/ is two up,
@@ -411,6 +524,7 @@ proc newCommand*(words: seq[string], commandsDir: string,
 
   proc fill(tmpl, lib: string): string =
     tmpl.replace("$LIB", lib)
+      .replace("$KIND", if leaf in reportNouns: "ckReport" else: "ckVerb")
         .replace("$PATHSEQ", "\"" & words.join("\", \"") & "\"")
         .replace("$PATHWORDS", words.join(" "))
         .replace("$UNDERSCORED", words.join("_"))
@@ -423,21 +537,67 @@ proc newCommand*(words: seq[string], commandsDir: string,
   outp.writeLine("Created " & module)
   outp.writeLine("Created " & test)
 
-  let groupsFile = commandsDir / "groups.json"
-  var groups = loadGroups(groupsFile)
-  var seeded = false
-  for depth in 1 ..< words.len:
-    let key = words[0 ..< depth].join(" ")
-    if key notin groups:
-      groups[key] = "TODO one-line summary"
-      seeded = true
   if seeded:
-    var node = newJObject()
-    for k, v in groups:
-      node[k] = %v
-    writeFile(groupsFile, node.pretty() & "\n")
+    writeFile(groupsFile, groupsText)
     outp.writeLine("Seeded groups.json — replace the TODO summary")
   0
+
+proc completionZsh*(specs: seq[CommandSpec],
+                    groups: OrderedTable[string, string]): string
+proc completionBash*(specs: seq[CommandSpec],
+                     groups: OrderedTable[string, string]): string
+proc completionNu*(specs: seq[CommandSpec],
+                   groups: OrderedTable[string, string]): string
+
+proc selfCmd*(words: seq[string], ctx: Ctx, libexecDir, registryFile,
+              groupsFile: string, help: bool = false,
+              runner: Runner = defaultRunner, outp: File = stdout,
+              errp: File = stderr, commandsDir: string = ""): int =
+  ## Help is handled before loading metadata, checking arity or executing
+  ## maintenance. The explicit context also governs status and rendering.
+  exportCtx(ctx)
+  let usage = selfHelpText(words)
+  if help:
+    if usage.len == 0:
+      error("unknown self command: " & words[0], errp)
+      return 64
+    return renderHelp(usage, runner, outp, errp)
+  if words.len == 0:
+    error(usage.strip(), errp)
+    return 64
+  if usage.len == 0:
+    error("unknown self command: " & words[0], errp)
+    return 64
+  if words[0] != "new-command" and
+     words.len != (if words[0] == "completion": 2 else: 1):
+    error(usage.strip(), errp)
+    return 64
+  case words[0]
+  of "build-registry":
+    buildRegistry(libexecDir, runner, outp, errp)
+  of "completion":
+    if words[1] notin ["zsh", "bash", "nu"]:
+      error(usage.strip(), errp)
+      return 64
+    let specs = loadRegistry(registryFile)
+    let groups = loadGroups(groupsFile)
+    case words[1]
+    of "zsh": outp.write(completionZsh(specs, groups))
+    of "bash": outp.write(completionBash(specs, groups))
+    else: outp.write(completionNu(specs, groups))
+    0
+  of "commands":
+    selfCommands(loadRegistry(registryFile),
+                 listZshFunctions(getHomeDir() / ".zsh" / "functions"),
+                 ctx, runner, outp, errp)
+  of "doctor":
+    selfDoctor(loadRegistry(registryFile), runner, outp, errp)
+  of "new-command":
+    let dir = if commandsDir.len > 0: commandsDir
+              else: getCurrentDir() / "files" / "nim" / "commands"
+    newCommand(words[1 .. ^1], dir, outp, errp, dryRun = ctx.dryRun)
+  else:
+    64
 
 # ---------------------------------------------------------------- completion
 

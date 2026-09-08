@@ -8,7 +8,7 @@ import std/strutils
 import process
 
 proc buildFdArgs*(extensions: seq[string], allFlag: bool): seq[string] =
-  result = @["--type", "f"]
+  result = @["--type", "f", "--print0"]
   if allFlag:
     result.add("--hidden")
     result.add("--no-ignore")
@@ -18,13 +18,15 @@ proc buildFdArgs*(extensions: seq[string], allFlag: bool): seq[string] =
 
 proc findFiles*(runner: Runner, dir: string, extensions: seq[string],
                 allFlag: bool): seq[string] =
-  ## Runs fd against `dir`, returning the discovered file paths — mirrors
-  ## `files=("${(@f)$(fd ... . "$dir" 2>/dev/null)}")`: word-split fd's
-  ## output on newlines, dropping the blank line a trailing "\n" produces.
-  let args = buildFdArgs(extensions, allFlag) & @[".", dir]
-  let listing = runner.capture("fd", args).output
+  ## NUL-delimited paths preserve embedded newlines. Failed discovery must
+  ## never be mistaken for an empty tree.
+  let args = buildFdArgs(extensions, allFlag) & @["--", ".", dir]
+  let res = runner.capture("fd", args)
+  if res.exitCode != 0:
+    raise newException(IOError, "File discovery failed: " & res.error.strip())
+  let listing = res.output
   result = @[]
-  for line in listing.splitLines():
+  for line in listing.split('\0'):
     if line.len == 0: continue
     result.add(line)
 
@@ -36,4 +38,9 @@ proc isTextMimeType*(mime: string): bool =
     mime == "application/xml"
 
 proc mimeType*(runner: Runner, path: string): string =
-  runner.capture("file", @["--brief", "--mime-type", path]).output.strip()
+  let res = runner.capture("file", @["--brief", "--mime-type", "--", path])
+  if res.exitCode != 0:
+    raise newException(IOError, "Cannot classify '" & path & "': " & res.error.strip())
+  result = res.output.strip()
+  if result.len == 0 or result.startsWith("cannot open") or result.startsWith("ERROR:"):
+    raise newException(IOError, "Cannot classify '" & path & "': " & result)

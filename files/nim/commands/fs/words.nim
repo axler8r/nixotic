@@ -11,7 +11,7 @@ let cmdSpec* = CommandSpec(
   path: @["fs", "words"],
   kind: ckReport,
   summary: "count words across text files, per extension",
-  usage: "ax fs words [-e ext] [-n count] [--all] [dir]",
+  usage: "ax fs words [-e ext] [--top count] [--all] [dir]",
   args: @[
     ArgSpec(name: "dir", required: false,
             description: "target directory (default: current directory)")
@@ -19,7 +19,7 @@ let cmdSpec* = CommandSpec(
   flags: @[
     FlagSpec(long: "", short: "e", takesValue: true,
              description: "only count files with this extension (repeatable)"),
-    FlagSpec(long: "", short: "n", takesValue: true,
+    FlagSpec(long: "top", takesValue: true,
              description: "show top N extensions (default: 15)"),
     FlagSpec(long: "all", takesValue: false,
              description: "include hidden files and ignored files")
@@ -38,29 +38,58 @@ type ParsedArgs* = object
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
   result.topN = 15
+  var positionalOnly = false
+  var hasDirectory = false
   var i = 0
   while i < args.len:
-    let arg = args[i]
+    var arg = args[i]
+    var value = ""
+    var attachedValue = false
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+      inc i
+      continue
+    if positionalOnly or arg == "-" or not arg.startsWith("-"):
+      if hasDirectory:
+        result.unknownOption = "extra directory: " & arg
+        return
+      result.directory = arg
+      hasDirectory = true
+      inc i
+      continue
+    if arg.startsWith("--top="):
+      value = arg[6 .. ^1]
+      arg = "--top"
+    elif arg.startsWith("-e") and arg.len > 2:
+      attachedValue = true
+      value = arg[2 .. ^1]
+      if value[0] in {'=', ':'}: value = value[1 .. ^1]
+      arg = "-e"
+    elif arg in ["-e", "--top"]:
+      inc i
+      if i < args.len: value = args[i]
     case arg
     of "--all": result.allFlag = true
     of "--raw": result.raw = true
     of "-e":
-      inc i
-      if i < args.len: result.extensions.add(args[i])
-      else: result.extensions.add("")
-    of "-n":
-      inc i
-      if i < args.len:
-        try:
-          result.topN = parseInt(args[i])
-        except ValueError:
-          discard
+      if value.strip().len == 0 or (not attachedValue and value.startsWith("-")):
+        result.unknownOption = "-e requires a nonempty extension"
+        return
+      result.extensions.add(value)
+    of "--top":
+      if value.len == 0 or not value.allCharsInSet({'0'..'9'}):
+        result.unknownOption = "--top requires a positive integer"
+        return
+      try:
+        result.topN = parseInt(value)
+      except ValueError:
+        result.topN = 0
+      if result.topN <= 0:
+        result.unknownOption = "--top requires a positive integer"
+        return
     else:
-      if arg.len > 0 and arg[0] == '-':
-        result.unknownOption = arg
-        return result
-      else:
-        result.directory = arg
+      result.unknownOption = arg
+      return
     inc i
 
 proc extractExtension*(path: string): string =
@@ -71,12 +100,10 @@ proc extractExtension*(path: string): string =
 
 proc countWords*(path: string): int =
   ## Mirrors `wc -w < "$file"`: the number of whitespace-separated tokens.
-  var content: string
-  try:
-    content = readFile(path)
-  except IOError, OSError:
-    return 0
-  content.splitWhitespace().len
+  ## Iterate lines and tokens rather than allocating a whole-file token list.
+  for line in lines(path):
+    for word in line.splitWhitespace():
+      inc result
 
 proc run*(
   args: seq[string],
@@ -93,7 +120,7 @@ Results are displayed as a table with per-extension breakdown.
 
 Options:
     -e ext      Only count files with this extension (repeatable)
-    -n count    Show top N extensions (default: 15)
+    --top count Show top N extensions (default: 15)
     --all       Include hidden files and ignored files
     --raw       Display results as raw output (no formatting)
     -h, --help  Show this help message
@@ -105,9 +132,11 @@ Examples:
     ax fs words
     ax fs words ~/projects/docs
     ax fs words -e md -e txt
-    ax fs words -n 5
+    ax fs words --top 5
     ax fs words --all"""
     return 0
+
+  if not validateArgs(cmdSpec, args, errp): return 64
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
@@ -118,10 +147,18 @@ Examples:
   if not requireDir(dir, errp): return 1
   if not checkDeps(["fd", "file"], errp): return 2
 
-  let files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  var ctx = ctxFromEnv()
+  if parsed.raw: ctx.output = omPlain
+  var files: seq[string]
+  try:
+    files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  except CatchableError as e:
+    error(e.msg, errp)
+    return 1
   if files.len == 0:
     warn("No text files found in '" & dir & "'", errp)
-    return 0
+    if ctx.output != omJson: return 0
+    return render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
 
   var extWords = initTable[string, int]()
   var extFiles = initTable[string, int]()
@@ -129,13 +166,18 @@ Examples:
   var totalFiles = 0
 
   for file in files:
-    let mime = mimeType(runner, file)
-    if not isTextMimeType(mime): continue
+    var words: int
+    try:
+      let mime = mimeType(runner, file)
+      if not isTextMimeType(mime): continue
+      words = countWords(file)
+    except CatchableError as e:
+      error("Cannot count '" & file & "': " & e.msg, errp)
+      return 1
 
     var ext = extractExtension(file)
     if ext.len == 0: ext = "(no ext)"
 
-    let words = countWords(file)
     extWords[ext] = extWords.getOrDefault(ext, 0) + words
     extFiles[ext] = extFiles.getOrDefault(ext, 0) + 1
     totalWords += words
@@ -143,7 +185,8 @@ Examples:
 
   if totalWords == 0:
     warn("No words found in '" & dir & "'", errp)
-    return 0
+    if ctx.output != omJson: return 0
+    return render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
 
   var extList: seq[string] = @[]
   for ext in extWords.keys:
@@ -152,9 +195,6 @@ Examples:
     let byCount = cmp(extWords[b], extWords[a])
     if byCount != 0: byCount else: cmp(a, b))
 
-  var ctx = ctxFromEnv()
-  if parsed.raw:
-    ctx.output = omPlain
   var rows: seq[seq[string]] = @[]
   var shown = 0
   for ext in extList:
@@ -168,11 +208,11 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Extension", "Words", "Files", "Share"], rows, ctx, runner,
-                 outp, errp)
+  let renderCode = render(@["Extension", "Words", "Files", "Share"], rows, ctx,
+                          runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

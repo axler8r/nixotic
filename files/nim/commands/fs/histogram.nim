@@ -33,21 +33,43 @@ type ParsedArgs* = object
   unknownOption*: string
 
 proc parseArgs*(args: seq[string]): ParsedArgs =
+  var positionalOnly = false
+  var hasDirectory = false
   var i = 0
   while i < args.len:
-    let arg = args[i]
+    var arg = args[i]
+    var value = ""
+    var attachedValue = false
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+      inc i
+      continue
+    if positionalOnly or arg == "-" or not arg.startsWith("-"):
+      if hasDirectory:
+        result.unknownOption = "extra directory: " & arg
+        return
+      result.directory = arg
+      hasDirectory = true
+      inc i
+      continue
+    if arg.startsWith("-e") and arg.len > 2:
+      attachedValue = true
+      value = arg[2 .. ^1]
+      if value[0] in {'=', ':'}: value = value[1 .. ^1]
+      arg = "-e"
+    elif arg == "-e":
+      inc i
+      if i < args.len: value = args[i]
     case arg
     of "--all": result.allFlag = true
     of "-e":
-      inc i
-      if i < args.len: result.extensions.add(args[i])
-      else: result.extensions.add("")
+      if value.strip().len == 0 or (not attachedValue and value.startsWith("-")):
+        result.unknownOption = "-e requires a nonempty extension"
+        return
+      result.extensions.add(value)
     else:
-      if arg.len > 0 and arg[0] == '-':
-        result.unknownOption = arg
-        return result
-      else:
-        result.directory = arg
+      result.unknownOption = arg
+      return
     inc i
 
 const binLimits = [1024, 10240, 102400, 1048576, 10485760, 104857600, 1073741824]
@@ -103,6 +125,8 @@ Examples:
     ax fs histogram --all"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
+
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
@@ -112,7 +136,12 @@ Examples:
   if not requireDir(dir, errp): return 1
   if not checkDeps(["fd"], errp): return 2
 
-  let files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  var files: seq[string]
+  try:
+    files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
+  except CatchableError as e:
+    error(e.msg, errp)
+    return 1
 
   var binCounts = newSeq[int](binLabels.len)
   var totalFiles = 0
@@ -122,15 +151,17 @@ Examples:
     var size: BiggestInt
     try:
       size = getFileSize(file)
-    except OSError:
-      continue
+    except OSError as e:
+      error("Cannot stat '" & file & "': " & e.msg, errp)
+      return 1
     inc totalFiles
     totalBytes += size.int
     inc binCounts[binIndex(size.int)]
 
   if totalFiles == 0:
     warn("No files found in '" & dir & "'", errp)
-    return 0
+    if ctxFromEnv().output != omJson: return 0
+    return render(@["Range", "Distribution", "Files"], @[], ctxFromEnv(), runner, outp, errp)
 
   var maxCount = 0
   for c in binCounts:
@@ -150,11 +181,11 @@ Examples:
   info($totalFiles & " files, " & formatSizeLabel(totalBytes), errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Range", "Distribution", "Files"], rows, ctx, runner,
-                 outp, errp)
+  let renderCode = render(@["Range", "Distribution", "Files"], rows, ctx,
+                          runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
+  return renderCode
 
 when isMainModule:
   axMain(cmdSpec):

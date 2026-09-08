@@ -1,8 +1,20 @@
-import std/[unittest, os, strutils]
+import std/[unittest, os, strutils, tempfiles]
 import "../check"
+import "../../../../lib/process"
+import "../../../../lib/spec"
 import "../../../../lib/testing"
 
 suite "ax fs indent check parseArgs":
+  test "validated attached values and terminator retain their meaning":
+    let args = @["-epy", "-e:js", "-e=nim", "-e=-suffix", "--", "--raw"]
+    check validateArgs(cmdSpec, args)
+    let p = parseArgs(args)
+    check p.unknownOption == ""
+    check p.extensions == @["py", "js", "nim", "-suffix"]
+    check p.directory == "--raw"
+    check not p.raw
+    check parseArgs(@["-"]).directory == "-"
+
   test "no args: directory empty, no flags":
     let p = parseArgs(@[])
     check p.directory == ""
@@ -19,8 +31,8 @@ suite "ax fs indent check parseArgs":
     check p.allFlag == true
     check p.raw == true
 
-  test "a non-flag argument becomes the directory, last one wins":
-    check parseArgs(@["/tmp", "/var"]).directory == "/var"
+  test "a second directory is rejected instead of overwriting the first":
+    check parseArgs(@["/tmp", "/var"]).unknownOption.len > 0
 
   test "an unrecognized flag stops parsing and is captured":
     let p = parseArgs(@["--bogus", "/tmp"])
@@ -39,8 +51,9 @@ suite "ax fs indent check countTabSpaceLines":
     check counts.tabLines == 2
     check counts.spaceLines == 1
 
-  test "returns zero/zero for a missing file":
-    check countTabSpaceLines("/definitely/not/a/real/path.txt") == (0, 0)
+  test "missing file raises rather than looking clean":
+    expect IOError:
+      discard countTabSpaceLines("/definitely/not/a/real/path.txt")
 
 suite "ax fs indent check stripDirPrefix":
   test "strips the directory plus a slash from a matching file path":
@@ -54,6 +67,44 @@ suite "ax fs indent check stripDirPrefix":
     check stripDirPrefix("other/foo.py", "/tmp/proj") == "other/foo.py"
 
 suite "ax fs indent check run":
+  test "queued discovery or MIME failures never report a clean or partial scan":
+    let dir = createTempDir("ax-indent-scan-failure-", "")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "fd", "")
+    writeFakeExe(dir, "file", "")
+    let first = dir / "first.py"
+    let second = dir / "second.py"
+    writeFile(first, "\tfoo\n bar\n")
+    writeFile(second, " baz\n")
+    for failedCall in 0 .. 2:
+      var replies = @[
+        CommandResult(exitCode: 0, output: first & "\0" & second & "\0"),
+        CommandResult(exitCode: 0, output: "text/plain\n"),
+        CommandResult(exitCode: 0, output: "text/plain\n")
+      ]
+      replies[failedCall].exitCode = 1
+      replies[failedCall].error = "scanner failed"
+      let rec = newRecordingRunner(replies = replies)
+      let outPath = dir / "out"
+      let errPath = dir / "err"
+      let outf = open(outPath, fmWrite)
+      let errf = open(errPath, fmWrite)
+      var code: int
+      withPath(dir):
+        code = run(@[dir], outf, errf, rec.runner)
+      outf.close()
+      errf.close()
+      check code == 1
+      require rec.calls.len == failedCall + 1
+      check rec.calls[0].cmd == "fd"
+      if failedCall > 0:
+        check rec.calls[^1].cmd == "file"
+      check readFile(outPath) == ""
+      let message = readFile(errPath)
+      check message.contains("scanner failed")
+      check not message.contains("No files found")
+      check not message.contains("No mixed indentation found")
+
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_find_mixed_indentation_help.txt"
     let f = open(tmp, fmWrite)
@@ -117,7 +168,7 @@ suite "ax fs indent check run":
     let scanDir = dir / "scan"
     createDir(scanDir)
     writeFile(scanDir / "mixed.py", "\tfoo\n bar\n")
-    writeFakeExe(dir, "fd", "echo " & (scanDir / "mixed.py").quoteShell)
+    writeFakeExe(dir, "fd", "printf '%s\\0' " & (scanDir / "mixed.py").quoteShell)
     writeFakeExe(dir, "file", "echo text/plain")
     let stdinLog = dir / "column_stdin.log"
     writeFakeExe(dir, "column", "cat > " & stdinLog.quoteShell)
