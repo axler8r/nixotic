@@ -59,8 +59,7 @@ suite "ax dev shell run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Usage: ax dev shell <packages...>")
-    check content.contains("Use --help for more information")
+    check content.contains("Missing required argument: packages")
 
   test "characterization: installables argv and IN_NIX_SHELL/name environment":
     let dir = getTempDir() / "char_enter_nix_shell"

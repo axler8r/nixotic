@@ -1,4 +1,4 @@
-import std/[os, tables, sets, algorithm, strutils]
+import std/[os, tables, sets, algorithm, strutils, tempfiles]
 import "../../../lib/context"
 import "../../../lib/output"
 import "../../../lib/spec"
@@ -80,30 +80,53 @@ Examples:
     TRACK_EXCLUDE_GLOB="*.sh" ax fs index sync"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   var trackFile = ""
   var dir = ""
-  # The driver consumes -n and passes it down as AX_DRY_RUN; a literal
-  # --dry-run still works for direct libexec invocation.
   var dryRun = ctxFromEnv().dryRun
+  var positionalOnly = false
+  var hasDir = false
+  var hasFile = false
   var i = 0
   while i < args.len:
     let arg = args[i]
-    if arg == "--dry-run":
+    if not positionalOnly and arg == "--":
+      positionalOnly = true
+      inc i
+    elif not positionalOnly and arg in ["--dry-run", "-n"]:
       dryRun = true
       inc i
-    elif arg == "-f" or arg == "--file":
+    elif not positionalOnly and arg in ["-f", "--file"]:
       if i + 1 >= args.len:
         error("Missing value for " & arg, errp)
         return 64
+      hasFile = true
       trackFile = args[i + 1]
       i += 2
-    elif arg.len > 2 and arg[0] == '-' and arg[1] == 'f':
+    elif not positionalOnly and arg.startsWith("--file="):
+      hasFile = true
+      trackFile = arg[7 .. ^1]
+      inc i
+    elif not positionalOnly and arg.len > 2 and arg.startsWith("-f"):
+      hasFile = true
       trackFile = arg[2 .. ^1]
+      if trackFile.len > 0 and trackFile[0] in {'=', ':'}:
+        trackFile = trackFile[1 .. ^1]
       inc i
     else:
+      if not positionalOnly and arg.startsWith("-"):
+        error("Unknown option: " & arg, errp)
+        return 64
+      if hasDir or arg.len == 0:
+        error("Expected at most one non-empty directory argument", errp)
+        return 64
+      hasDir = true
       dir = arg
       inc i
 
+  if hasFile and trackFile.len == 0:
+    error("Index file path must not be empty", errp)
+    return 64
   if trackFile.len == 0:
     trackFile = (if dir.len > 0: dir else: ".") / "_TRACK"
   trackFile = normalizedPath(absolutePath(trackFile))
@@ -111,6 +134,10 @@ Examples:
     dir = parentDir(trackFile)
 
   if not requireFile(trackFile, errp): return 1
+  if symlinkExists(trackFile):
+    error("Refusing symlink index file: " & trackFile, errp)
+    return 1
+  if not requireDir(dir, errp): return 1
 
   var excludeGlobs: seq[string] = @[]
   let excludeEnv = getEnv("TRACK_EXCLUDE_GLOB")
@@ -119,21 +146,26 @@ Examples:
 
   var marks = initTable[string, string]()
   var order: seq[string] = @[]
-  for line in lines(trackFile):
-    if line.len > 4 and line[0] == '[' and line[2] == ']' and line[3] == ' ':
-      let mark = $line[1]
-      let fname = line[4 .. ^1]
-      marks[fname] = mark
-      order.add(fname)
-
   let trackBase = extractFilename(trackFile)
   var onDisk = initHashSet[string]()
-  for kind, path in walkDir(dir):
-    if kind != pcFile: continue
-    let bname = extractFilename(path)
-    if bname == trackBase: continue
-    if isExcluded(bname, excludeGlobs): continue
-    onDisk.incl(bname)
+  try:
+    for line in lines(trackFile):
+      if line.len > 4 and line[0] == '[' and line[2] == ']' and line[3] == ' ':
+        let mark = $line[1]
+        let fname = line[4 .. ^1]
+        marks[fname] = mark
+        order.add(fname)
+
+    # A missing/unreadable scan is an error, never an empty desired state.
+    for kind, path in walkDir(dir, checkDir = true):
+      if kind != pcFile: continue
+      let bname = extractFilename(path)
+      if bname == trackBase: continue
+      if isExcluded(bname, excludeGlobs): continue
+      onDisk.incl(bname)
+  except IOError, OSError:
+    error("Cannot discover index contents: " & getCurrentExceptionMsg(), errp)
+    return 1
 
   var added: seq[string] = @[]
   for fname in onDisk:
@@ -166,11 +198,27 @@ Examples:
     outLines.add("[ ] " & fname)
   outLines.sort()
 
+  var tempPath = ""
   try:
-    writeFile(trackFile, outLines.join("\n") & "\n")
+    let (temp, path) = createTempFile(".ax-index-", ".tmp", parentDir(trackFile))
+    tempPath = path
+    try:
+      temp.write(outLines.join("\n") & "\n")
+      temp.flushFile()
+    finally:
+      temp.close()
+    setFilePermissions(tempPath, getFilePermissions(trackFile))
+    # Same-directory rename replaces the index atomically after a full write.
+    moveFile(tempPath, trackFile)
   except IOError, OSError:
     error("Cannot write '" & trackFile & "': " & getCurrentExceptionMsg(), errp)
     return 1
+  finally:
+    if tempPath.len > 0 and fileExists(tempPath):
+      try:
+        removeFile(tempPath)
+      except OSError:
+        warn("Cannot remove temporary index: " & tempPath, errp)
   success("'" & trackBase & "' reconciled.", errp)
   0
 

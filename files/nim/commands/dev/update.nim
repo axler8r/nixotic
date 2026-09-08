@@ -35,6 +35,7 @@ Examples:
     ax dev update        # Update flake inputs and reload environment"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   if not checkDeps(["direnv", "nix"], errp): return 2
 
   if not fileExists("flake.nix"):

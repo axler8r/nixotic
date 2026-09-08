@@ -34,6 +34,7 @@ Examples:
     ax dev templates -o json | jq -r '.[].template'"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
@@ -45,10 +46,9 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  discard render(@["Template", "Description"], rows, ctx, runner, outp, errp)
+  result = render(@["Template", "Description"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  return 0
 
 when isMainModule:
   axMain(cmdSpec):

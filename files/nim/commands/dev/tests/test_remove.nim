@@ -194,3 +194,41 @@ suite "ax dev remove run":
     check rec.calls.len == 1
     check rec.calls[0].cmd == "nix"
     check rec.calls[0].args == @["store", "gc"]
+
+suite "ax dev remove preflight safety":
+  setup:
+    let dir = getTempDir() / "test_dev_remove_safety"
+    removeDir(dir)
+    createDir(dir / "project")
+    createDir(dir / "external")
+    writeFile(dir / "external" / "sentinel", "keep")
+    let cwd = getCurrentDir()
+    setCurrentDir(dir / "project")
+    writeFile("flake.nix", "flake")
+    writeFile(".envrc", "env")
+    writeFile("input.txt", "y\n")
+    let inp = open("input.txt")
+    let f = open("output.txt", fmWrite)
+    let rec = newRecordingRunner()
+  teardown:
+    inp.close()
+    f.close()
+    setCurrentDir(cwd)
+    removeDir(dir)
+
+  test "directory symlink is rejected before deleting any project file":
+    createSymlink(dir / "external", ".direnv")
+    check run(@[], f, f, rec.runner, inp) == 1
+    check readFile("flake.nix") == "flake"
+    check readFile(".envrc") == "env"
+    check readFile(dir / "external" / "sentinel") == "keep"
+    check symlinkExists(".direnv")
+    check rec.calls.len == 0
+
+  test "missing optional GC dependency is discovered before removal":
+    createDir("empty-path")
+    withPath(absolutePath("empty-path")):
+      check run(@["--gc"], f, f, rec.runner, inp) == 2
+    check readFile("flake.nix") == "flake"
+    check readFile(".envrc") == "env"
+    check rec.calls.len == 0

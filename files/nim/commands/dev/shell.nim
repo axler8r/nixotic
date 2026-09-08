@@ -59,9 +59,14 @@ Examples:
     ax dev shell github:foo/bar#baz          # Ad-hoc shell from another flake"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   var packages: seq[string] = @[]
+  var positionalOnly = false
   for a in args:
-    if a.startsWith("-"):
+    if not positionalOnly and a == "--":
+      positionalOnly = true
+      continue
+    if not positionalOnly and a.startsWith("-"):
       error("Unknown option: " & a, errp)
       return 64
     packages.add(a)

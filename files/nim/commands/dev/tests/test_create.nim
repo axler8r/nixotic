@@ -61,7 +61,7 @@ suite "ax dev create run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 64
-    check content.contains("Missing template")
+    check content.contains("Missing required argument: template")
 
   test "an unknown template is a usage error":
     let tmp = getTempDir() / "test_dev_create_bad_template.txt"

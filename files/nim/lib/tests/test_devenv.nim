@@ -73,18 +73,14 @@ suite "devenv.scaffoldDevEnvironment":
     setCurrentDir(savedDir)
     let content = readFile(outPath)
     let flakeContent = readFile(dir / "flake.nix")
+    check not fileExists(dir / ".envrc")
     removeFile(outPath)
     removeDir(dir)
     check code == 1
     check content.contains("flake.nix already exists")
     check flakeContent == "existing content"
-    check not fileExists(dir / ".envrc")
 
-  test "an existing .envrc is an error, but flake.nix has already been (over)written":
-    # Mirrors the zsh original exactly: it checks/writes flake.nix fully
-    # (including the "Created flake.nix" message) BEFORE ever checking
-    # .envrc -- so a pre-existing .envrc still leaves a freshly written
-    # flake.nix behind even though the function goes on to fail.
+  test "an existing .envrc is rejected before any file is written":
     let dir = getTempDir() / "test_devenv_scaffold_envrc_exists"
     removeDir(dir)
     createDir(dir)
@@ -97,13 +93,13 @@ suite "devenv.scaffoldDevEnvironment":
     f.close()
     setCurrentDir(savedDir)
     let content = readFile(outPath)
-    let flakeContent = readFile(dir / "flake.nix")
+    check not fileExists(dir / "flake.nix")
+    check readFile(dir / ".envrc") == "existing"
     removeFile(outPath)
     removeDir(dir)
     check code == 1
-    check content.contains("Created flake.nix")
+    check not content.contains("Created flake.nix")
     check content.contains(".envrc already exists")
-    check flakeContent == "new content"
 
   test "no .gitignore present: no gitignore message, no crash":
     let dir = getTempDir() / "test_devenv_scaffold_no_gitignore"
@@ -171,7 +167,7 @@ suite "devenv.scaffoldDevEnvironment":
     check not content.contains("gitignore")
     check gitignore == "node_modules\n.direnv\n"
 
-  test "contract: direnv allow's exit code is never checked -- success is always reported":
+  test "failed authorisation is reported but created files remain available":
     let dir = getTempDir() / "test_devenv_scaffold_direnv_fails"
     removeDir(dir)
     createDir(dir)
@@ -188,10 +184,55 @@ suite "devenv.scaffoldDevEnvironment":
     let envrc = readFile(dir / ".envrc")
     removeFile(outPath)
     removeDir(dir)
-    check code == 0
-    check content.contains("Environment activated")
+    check code == 1
+    check content.contains("not authorised")
+    check not content.contains("Environment activated")
     check flakeContent == "content"
     check envrc == "use flake\n"
     check rec.calls.len == 1
     check rec.calls[0].cmd == "direnv"
     check rec.calls[0].args == @["allow"]
+
+suite "devenv scaffold safety":
+  setup:
+    let dir = getTempDir() / "test_devenv_safe_scaffold"
+    removeDir(dir)
+    createDir(dir)
+    let cwd = getCurrentDir()
+    setCurrentDir(dir)
+    let f = open("output.txt", fmWrite)
+    let rec = newRecordingRunner()
+  teardown:
+    f.close()
+    setCurrentDir(cwd)
+    removeDir(dir)
+
+  test "Nix names escape interpolation quotes backslashes and newlines":
+    let content = flakeNixContent("a\"b\\c${name}\n", @[])
+    check content.contains("name = \"a\\\"b\\\\c\\${name}\\n\";")
+
+  test "dangling destination links are rejected without writes":
+    createSymlink("missing", ".envrc")
+    check scaffoldDevEnvironment("content", f, f, rec.runner) == 1
+    check symlinkExists(".envrc")
+    check not fileExists("flake.nix")
+    check not fileExists("missing")
+    check rec.calls.len == 0
+
+  test "ignore rule is separated from an unterminated last line":
+    writeFile(".gitignore", "node_modules")
+    check scaffoldDevEnvironment("content", f, f, rec.runner) == 0
+    check readFile(".gitignore") == "node_modules\n.direnv\n"
+
+  test "failed second write rolls back created files and preserves ignore":
+    writeFile(".gitignore", "original")
+    var writes = 0
+    let writer = proc(file: File, content: string) =
+      inc writes
+      if writes == 2: raise newException(IOError, "injected disk full")
+      file.write(content)
+    check scaffoldDevEnvironment("content", f, f, rec.runner, writer) == 1
+    check not fileExists("flake.nix")
+    check not fileExists(".envrc")
+    check readFile(".gitignore") == "original"
+    check rec.calls.len == 0

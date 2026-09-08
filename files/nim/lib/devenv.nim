@@ -5,7 +5,7 @@
 ## scaffoldDevEnvironment. The template roster lives here so
 ## ax dev create and ax dev templates (separate binaries with disjoint
 ## filesets) share one definition.
-import std/[os, strutils]
+import std/[os, strutils, posix, tempfiles]
 import output
 import process
 
@@ -44,9 +44,13 @@ proc flakeNixContent*(name: string, packageLines: seq[string], envAttrs = ""): s
   ## 10-space-indented lines inserted right after the packages list's
   ## closing "];" -- only New-DotNetDevEnvironment uses this
   ## (DOTNET_CLI_TELEMETRY_OPTOUT/DOTNET_NOLOGO).
+  # Escape backslashes first so the escapes introduced below stay literal.
+  let escapedName = name.replace("\\", "\\\\").replace("\"", "\\\"")
+    .replace("${", "\\${").replace("\n", "\\n").replace("\r", "\\r")
+    .replace("\t", "\\t")
   var lines: seq[string] = @[]
   lines.add("{")
-  lines.add("  description = \"" & name & " development environment\";")
+  lines.add("  description = \"" & escapedName & " development environment\";")
   lines.add("")
   lines.add("  inputs = {")
   lines.add("    nixpkgs.url = \"github:NixOS/nixpkgs/nixos-unstable\";")
@@ -59,7 +63,7 @@ proc flakeNixContent*(name: string, packageLines: seq[string], envAttrs = ""): s
   lines.add("")
   lines.add("      perSystem = { pkgs, ... }: {")
   lines.add("        devShells.default = pkgs.mkShell {")
-  lines.add("          name = \"" & name & "\";")
+  lines.add("          name = \"" & escapedName & "\";")
   lines.add("          packages = [")
   for l in packageLines:
     lines.add(l)
@@ -70,43 +74,99 @@ proc flakeNixContent*(name: string, packageLines: seq[string], envAttrs = ""): s
   lines.add("}")
   lines.join("\n") & "\n"
 
+type DevFileWriter* = proc (file: File, content: string) {.closure.}
+  ## Injectable file write for deterministic short-write/disk-full tests.
+
+proc writeDevFile(file: File, content: string) =
+  file.write(content)
+  file.flushFile()
+
 proc scaffoldDevEnvironment*(
   flakeContent: string,
   outp: File = stdout,
   errp: File = stderr,
-  runner: Runner = defaultRunner
+  runner: Runner = defaultRunner,
+  writer: DevFileWriter = writeDevFile
 ): int =
-  ## The file-writing sequence shared verbatim across the dev-environment
-  ## scaffolder family, once each caller has built its own flake.nix
-  ## content via flakeNixContent. Mirrors the zsh originals exactly,
-  ## including never checking `direnv allow`'s exit code -- the last
-  ## thing each zsh function does is an unconditional `echo`, so it
-  ## always reports success regardless of whether direnv actually
-  ## activated the environment.
-  if fileExists("flake.nix"):
-    error("flake.nix already exists", errp)
+  ## Preflight every destination, create new files exclusively, and stage
+  ## the optional ignore update for atomic replacement. On write failure
+  ## remove only the new files; never overwrite an existing scaffold.
+  var ignoreContent = ""
+  var updateIgnore = false
+  var ignorePermissions: set[FilePermission]
+  try:
+    for path in ["flake.nix", ".envrc", ".gitignore"]:
+      var st: Stat
+      if lstat(path.cstring, st) != 0:
+        if errno == ENOENT: continue
+        raiseOSError(osLastError(), path)
+      if path != ".gitignore":
+        error(path & " already exists", errp)
+        return 1
+      if not S_ISREG(st.st_mode):
+        error(".gitignore must be a regular file, not a symlink or directory", errp)
+        return 1
+      ignoreContent = readFile(path)
+      ignorePermissions = getFilePermissions(path)
+      updateIgnore = ".direnv" notin ignoreContent.splitLines()
+    if updateIgnore:
+      if ignoreContent.len > 0 and not ignoreContent.endsWith("\n"):
+        ignoreContent.add('\n')
+      ignoreContent.add(".direnv\n")
+  except IOError, OSError:
+    error("Cannot preflight development environment: " & getCurrentExceptionMsg(), errp)
     return 1
-  writeFile("flake.nix", flakeContent)
+
+  var created: seq[string] = @[]
+  var ignoreTemp = ""
+  proc createFile(path, content: string) =
+    # O_EXCL also refuses dangling symlinks introduced after preflight.
+    let fd = posix.open(path.cstring, O_WRONLY or O_CREAT or O_EXCL, Mode(0o666))
+    if fd < 0: raiseOSError(osLastError(), path)
+    created.add(path)
+    var file: File
+    if not open(file, FileHandle(fd), fmWrite):
+      discard posix.close(fd)
+      raise newException(IOError, "Cannot open created file: " & path)
+    try:
+      writer(file, content)
+    finally:
+      file.close()
+
+  try:
+    createFile("flake.nix", flakeContent)
+    createFile(".envrc", "use flake\n")
+    if updateIgnore:
+      let (file, path) = createTempFile(".ax-gitignore-", ".tmp", ".")
+      ignoreTemp = path
+      try:
+        writer(file, ignoreContent)
+      finally:
+        file.close()
+      setFilePermissions(ignoreTemp, ignorePermissions)
+      moveFile(ignoreTemp, ".gitignore")
+  except IOError, OSError:
+    error("Cannot write development environment: " & getCurrentExceptionMsg(), errp)
+    for i in countdown(created.high, 0):
+      try:
+        removeFile(created[i])
+      except OSError:
+        warn("Cannot roll back created file: " & created[i], errp)
+    return 1
+  finally:
+    if ignoreTemp.len > 0 and fileExists(ignoreTemp):
+      try:
+        removeFile(ignoreTemp)
+      except OSError:
+        warn("Cannot remove temporary ignore file: " & ignoreTemp, errp)
+
   outp.writeLine("Created flake.nix")
-
-  if fileExists(".envrc"):
-    error(".envrc already exists", errp)
-    return 1
-  writeFile(".envrc", "use flake\n")
   outp.writeLine("Created .envrc")
-
-  if fileExists(".gitignore"):
-    var hasDirenv = false
-    for line in readFile(".gitignore").splitLines():
-      if line == ".direnv":
-        hasDirenv = true
-        break
-    if not hasDirenv:
-      let f = open(".gitignore", fmAppend)
-      f.writeLine(".direnv")
-      f.close()
-      outp.writeLine("Added .direnv to .gitignore")
-
-  discard runner.runInherited("direnv", @["allow"])
-  outp.writeLine("Environment activated")
+  if updateIgnore:
+    outp.writeLine("Added .direnv to .gitignore")
+  let allowCode = runner.runInherited("direnv", @["allow"])
+  if allowCode != 0:
+    error("direnv allow failed; environment files were created but not authorised", errp)
+    return allowCode
+  outp.writeLine("Environment authorised; direnv will load it on the next shell hook")
   0

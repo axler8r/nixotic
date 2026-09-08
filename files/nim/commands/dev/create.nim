@@ -42,7 +42,25 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
   ## retired per-language scaffolders.
   result.name = lastPathPart(getCurrentDir())
   var i = 0
+  var positionalOnly = false
   while i < args.len:
+    if not positionalOnly and args[i] == "--":
+      positionalOnly = true
+      inc i
+      continue
+    if positionalOnly:
+      if result.templateName.len == 0: result.templateName = args[i]
+      else: result.packages.add args[i]
+      inc i
+      continue
+    if args[i].startsWith("--name="):
+      result.name = args[i][7 .. ^1]
+      inc i
+      continue
+    if args[i].startsWith("--target="):
+      result.target = args[i][9 .. ^1]
+      inc i
+      continue
     case args[i]
     of "--name":
       if i + 1 >= args.len:
@@ -70,6 +88,17 @@ proc isValidPythonTarget*(target: string): bool =
   let parts = target.split(".")
   parts.len == 2 and parts[0] == "3" and parts[1].len > 0 and
     parts[1].allCharsInSet({'0'..'9'})
+
+proc isValidPackagePath*(name: string): bool =
+  ## Deliberately only unquoted Nix attribute paths, never expressions.
+  for part in name.split('.'):
+    if part.len == 0 or part[0] notin {'a'..'z', 'A'..'Z', '_'}:
+      return false
+    if not part.allCharsInSet({'a'..'z', 'A'..'Z', '0'..'9', '_', '-', '\''}):
+      return false
+    if part in ["if", "then", "else", "assert", "with", "let", "in", "rec", "inherit"]:
+      return false
+  true
 
 proc isValidDotNetTarget*(target: string): bool =
   target in ["8", "9", "10"]
@@ -118,6 +147,7 @@ Examples:
     ax dev create elixir --target 1.17"""
     return 0
 
+  if not validateArgs(cmdSpec, args, errp): return 64
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
@@ -132,7 +162,10 @@ Examples:
     error("Unknown template: " & parsed.templateName &
           " (supported: tool, python, dotnet, elixir)", errp)
     return 64
-  if not checkDeps(["direnv", "nix"], errp): return 2
+  for package in parsed.packages:
+    if not isValidPackagePath(package):
+      error("Invalid package attribute path: " & package, errp)
+      return 64
 
   var packageLines: seq[string]
   var envAttrs = ""
@@ -175,6 +208,7 @@ Examples:
   else:
     discard # unreachable: isDevTemplate already vetted the name
 
+  if not checkDeps(["direnv", "nix"], errp): return 2
   let content = flakeNixContent(parsed.name, packageLines, envAttrs)
   scaffoldDevEnvironment(content, outp, errp, runner)
 
