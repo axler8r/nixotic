@@ -1,7 +1,17 @@
 import std/[os, algorithm, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
+import "../../lib/context"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["sys", "swap"],
+  kind: ckReport,
+  summary: "per-process swap usage, highest first",
+  usage: "ax sys swap [-o table|plain|json]",
+  dryRun: false
+)
 
 type SwapRow* = tuple[swapKb: int, pid: string, name: string]
 
@@ -46,7 +56,7 @@ proc run*(
   procDir: string = "/proc"
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-SwapUsage [--raw]
+    outp.writeLine """Usage: ax sys swap
 
 Display swap memory usage for all processes currently using swap.
 Results are sorted by swap usage with highest usage first.
@@ -54,35 +64,38 @@ Output format: swap usage (KB) | process ID | process name
 
 Options:
     -h, --help    Show this help message
-    --raw         Display output in raw format
+    --raw         Deprecated alias for -o plain
 
 Examples:
-    Get-SwapUsage"""
+    ax sys swap"""
     return 0
 
-  var raw = false
+  var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
-      raw = true
+      ctx.output = omPlain
     else:
       error("Unknown option: " & arg, errp)
-      return 1
+      return 64
 
-  var rows = collectSwapRows(procDir)
-  if rows.len == 0:
+  var swapRows = collectSwapRows(procDir)
+  if swapRows.len == 0:
     info("No processes currently using swap.", errp)
     return 0
 
-  rows.sort(proc(a, b: SwapRow): int = cmp(b.swapKb, a.swapKb))
+  swapRows.sort(proc(a, b: SwapRow): int = cmp(b.swapKb, a.swapKb))
 
-  var lines: seq[string] = @[]
-  for r in rows:
-    lines.add(insertSep($r.swapKb, ',') & " KB|" & r.pid & "|" & r.name)
+  var rows: seq[seq[string]] = @[]
+  for r in swapRows:
+    rows.add @[insertSep($r.swapKb, ',') & " KB", r.pid, r.name]
 
-  outp.writeLine("")
-  discard table("Swap|PID|Process\n" & lines.join("\n"), raw, runner, outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Swap", "PID", "Process"], rows, ctx, runner, outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

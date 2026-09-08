@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetDefaultBrowser"
-import "../../lib/testing"
+import "../browser"
+import "../../../lib/testing"
 
-suite "Get-DefaultBrowser run":
+suite "ax sys browser run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_default_browser_help.txt"
     let f = open(tmp, fmWrite)
@@ -11,7 +11,7 @@ suite "Get-DefaultBrowser run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-DefaultBrowser")
+    check content.contains("Usage: ax sys browser")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_get_default_browser_h.txt"
@@ -21,7 +21,7 @@ suite "Get-DefaultBrowser run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-DefaultBrowser")
+    check content.contains("Usage: ax sys browser")
 
   test "unknown option is an error":
     let tmp = getTempDir() / "test_get_default_browser_bogus.txt"
@@ -30,7 +30,7 @@ suite "Get-DefaultBrowser run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "a stray positional arg is silently ignored, not treated as an unknown option":

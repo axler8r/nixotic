@@ -1,8 +1,28 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["media", "video", "convert"],
+  kind: ckVerb,
+  summary: "transform a video file (currently: horizontal flip)",
+  usage: "ax media video convert <input> <output> --orientation horizontal",
+  args: @[
+    ArgSpec(name: "input", required: true,
+            description: "the video file to read"),
+    ArgSpec(name: "output", required: true,
+            description: "the video file to write")
+  ],
+  flags: @[
+    FlagSpec(long: "orientation", takesValue: true,
+             description: "the transform to apply; only 'horizontal' is supported")
+  ],
+  deps: @["ffmpeg"],
+  dryRun: false
+)
 
 proc tryFfmpeg(runner: Runner, ffmpegArgs: seq[string]): bool =
   ## One hardware-acceleration probe. Output is drained and discarded --
@@ -16,15 +36,19 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: ConvertTo-VideoHorizontal <input> <output>
+    outp.writeLine """Usage: ax media video convert <input> <output> --orientation horizontal
 
 Description:
     Flips a video horizontally and re-encodes the audio to prevent timestamp
     sync issues. Attempts hardware acceleration first, then falls back to
-    software processing if hardware is not available.
+    software processing if hardware is not available. The --orientation flag
+    names the transform so future codecs/transforms extend this command
+    rather than adding new ones.
 
 Options:
-    -h, --help  Show this help message
+    -h, --help                Show this help message
+    --orientation horizontal  The transform to apply (required; only
+                              'horizontal' is supported today)
 
 Hardware Acceleration Setup:
     For Intel QSV (Quick Sync Video) - RECOMMENDED for Intel CPUs:
@@ -48,26 +72,41 @@ Supported Hardware:
     - NVIDIA: GTX 1050/1060 and newer, RTX series, Quadro P series
 
 Examples:
-    ConvertTo-VideoHorizontal input.mp4 output.mp4"""
+    ax media video convert input.mp4 output.mp4 --orientation horizontal"""
     return 0
 
-  # Positional arg parsing, no flags beyond -h/--help: first arg -> input,
-  # second -> output, a third is an error. Mirrors the zsh original's
-  # `case "$1" in *) ... ;; esac` loop, which is really just this in
-  # disguise -- every arg falls into the catch-all branch.
   var input = ""
   var output = ""
-  for a in args:
-    if input.len == 0:
+  var orientation = ""
+  var i = 0
+  while i < args.len:
+    let a = args[i]
+    if a == "--orientation":
+      if i + 1 >= args.len:
+        error("Missing value for --orientation", errp)
+        return 64
+      orientation = args[i + 1]
+      i += 2
+    elif a.len > 0 and a[0] == '-':
+      error("Unknown option: " & a, errp)
+      return 64
+    elif input.len == 0:
       input = a
+      inc i
     elif output.len == 0:
       output = a
+      inc i
     else:
       error("Too many arguments", errp)
-      return 1
+      return 64
 
-  if not requireArg(input, "input file", errp): return 1
-  if not requireArg(output, "output file", errp): return 1
+  if not requireArg(input, "input file", errp): return 64
+  if not requireArg(output, "output file", errp): return 64
+  if not requireArg(orientation, "--orientation", errp): return 64
+  if orientation != "horizontal":
+    error("Unsupported orientation: " & orientation &
+          " (supported: horizontal)", errp)
+    return 64
   if not checkDeps(["ffmpeg"], errp): return 2
 
   if not fileExists(input):
@@ -120,4 +159,5 @@ Examples:
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

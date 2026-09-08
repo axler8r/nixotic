@@ -1,8 +1,23 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../../lib/context"
+import "../../../lib/output"
+import "../../../lib/process"
+import "../../../lib/spec"
+import "../../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["net", "nfs", "list"],
+  kind: ckVerb,
+  summary: "list a server's exported NFS mounts",
+  usage: "ax net nfs list [server]",
+  args: @[
+    ArgSpec(name: "server", required: false,
+            description: "NFS server hostname or IP (default: localhost)")
+  ],
+  deps: @["showmount"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   raw*: bool
@@ -53,28 +68,32 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-NfsExports [opts] [server]
+    outp.writeLine """Usage: ax net nfs list [server]
 
 Check for exported NFS mounts on a server using showmount.
 Displays all available NFS exports and their access permissions.
 
 Options:
     -h, --help    Show this help message
-    --raw         Display output in raw format
+    --raw         Deprecated alias for -o plain
 
 Arguments:
     server        NFS server hostname or IP (default: localhost)
 
 Examples:
-    Get-NfsExports
-    Get-NfsExports 192.168.1.10
-    Get-NfsExports nfs.example.com"""
+    ax net nfs list
+    ax net nfs list 192.168.1.10
+    ax net nfs list nfs.example.com"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
-    return 1
+    return 64
+
+  var ctx = ctxFromEnv()
+  if parsed.raw:
+    ctx.output = omPlain
 
   if not checkDeps(["showmount"], errp): return 2
 
@@ -94,19 +113,22 @@ Examples:
 
   var lineList = exports.splitLines()
   if lineList.len > 0: lineList = lineList[1 .. ^1]
-  var dataLines: seq[string] = @[]
+  var rows: seq[seq[string]] = @[]
   for line in lineList:
     if line.len == 0: continue
-    dataLines.add(splitFirstWhitespaceRun(line))
+    rows.add splitFirstWhitespaceRun(line).split("|", maxsplit = 1)
 
-  outp.writeLine("")
-  discard table("Export|Clients\n" & dataLines.join("\n"), parsed.raw, runner, outp, errp)
-  outp.writeLine("")
+  if ctx.output == omTable:
+    outp.writeLine("")
+  discard render(@["Export", "Clients"], rows, ctx, runner, outp, errp)
+  if ctx.output == omTable:
+    outp.writeLine("")
 
-  if dataLines.len > 0:
-    info("\nFound " & $dataLines.len & " export(s) on '" & parsed.server & "'.", errp)
+  if rows.len > 0:
+    info("\nFound " & $rows.len & " export(s) on '" & parsed.server & "'.", errp)
 
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

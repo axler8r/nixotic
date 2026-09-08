@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetZfsSnapshots"
-import "../../lib/testing"
+import "../list"
+import "../../../../lib/testing"
 
-suite "Get-ZfsSnapshots parseArgs":
+suite "ax zfs snapshot list parseArgs":
   test "no args: raw false, dataset empty, no unknown option":
     let p = parseArgs(@[])
     check p.raw == false
@@ -50,7 +50,7 @@ suite "Get-ZfsSnapshots parseArgs":
     check p.unknownOption == "--bogus"
     check p.dataset == "dpool/data"
 
-suite "Get-ZfsSnapshots run":
+suite "ax zfs snapshot list run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_zfs_snapshots_help.txt"
     let f = open(tmp, fmWrite)
@@ -59,7 +59,7 @@ suite "Get-ZfsSnapshots run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-ZfsSnapshots")
+    check content.contains("Usage: ax zfs snapshot list")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_get_zfs_snapshots_h.txt"
@@ -69,9 +69,9 @@ suite "Get-ZfsSnapshots run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-ZfsSnapshots")
+    check content.contains("Usage: ax zfs snapshot list")
 
-  test "unknown option is an error, exit 1, before checkDeps(zfs) is ever reached":
+  test "unknown option is an error, exit 64, before checkDeps(zfs) is ever reached":
     # run() checks parsed.unknownOption and returns 1 before calling
     # checkDeps(["zfs"]), so this test's outcome does not depend on whether
     # zfs is on $PATH -- deliberately, per the migration backlog's standing
@@ -82,7 +82,7 @@ suite "Get-ZfsSnapshots run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "missing zfs is exit 2 with a Missing commands error":

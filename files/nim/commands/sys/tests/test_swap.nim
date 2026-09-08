@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetSwapUsage"
-import "../../lib/testing"
+import "../swap"
+import "../../../lib/testing"
 
-suite "Get-SwapUsage readStatusFields":
+suite "ax sys swap readStatusFields":
   test "parses VmSwap and Name from a typical status file":
     let dir = getTempDir() / "read_status_fields_typical"
     removeDir(dir)
@@ -28,7 +28,7 @@ suite "Get-SwapUsage readStatusFields":
   test "returns zero/empty for a missing file, matching grep's 2>/dev/null suppression":
     check readStatusFields("/definitely/not/a/real/path/status") == (0, "")
 
-suite "Get-SwapUsage collectSwapRows":
+suite "ax sys swap collectSwapRows":
   test "only includes numeric-named entries with VmSwap > 0":
     let dir = getTempDir() / "collect_swap_rows"
     removeDir(dir)
@@ -53,7 +53,7 @@ suite "Get-SwapUsage collectSwapRows":
     removeDir(dir)
     check rows.len == 0
 
-suite "Get-SwapUsage run":
+suite "ax sys swap run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_swap_usage_help.txt"
     let f = open(tmp, fmWrite)
@@ -62,7 +62,7 @@ suite "Get-SwapUsage run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-SwapUsage")
+    check content.contains("Usage: ax sys swap")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_get_swap_usage_h.txt"
@@ -72,16 +72,16 @@ suite "Get-SwapUsage run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-SwapUsage")
+    check content.contains("Usage: ax sys swap")
 
-  test "an unknown option is an error, exit 1":
+  test "an unknown option is an error, exit 64":
     let tmp = getTempDir() / "test_get_swap_usage_bogus.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--bogus"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "prints an info message and returns 0 when nothing is using swap":
@@ -119,7 +119,7 @@ suite "Get-SwapUsage run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "column"
-    check rec.calls[0].input == "Swap|PID|Process\n12,345 KB|222|bar\n500 KB|111|foo"
+    check rec.calls[0].input == "Swap|PID|Process\n12,345 KB|222|bar\n500 KB|111|foo\n"
 
   test "real invocation against the actual /proc always exits 0":
     let tmp = getTempDir() / "test_get_swap_usage_real.txt"

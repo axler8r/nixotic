@@ -1,6 +1,6 @@
 import std/[unittest, os, strutils]
-import "../WriteExecutable"
-import "../../lib/testing"
+import "../create"
+import "../../../lib/testing"
 
 proc mkTmpPath(name: string): string =
   result = getTempDir() / name
@@ -17,7 +17,7 @@ proc withStdin(content: string, body: proc(f: File)) =
     f.close()
     removeFile(tmp)
 
-suite "Write-Executable run":
+suite "ax script create run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_write_executable_help.txt"
     let f = open(tmp, fmWrite)
@@ -26,7 +26,7 @@ suite "Write-Executable run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Write-Executable")
+    check content.contains("Usage: ax script create")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_write_executable_h.txt"
@@ -36,15 +36,15 @@ suite "Write-Executable run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Write-Executable")
+    check content.contains("Usage: ax script create")
 
-  test "missing filename arg exits 1":
+  test "missing filename arg exits 64":
     let tmp = getTempDir() / "test_write_executable_missing_arg.txt"
     let f = open(tmp, fmWrite)
     let code = run(@[], f, f)
     f.close()
     removeFile(tmp)
-    check code == 1
+    check code == 64
 
   test "last positional arg wins when multiple are given":
     let target = mkTmpPath("test_write_executable_last_wins")

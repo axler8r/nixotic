@@ -1,8 +1,22 @@
 import std/os
-import "../lib/cli"
-import "../lib/validation"
-import "../lib/output"
-import "../lib/process"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["script", "create"],
+  kind: ckVerb,
+  summary: "write stdin to an executable zsh script",
+  usage: "ax script create <filename>",
+  args: @[
+    ArgSpec(name: "filename", required: true,
+            description: "the script file to create")
+  ],
+  deps: @["chmod"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -12,7 +26,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Write-Executable <filename>
+    outp.writeLine """Usage: ax script create <filename>
 
 Read input from stdin and write it to a script file adding a zsh shebang at
 the top of the file, and making it executable.
@@ -21,8 +35,8 @@ Options:
     -h, --help  Show this help message
 
 Examples:
-    Resolve-GitPathRepository | sed -e 's/^/git clone /' | Write-Executable clone-gitrepository
-    echo 'foreach file in *(.); do echo $file; done' | Write-Executable list-file"""
+    ax git repo root -o plain | sed -e 's/^/git clone /' | ax script create clone-gitrepository
+    echo 'foreach file in *(.); do echo $file; done' | ax script create list-file"""
     return 0
 
   # No option handling at all -- every positional arg overwrites `filename`
@@ -33,7 +47,7 @@ Examples:
   for a in args:
     filename = a
 
-  if not requireArg(filename, "filename", errp): return 1
+  if not requireArg(filename, "filename", errp): return 64
   if not checkDeps(["chmod"], errp): return 2
 
   var content = inp.readAll()
@@ -60,4 +74,5 @@ Examples:
   return 0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

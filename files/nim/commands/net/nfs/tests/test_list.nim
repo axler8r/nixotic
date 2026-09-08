@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetNfsExports"
-import "../../lib/testing"
+import "../list"
+import "../../../../lib/testing"
 
-suite "Get-NfsExports parseArgs":
+suite "ax net nfs list parseArgs":
   test "no args: server defaults to localhost, raw false":
     let p = parseArgs(@[])
     check p.server == "localhost"
@@ -22,7 +22,7 @@ suite "Get-NfsExports parseArgs":
     check p.unknownOption == "--bogus"
     check p.server == "localhost"
 
-suite "Get-NfsExports classifyShowmountError":
+suite "ax net nfs list classifyShowmountError":
   test "connection refused":
     check classifyShowmountError("clnt_create: RPC: Connection refused", "host1") ==
       "Connection refused. NFS server may not be running on 'host1'."
@@ -51,7 +51,7 @@ suite "Get-NfsExports classifyShowmountError":
     check classifyShowmountError("some other failure", "host1") ==
       "Failed to query NFS exports: some other failure"
 
-suite "Get-NfsExports splitFirstWhitespaceRun":
+suite "ax net nfs list splitFirstWhitespaceRun":
   test "replaces only the first whitespace run with a pipe":
     check splitFirstWhitespaceRun("/export/path   client1,client2") ==
       "/export/path|client1,client2"
@@ -59,7 +59,7 @@ suite "Get-NfsExports splitFirstWhitespaceRun":
   test "leaves a line with no whitespace untouched":
     check splitFirstWhitespaceRun("/export/path") == "/export/path"
 
-suite "Get-NfsExports run":
+suite "ax net nfs list run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_nfs_exports_help.txt"
     let f = open(tmp, fmWrite)
@@ -68,16 +68,16 @@ suite "Get-NfsExports run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-NfsExports")
+    check content.contains("Usage: ax net nfs list")
 
-  test "an unknown option is an error, exit 1, before checkDeps(showmount)":
+  test "an unknown option is an error, exit 64, before checkDeps(showmount)":
     let tmp = getTempDir() / "test_get_nfs_exports_bogus.txt"
     let f = open(tmp, fmWrite)
     let code = run(@["--bogus"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Unknown option: --bogus")
 
   test "missing showmount is exit 2 with a Missing commands error":
@@ -158,5 +158,5 @@ suite "Get-NfsExports run":
     check rec.calls[0].cmd == "showmount"
     check rec.calls[0].args == @["-e", "host1"]
     check rec.calls[1].cmd == "column"
-    check rec.calls[1].input == "Export|Clients\n/data|192.168.1.0/24\n/backups|10.0.0.5"
+    check rec.calls[1].input == "Export|Clients\n/data|192.168.1.0/24\n/backups|10.0.0.5\n"
     check errContent.contains("Found 2 export(s) on 'host1'.")

@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../GetGitHubLicenses"
-import "../../lib/testing"
+import "../list"
+import "../../../../lib/testing"
 
-suite "Get-GitHubLicenses parseArgs":
+suite "ax github license list parseArgs":
   test "no args: raw is false":
     check parseArgs(@[]).raw == false
 
@@ -18,7 +18,7 @@ suite "Get-GitHubLicenses parseArgs":
     check parseArgs(@["--raw", "--bogus"]).raw == true
     check parseArgs(@["--bogus", "--raw"]).raw == true
 
-suite "Get-GitHubLicenses run":
+suite "ax github license list run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_get_github_licenses_help.txt"
     let f = open(tmp, fmWrite)
@@ -27,7 +27,7 @@ suite "Get-GitHubLicenses run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-GitHubLicenses")
+    check content.contains("Usage: ax github license list")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_get_github_licenses_h.txt"
@@ -37,7 +37,7 @@ suite "Get-GitHubLicenses run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Get-GitHubLicenses")
+    check content.contains("Usage: ax github license list")
 
   test "missing curl and jq is exit 2 with a Missing commands error":
     let dir = getTempDir() / "deps_get_github_licenses"
@@ -78,4 +78,4 @@ suite "Get-GitHubLicenses run":
     check rec.calls[1].args == @["-r", ".[] | \"\\(.key)|\\(.name)\""]
     check rec.calls[1].input == "mit|MIT License\napache-2.0|Apache License 2.0\n"
     check rec.calls[2].cmd == "column"
-    check rec.calls[2].input == "Key|Name\nmit|MIT License\napache-2.0|Apache License 2.0"
+    check rec.calls[2].input == "Key|Name\nmit|MIT License\napache-2.0|Apache License 2.0\n"

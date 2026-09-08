@@ -1,8 +1,19 @@
 import std/[os, strutils, terminal]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/context"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["sys", "browser"],
+  kind: ckReport,
+  summary: "default browser handlers for HTTP and HTTPS",
+  usage: "ax sys browser",
+  deps: @["xdg-mime"],
+  dryRun: false
+)
 
 proc run*(
   args: seq[string],
@@ -11,26 +22,27 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Get-DefaultBrowser [--raw]
+    outp.writeLine """Usage: ax sys browser
 
 Display default browser handlers for HTTP and HTTPS.
 
 Options:
     -h, --help    Show this help message
-    --raw         Print handler values only, one per line (no labels)
+    --raw         Print handler values only, one per line (no labels);
+                  deprecated alias for -o plain
 
 Examples:
-    Get-DefaultBrowser
-    Get-DefaultBrowser --raw | head -1"""
+    ax sys browser
+    ax sys browser -o plain | head -1"""
     return 0
 
-  var raw = false
+  var raw = ctxFromEnv().output == omPlain
   for arg in args:
     if arg == "--raw":
       raw = true
     elif arg.len > 0 and arg[0] == '-':
       error("Unknown option: " & arg, errp)
-      return 1
+      return 64
     # else: a non-flag positional arg is silently ignored, matching the
     # zsh original's while/case loop, which never `break`s on the first
     # unmatched arg -- it keeps consuming every remaining arg via `shift`.
@@ -56,4 +68,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

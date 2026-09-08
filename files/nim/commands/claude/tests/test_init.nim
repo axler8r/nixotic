@@ -3,8 +3,8 @@
 # repositories/remotes that run() then inspects — see flake.nix's
 # nimToolchain.
 import std/[unittest, os, osproc, strutils]
-import "../InitializeClaudeProject"
-import "../../lib/testing"
+import "../init"
+import "../../../lib/testing"
 
 proc mkTmpDir(name: string): string =
   result = getTempDir() / name
@@ -25,7 +25,7 @@ proc withTempHome(homeDir: string, body: proc()) =
   finally:
     putEnv("HOME", oldHome)
 
-suite "Initialize-ClaudeProject run":
+suite "ax claude init run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_icp_help.txt"
     let f = open(tmp, fmWrite)
@@ -34,10 +34,10 @@ suite "Initialize-ClaudeProject run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Initialize-ClaudeProject")
+    check content.contains("Usage: ax claude init")
 
   test "fails on an unexpected argument":
-    check run(@["extra"]) == 1
+    check run(@["extra"]) == 64
 
   test "fails when the current directory is not a git repository":
     let dir = mkTmpDir("icp_not_git")

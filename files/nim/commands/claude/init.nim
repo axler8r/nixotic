@@ -1,8 +1,18 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["claude", "init"],
+  kind: ckVerb,
+  summary: "set up the Claude GitHub-MCP workflow in the current project",
+  usage: "ax claude init",
+  deps: @["git"],
+  dryRun: false
+)
 
 const templateRelPath = ".claude/templates/project/axler8r.md"
 
@@ -18,7 +28,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Initialize-ClaudeProject
+    outp.writeLine """Usage: ax claude init
 
 Description:
     Set up the Claude GitHub-MCP developer workflow in the current project.
@@ -38,12 +48,12 @@ Options:
     -h, --help          Show this help message
 
 Examples:
-    Initialize-ClaudeProject"""
+    ax claude init"""
     return 0
 
   if args.len > 0:
     error("Unexpected argument: " & args[0], errp)
-    return 1
+    return 64
 
   if not checkDeps(["git"], errp): return 2
 
@@ -89,4 +99,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

@@ -1,6 +1,6 @@
 import std/[unittest, os, strutils]
-import "../ConvertToVideoHorizontal"
-import "../../lib/testing"
+import "../convert"
+import "../../../../lib/testing"
 
 # The hardware-acceleration fallback chain is characterized below with a
 # fake ffmpeg on a fixture $PATH (see testing.writeFakeExe/withPath): the
@@ -9,7 +9,7 @@ import "../../lib/testing"
 # far. These are characterization tests against current behaviour, kept
 # as a regression net for the later process-layer refactor.
 
-suite "ConvertTo-VideoHorizontal run":
+suite "ax media video convert run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_help.txt"
     let f = open(tmp, fmWrite)
@@ -18,7 +18,7 @@ suite "ConvertTo-VideoHorizontal run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: ConvertTo-VideoHorizontal")
+    check content.contains("Usage: ax media video convert")
     check content.contains("Hardware Acceleration Setup:")
     check content.contains("Performance Comparison:")
     check content.contains("Supported Hardware:")
@@ -31,7 +31,7 @@ suite "ConvertTo-VideoHorizontal run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: ConvertTo-VideoHorizontal")
+    check content.contains("Usage: ax media video convert")
 
   test "no arguments is a missing-input-arg error":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_args.txt"
@@ -40,7 +40,7 @@ suite "ConvertTo-VideoHorizontal run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: input file")
 
   test "missing output arg is an error":
@@ -50,7 +50,7 @@ suite "ConvertTo-VideoHorizontal run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: output file")
 
   test "a third positional argument is 'Too many arguments'":
@@ -60,13 +60,13 @@ suite "ConvertTo-VideoHorizontal run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Too many arguments")
 
   test "nonexistent input file is an error, checked before any ffmpeg invocation":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_input.txt"
     let f = open(tmp, fmWrite)
-    let code = run(@["/nonexistent/path/xyz.mp4", "/tmp/out.mp4"], f, f)
+    let code = run(@["/nonexistent/path/xyz.mp4", "/tmp/out.mp4", "--orientation", "horizontal"], f, f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
@@ -83,7 +83,7 @@ suite "ConvertTo-VideoHorizontal run":
     let f = open(outPath, fmWrite)
     var code: int
     withPath(dir):
-      code = run(@["in.mp4", "out.mp4"], f, f)
+      code = run(@["in.mp4", "out.mp4", "--orientation", "horizontal"], f, f)
     f.close()
     let content = readFile(outPath)
     removeDir(dir)
@@ -111,7 +111,7 @@ exit 0
     let f = open(outPath, fmWrite)
     var code: int
     withPath(dir):
-      code = run(@[input, output], f, f)
+      code = run(@[input, output, "--orientation", "horizontal"], f, f)
     f.close()
     let calls = readFile(log).strip().splitLines()
     let content = readFile(outPath)
@@ -140,7 +140,7 @@ exit 0
     let f = open(outPath, fmWrite)
     var code: int
     withPath(dir):
-      code = run(@[input, output], f, f)
+      code = run(@[input, output, "--orientation", "horizontal"], f, f)
     f.close()
     let calls = readFile(log).strip().splitLines()
     let content = readFile(outPath)
@@ -159,7 +159,7 @@ exit 0
     let rec = newRecordingRunner(exitCode = 0)
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
-    let code = run(@[input, output], f, f, rec.runner)
+    let code = run(@[input, output, "--orientation", "horizontal"], f, f, rec.runner)
     f.close()
     removeDir(dir)
     check code == 0
@@ -193,7 +193,7 @@ exit 0
     let rec = newRecordingRunner(exitCode = 1)
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
-    let code = run(@[input, output], f, f, rec.runner)
+    let code = run(@[input, output, "--orientation", "horizontal"], f, f, rec.runner)
     f.close()
     let content = readFile(outPath)
     removeDir(dir)
@@ -201,3 +201,23 @@ exit 0
     check rec.calls.len == 4
     check content.contains("All hardware acceleration methods failed")
     check content.contains("Video flip complete")
+
+  test "missing --orientation is a usage error":
+    let tmp = getTempDir() / "test_convert_no_orientation.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["input.mp4", "output.mp4"], f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    check code == 64
+    check content.contains("Missing required argument: --orientation")
+
+  test "an unsupported --orientation value is a usage error":
+    let tmp = getTempDir() / "test_convert_bad_orientation.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["input.mp4", "output.mp4", "--orientation", "vertical"], f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    check code == 64
+    check content.contains("Unsupported orientation: vertical")
