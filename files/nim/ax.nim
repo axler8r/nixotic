@@ -22,10 +22,11 @@ proc execBinary(binPath: string, args: seq[string], ctx: Ctx): int =
   error("cannot exec " & binPath & ": " & $strerror(errno))
   1
 
-proc commandHelp(binPath: string, runner: Runner = defaultRunner): int =
+proc commandHelp(binPath: string, extraArgs: seq[string] = @[],
+                 runner: Runner = defaultRunner): int =
   ## `ax help <full path>` / `ax <full path> --help`: the binary's own
   ## --help output through the bat pipeline Get-Help used to provide.
-  let cr = runner.capture(binPath, @["--help"])
+  let cr = runner.capture(binPath, extraArgs & @["--help"])
   if cr.error.len > 0:
     stderr.write(cr.error)
   if cr.exitCode != 0:
@@ -45,18 +46,20 @@ proc helpCmd(specs: seq[CommandSpec], groups: auto,
   of rkPrefix:
     renderHelp(subtreeText(specs, groups, words))
   of rkNone:
+    # Not in the ax tree: fall back to Get-Help's original role — render
+    # ANY command's --help through bat (`ax help git commit`, `ax help fd`;
+    # the `help`/`h` aliases lean on this daily).
+    if findExe(words[0]).len > 0:
+      return commandHelp(words[0], words[1 .. ^1])
     error("no such command or group: ax " & words.join(" "))
     if res.children.len > 0:
       stderr.writeLine("Available here: " & res.children.join(", "))
     64
 
-proc selfCmd(words: seq[string], libexecDir, registryFile,
+proc selfCmd(words: seq[string], ctx: Ctx, libexecDir, registryFile,
              groupsFile: string): int =
-  ## Phase-1 surface: build-registry and completion zsh are what the
-  ## package build itself invokes. commands/doctor/new-command and the
-  ## bash/nu completion emitters land with the meta-tooling retirement.
   if words.len == 0:
-    error("usage: ax self <build-registry|completion|commands|doctor|new-command>")
+    error("usage: ax self <commands|completion|doctor|new-command|build-registry>")
     return 64
   case words[0]
   of "build-registry":
@@ -65,14 +68,20 @@ proc selfCmd(words: seq[string], libexecDir, registryFile,
     if words.len < 2 or words[1] notin ["zsh", "bash", "nu"]:
       error("usage: ax self completion <zsh|bash|nu>")
       return 64
+    let specs = loadRegistry(registryFile)
+    let groups = loadGroups(groupsFile)
     case words[1]
-    of "zsh":
-      stdout.write(completionZsh(loadRegistry(registryFile),
-                                 loadGroups(groupsFile)))
-      0
-    else:
-      error("ax self completion " & words[1] & " is not implemented yet")
-      1
+    of "zsh": stdout.write(completionZsh(specs, groups))
+    of "bash": stdout.write(completionBash(specs, groups))
+    else: stdout.write(completionNu(specs, groups))
+    0
+  of "commands":
+    selfCommands(loadRegistry(registryFile),
+                 listZshFunctions(getHomeDir() / ".zsh" / "functions"), ctx)
+  of "doctor":
+    selfDoctor(loadRegistry(registryFile))
+  of "new-command":
+    newCommand(words[1 .. ^1], getCurrentDir() / "files" / "nim" / "commands")
   else:
     error("unknown self command: " & words[0])
     64
@@ -94,7 +103,8 @@ proc main(): int =
   # self runs before the registry loads: `ax self build-registry` is what
   # CREATES the registry during the package build.
   if ex.words.len > 0 and ex.words[0] == "self":
-    return selfCmd(ex.words[1 .. ^1], libexecDir, registryFile, groupsFile)
+    return selfCmd(ex.words[1 .. ^1], ex.ctx, libexecDir, registryFile,
+                   groupsFile)
 
   let specs = loadRegistry(registryFile)
   let groups = loadGroups(groupsFile)

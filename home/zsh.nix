@@ -135,7 +135,6 @@ in
     sessionVariables = {
       HISTSIZE = "5000";
       SAVEHIST = "2500";
-      NIXOTIC_NIM_FUNCTIONS_BIN = "${self.packages.${pkgs.stdenv.hostPlatform.system}.nim-functions}/bin";
     };
   };
 
@@ -189,10 +188,13 @@ in
   );
 
   home.packages = [
+    # Hand-written completions for the surviving zsh functions only; _ax
+    # ships inside the ax package's own share/zsh/site-functions, generated
+    # from the registry at build time.
     (pkgs.runCommand "zsh-completions-nixotic" { } ''
       mkdir -p $out/share/zsh/site-functions
       cp ${../files/zsh/completions}/_* $out/share/zsh/site-functions/
     '')
-    self.packages.${pkgs.stdenv.hostPlatform.system}.nim-functions
+    self.packages.${pkgs.stdenv.hostPlatform.system}.ax
   ];
 }

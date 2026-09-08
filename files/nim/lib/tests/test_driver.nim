@@ -240,3 +240,124 @@ suite "driver help and completion":
     removeFile(tmp)
     check code == 0
     check content == "Usage: ax vault mount\n"
+
+suite "driver self machinery":
+  let specs = @[
+    CommandSpec(specVersion: 1, path: @["vault", "mount"], kind: ckVerb,
+                summary: "mount a LUKS vault", usage: "ax vault mount <name>",
+                deps: @["cryptsetup", "mount"], dryRun: false),
+    CommandSpec(specVersion: 1, path: @["sys", "swap"], kind: ckReport,
+                summary: "per-process swap usage", usage: "ax sys swap",
+                dryRun: false)
+  ]
+  let groups = block:
+    var t: OrderedTable[string, string]
+    t["vault"] = "LUKS vaults"
+    t["sys"] = "system reports"
+    t
+
+  test "listZshFunctions returns sorted names, empty for a missing dir":
+    let dir = getTempDir() / "test_driver_zsh_functions"
+    removeDir(dir)
+    createDir(dir)
+    writeFile(dir / "Update-GitWIPBranchHistory", "")
+    writeFile(dir / "Mount-Nfs", "")
+    check listZshFunctions(dir) == @["Mount-Nfs", "Update-GitWIPBranchHistory"]
+    removeDir(dir)
+    check listZshFunctions(dir).len == 0
+
+  test "selfCommands lists both populations through the renderer":
+    let tmp = getTempDir() / "test_driver_self_commands.txt"
+    let f = open(tmp, fmWrite)
+    let rec = newRecordingRunner(exitCode = 0, output = "rendered\n")
+    var ctx = Ctx()
+    ctx.output = omPlain
+    let code = selfCommands(specs, @["Mount-Nfs"], ctx, rec.runner, f, f)
+    f.close()
+    removeFile(tmp)
+    check code == 0
+    check rec.calls[0].input.contains("ax vault mount|ax|mount a LUKS vault")
+    check rec.calls[0].input.contains("Mount-Nfs|zsh|")
+
+  test "selfDoctor passes when every dependency resolves":
+    let dir = getTempDir() / "test_driver_doctor_ok"
+    removeDir(dir)
+    createDir(dir)
+    for exe in ["cryptsetup", "mount"]:
+      writeFakeExe(dir, exe, "exit 0")
+    let tmp = dir / "out.txt"
+    let f = open(tmp, fmWrite)
+    var code: int
+    withPath(dir):
+      code = selfDoctor(specs, outp = f, errp = f)
+    f.close()
+    removeDir(dir)
+    check code == 0
+
+  test "selfDoctor reports the commands with missing dependencies":
+    let dir = getTempDir() / "test_driver_doctor_missing"
+    removeDir(dir)
+    createDir(dir)
+    writeFakeExe(dir, "mount", "exit 0")
+    let tmp = dir / "out.txt"
+    let f = open(tmp, fmWrite)
+    var code: int
+    withPath(dir):
+      code = selfDoctor(specs, outp = f, errp = f)
+    f.close()
+    let content = readFile(tmp)
+    removeDir(dir)
+    check code == 1
+    check content.contains("ax vault mount: missing cryptsetup")
+    check not content.contains("ax sys swap:")
+
+  test "newCommand scaffolds module, test, and a groups.json seed":
+    let dir = getTempDir() / "test_driver_new_command" / "commands"
+    removeDir(getTempDir() / "test_driver_new_command")
+    createDir(dir)
+    writeFile(dir / "groups.json", "{\n  \"vault\": \"LUKS vaults\"\n}\n")
+    let tmp = getTempDir() / "test_driver_new_command_out.txt"
+    let f = open(tmp, fmWrite)
+    let code = newCommand(@["zfs", "snapshot", "remove"], dir, f, f)
+    f.close()
+    removeFile(tmp)
+    let module = readFile(dir / "zfs" / "snapshot" / "remove.nim")
+    let test = readFile(dir / "zfs" / "snapshot" / "tests" / "test_remove.nim")
+    let groupsOut = readFile(dir / "groups.json")
+    removeDir(getTempDir() / "test_driver_new_command")
+    check code == 0
+    check module.contains("path: @[\"zfs\", \"snapshot\", \"remove\"]")
+    check module.contains("import \"../../../lib/spec\"")
+    check module.contains("axMain(cmdSpec)")
+    check module.contains("\"\"\"Usage: ax zfs snapshot remove")
+    check test.contains("import \"../remove\"")
+    check test.contains("import \"../../../../lib/testing\"")
+    check groupsOut.contains("\"zfs\": \"TODO")
+    check groupsOut.contains("\"zfs snapshot\": \"TODO")
+    check groupsOut.contains("\"vault\": \"LUKS vaults\"")
+
+  test "newCommand rejects a leaf outside the lexicon":
+    let dir = getTempDir() / "test_driver_new_command_bad" / "commands"
+    removeDir(getTempDir() / "test_driver_new_command_bad")
+    createDir(dir)
+    writeFile(dir / "groups.json", "{}\n")
+    let tmp = getTempDir() / "test_driver_new_command_bad_out.txt"
+    let f = open(tmp, fmWrite)
+    let code = newCommand(@["zfs", "frobnicate"], dir, f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    removeDir(getTempDir() / "test_driver_new_command_bad")
+    check code == 64
+    check content.contains("not a lexicon verb or report-noun")
+
+  test "completionBash emits depth-cased compgen words":
+    let script = completionBash(specs, groups)
+    check script.contains("compgen -W \"sys vault help version self\"")
+    check script.contains("vault) COMPREPLY=($(compgen -W \"mount\"")
+    check script.contains("complete -o default -F _ax_complete ax")
+
+  test "completionNu emits one extern per command":
+    let script = completionNu(specs, groups)
+    check script.contains("export extern \"ax vault mount\"")
+    check script.contains("export extern \"ax sys swap\"")

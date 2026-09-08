@@ -32,43 +32,7 @@
       lib = pkgs.lib;
       nimDir = ./files/nim;
 
-      # Each function's Nim source file is named without a hyphen (e.g.
-      # GetAttribute.nim) because Nim's `import` requires a valid identifier,
-      # but the installed binary keeps the hyphenated PascalCase Verb-Noun
-      # name (e.g. Get-Attribute) that aliases and PATH lookups expect. That
-      # mapping is spelled out explicitly per function below rather than
-      # derived from the filename, because a generic source-name ->
-      # binary-name transform isn't safe in general (e.g. "ConvertTo-H264Video"
-      # has two capitalized words before the hyphen, so a mechanical "insert
-      # hyphen before capitals" reversal would misplace it). Add one entry
-      # here per future migration — the build guard in packages.${system}.nim-functions
-      # below fails loudly if a functions/*.nim file is ever added without a
-      # matching entry.
-      nimFunctionBinaries = {
-        "Get-Verb" = "GetVerb.nim";
-        "Show-Verb" = "ShowVerb.nim";
-        "Get-Help" = "GetHelp.nim";
-      };
-
-      # Fails at eval time (before any build runs) if functions/*.nim and
-      # nimFunctionBinaries ever drift apart in either direction: a file added
-      # without an entry, or an entry left behind after its file was deleted.
-      checkedNimFunctionBinaries =
-        let
-          onDisk = builtins.attrNames
-            (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nim" name)
-              (builtins.readDir (nimDir + "/functions")));
-          mapped = builtins.attrValues nimFunctionBinaries;
-          unmapped = lib.subtractLists mapped onDisk;
-          stale = lib.subtractLists onDisk mapped;
-        in
-        if unmapped != [ ] then
-          throw "flake.nix: functions/*.nim on disk with no nimFunctionBinaries entry: ${toString unmapped}"
-        else if stale != [ ] then
-          throw "flake.nix: nimFunctionBinaries entries with no matching functions/*.nim file: ${toString stale}"
-        else nimFunctionBinaries;
-
-      # nim.cfg + lib/*.nim + lexicon.json shared by every function.
+      # nim.cfg + lib/*.nim + lexicon.json shared by every command.
       # lib/tests is excluded so editing a lib test doesn't invalidate every
       # function's build cache. lexicon.json rides along because
       # lib/lexicon.nim embeds it with staticRead.
@@ -76,27 +40,6 @@
         (lib.fileset.unions
           [ (nimDir + "/nim.cfg") (nimDir + "/lib") (nimDir + "/lexicon.json") ])
         (nimDir + "/lib/tests");
-
-      # One derivation per function, sourced from only nim.cfg + lib/ + its own
-      # functions/<srcFile> -- so editing one function (or an unrelated test)
-      # only invalidates that function's own build, not every other one's.
-      mkNimFunction = binName: srcFile:
-        pkgs.stdenv.mkDerivation {
-          pname = "nixotic-nim-fn-${binName}";
-          version = "0.1.0";
-          src = lib.fileset.toSource {
-            root = nimDir;
-            fileset = lib.fileset.union nimShared (nimDir + "/functions/${srcFile}");
-          };
-          nativeBuildInputs = [ pkgs.nim ];
-          buildPhase = ''
-            runHook preBuild
-            mkdir -p $out/bin
-            nim c -d:release --nimcache:.nimcache -o:"$out/bin/${binName}" functions/${srcFile}
-            runHook postBuild
-          '';
-          dontInstall = true;
-        };
 
       # Toolchain plus every runtime dependency the tests exercise for real
       # (not just past a checkDeps guard). Shared with the devShell so a local
@@ -113,11 +56,11 @@
         pkgs.util-linux
       ];
 
-      # One derivation per test file, mirroring mkNimFunction's granularity:
+      # One derivation per test file, mirroring mkAxCommand's granularity:
       # a test only rebuilds when its own fileset changes, and Nix runs the
       # suites in parallel rather than serially in a single buildPhase.
       #
-      # Deliberately built WITHOUT -d:release, unlike mkNimFunction above:
+      # Deliberately built WITHOUT -d:release, unlike mkAxCommand below:
       # live `assert`/`doAssert` checks and readable stack traces are worth
       # more in a test binary than the speed release mode buys. Do not "fix"
       # this to match the package build.
@@ -148,36 +91,13 @@
           (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nim" name)
             (builtins.readDir (nimDir + "/${subdir}")));
 
-      # Every functions/tests/*.nim imports exactly the one function module it
-      # exercises. Reading that import back out is what lets a function test be
-      # scoped as narrowly as the function's own build, instead of pinning the
-      # whole functions/ directory. Fails at eval time if the convention breaks.
-      nimTestSubject = testFile:
-        let
-          lines = lib.splitString "\n"
-            (builtins.readFile (nimDir + "/functions/tests/${testFile}"));
-          hits = lib.filter (m: m != null)
-            (map (l: builtins.match "[[:space:]]*import[[:space:]]+\"\\.\\./([A-Za-z0-9]+)\".*" l) lines);
-        in
-        if hits == [ ] then
-          throw "flake.nix: functions/tests/${testFile} has no `import \"../<Module>\"` line to scope its build against"
-        else builtins.head (builtins.head hits);
-
       nimTests =
-        (map
+        map
           (f: mkNimTest {
             name = lib.removeSuffix ".nim" f;
             testPath = "lib/tests/${f}";
           })
-          (nimTestFiles "lib/tests"))
-        ++
-        (map
-          (f: mkNimTest {
-            name = lib.removeSuffix ".nim" f;
-            testPath = "functions/tests/${f}";
-            extraFiles = [ (nimDir + "/functions/${nimTestSubject f}.nim") ];
-          })
-          (nimTestFiles "functions/tests"));
+          (nimTestFiles "lib/tests");
 
       # ------------------------------------------------------------------ ax
       # The ax command tree: commands/<group>/[<subgroup>/]<leaf>.nim maps
@@ -392,13 +312,7 @@
         };
       };
 
-      packages.${system} = {
-        nim-functions = pkgs.symlinkJoin {
-          name = "nixotic-nim-functions";
-          paths = pkgs.lib.mapAttrsToList mkNimFunction checkedNimFunctionBinaries;
-        };
-        ax = axPackage;
-      };
+      packages.${system}.ax = axPackage;
 
       checks.${system} =
         # One check per test file, keyed by its module name, so `nix flake
@@ -462,42 +376,6 @@
                   echo "error: generated _ax failed to parse" >&2
                   exit 1
                 }
-
-                touch $out
-              '';
-          nim-functions-smoke =
-            pkgs.runCommand "nixotic-nim-functions-smoke"
-              { nativeBuildInputs = [ self.packages.${system}.nim-functions ]; }
-              ''
-                expected="${lib.concatStringsSep " " (builtins.attrNames checkedNimFunctionBinaries)}"
-                actual="$(cd ${self.packages.${system}.nim-functions}/bin && echo *)"
-
-                for name in $expected; do
-                  case " $actual " in
-                    *" $name "*) ;;
-                    *) echo "error: $name declared in nimFunctionBinaries but not built" >&2
-                       exit 1 ;;
-                  esac
-                done
-
-                # Catches a symlinkJoin collision or a stray file in an output
-                # bin/ — the declared-vs-built direction above cannot see either.
-                for name in $actual; do
-                  case " $expected " in
-                    *" $name "*) ;;
-                    *) echo "error: $name built but not declared in nimFunctionBinaries" >&2
-                       exit 1 ;;
-                  esac
-                done
-
-                for name in $expected; do
-                  bin="${self.packages.${system}.nim-functions}/bin/$name"
-                  if ! helpOutput="$("$bin" --help 2>&1)"; then
-                    echo "error: $name --help exited non-zero, output follows:" >&2
-                    printf '%s\n' "$helpOutput" >&2
-                    exit 1
-                  fi
-                done
 
                 touch $out
               '';

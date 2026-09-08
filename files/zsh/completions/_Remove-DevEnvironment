@@ -1,9 +1,0 @@
-#compdef Remove-DevEnvironment
-
-_Remove-DevEnvironment() {
-  _arguments \
-    '(- *)--help[show help]' \
-    '--gc[run nix store gc after removal]'
-}
-
-_Remove-DevEnvironment "$@"

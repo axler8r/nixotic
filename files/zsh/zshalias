@@ -12,11 +12,11 @@ alias df=' df --human-readable --exclude-type=squashfs --exclude-type=tmpfs --ex
 alias now=" date +'%Y-%m-%d %H:%M:%S' "
 
 # Git workflow
-alias gcw=' Complete-GitWIPBranch '
-alias grw=' Remove-GitWIPBranch '
+alias gcw=' ax git wip finish '
+alias grw=' ax git wip drop '
 alias guh=' Update-GitWIPBranchHistory '
-alias gus=' Update-GitStableBranch '
-alias gwb=' New-GitWIPBranch '
+alias gus=' ax git stable sync '
+alias gwb=' ax git wip start '
 
 # Editor variants (light theme)
 alias manw='MANWIDTH="" command man '
@@ -24,8 +24,8 @@ alias nvim=' nvim '
 alias hx=' hx '
 
 # Help and logs (bat guaranteed by Home Manager)
-alias help=' Get-Help '
-alias h=' Get-Help '
+alias help=' ax help '
+alias h=' ax help '
 alias follow=' Read-Log '
 alias bat=' bat --paging=auto '
 compdef _tail Read-Log
@@ -49,7 +49,7 @@ man() {
 
 # ZFS (z prefix)
 if [[ -x $(command -v zfs) ]] {
-    alias lszsnap=' Get-ZfsSnapshots '
+    alias lszsnap=' ax zfs snapshot list '
     alias rmzsnap=' Remove-ZfsSnapshot '
 }
 

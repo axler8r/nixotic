@@ -274,6 +274,171 @@ proc renderHelp*(text: string, runner: Runner = defaultRunner,
     errp.write(cr.error)
   cr.exitCode
 
+# ---------------------------------------------------------------------- self
+
+proc listZshFunctions*(dir: string): seq[string] =
+  ## The surviving PascalCase zsh functions, for `ax self commands` — the
+  ## cross-population discovery Get-UserFunctions used to scrape.
+  if not dirExists(dir):
+    return @[]
+  for kind, path in walkDir(dir):
+    if kind in {pcFile, pcLinkToFile}:
+      result.add extractFilename(path)
+  result.sort()
+
+proc selfCommands*(specs: seq[CommandSpec], zshFunctions: seq[string],
+                   ctx: Ctx, runner: Runner = defaultRunner,
+                   outp: File = stdout, errp: File = stderr): int =
+  ## `ax self commands`: every registry command plus the surviving zsh
+  ## functions, one table, -o aware.
+  var rows: seq[seq[string]] = @[]
+  for s in specs:
+    rows.add @["ax " & s.path.join(" "), "ax", s.summary]
+  for name in zshFunctions:
+    rows.add @[name, "zsh", ""]
+  render(@["Command", "Source", "Summary"], rows, ctx, runner, outp, errp)
+
+proc selfDoctor*(specs: seq[CommandSpec], runner: Runner = defaultRunner,
+                 outp: File = stdout, errp: File = stderr): int =
+  ## `ax self doctor`: audits every command's declared dependencies
+  ## against $PATH. Exit 0 when everything resolves, 1 otherwise.
+  var problems: seq[(string, string)]
+  for s in specs:
+    var missing: seq[string]
+    for dep in s.deps:
+      if findExe(dep).len == 0:
+        missing.add dep
+    if missing.len > 0:
+      problems.add ("ax " & s.path.join(" "), missing.join(" "))
+  if problems.len == 0:
+    success("Every declared dependency is on $PATH.", errp)
+    return 0
+  for (cmd, missing) in problems:
+    outp.writeLine(cmd & ": missing " & missing)
+  error($problems.len & " command(s) have missing dependencies.", errp)
+  1
+
+const commandTemplate = """import std/os
+import "$LIB/output"
+import "$LIB/process"
+import "$LIB/spec"
+import "$LIB/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @[$PATHSEQ],
+  kind: ckVerb,
+  summary: "TODO one line, lowercase first word",
+  usage: "ax $PATHWORDS",
+  deps: @[],
+  dryRun: false
+)
+
+proc run*(
+  args: seq[string],
+  outp: File = stdout,
+  errp: File = stderr,
+  runner: Runner = defaultRunner
+): int =
+  if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
+    outp.writeLine ""\"Usage: ax $PATHWORDS
+
+TODO description.
+
+Options:
+    -h, --help    Show this help message""\"
+    return 0
+
+  # TODO: requireArg/checkDeps guards, then the work.
+  0
+
+when isMainModule:
+  axMain(cmdSpec):
+    run(commandLineParams())
+"""
+
+const testTemplate = """import std/[unittest, os, strutils]
+import "../$LEAF"
+import "$LIB/testing"
+
+suite "ax $PATHWORDS run":
+  test "prints usage and returns 0 for --help":
+    let tmp = getTempDir() / "test_$UNDERSCORED_help.txt"
+    let f = open(tmp, fmWrite)
+    let code = run(@["--help"], f, f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    check code == 0
+    check content.contains("Usage: ax $PATHWORDS")
+"""
+
+proc newCommand*(words: seq[string], commandsDir: string,
+                 outp: File = stdout, errp: File = stderr): int =
+  ## `ax self new-command <group> [<subgroup>] <leaf>`: scaffolds the
+  ## module and its test under commands/, and seeds a groups.json entry
+  ## when the group is new. There is no name mapping to update — the
+  ## path IS the mapping.
+  if words.len < 2 or words.len > 3:
+    error("usage: ax self new-command <group> [<subgroup>] <leaf>", errp)
+    return 64
+  for w in words:
+    if w.len == 0 or w[0] notin {'a'..'z'} or
+       not w.allCharsInSet({'a'..'z', '0'..'9'}):
+      error("segment '" & w & "' must match [a-z][a-z0-9]*", errp)
+      return 64
+  let leaf = words[^1]
+  if not isAllowedLeaf(leaf):
+    error("leaf '" & leaf & "' is not a lexicon verb or report-noun " &
+          "(see files/nim/lexicon.json)", errp)
+    return 64
+  if not dirExists(commandsDir):
+    error("no commands/ tree at " & commandsDir &
+          " — run from the nixotic repo root", errp)
+    return 1
+
+  let subdir = commandsDir / words[0 ..< ^1].join("/")
+  let module = subdir / (leaf & ".nim")
+  let test = subdir / "tests" / ("test_" & leaf & ".nim")
+  if fileExists(module):
+    error("already exists: " & module, errp)
+    return 1
+
+  # lib/ relative to the module's directory: commands/<g>/ is two up,
+  # commands/<g>/<s>/ is three, and the test sits one deeper.
+  let libFromModule = (if words.len == 2: "../../lib" else: "../../../lib")
+  let libFromTest = "../" & libFromModule
+
+  proc fill(tmpl, lib: string): string =
+    tmpl.replace("$LIB", lib)
+        .replace("$PATHSEQ", "\"" & words.join("\", \"") & "\"")
+        .replace("$PATHWORDS", words.join(" "))
+        .replace("$UNDERSCORED", words.join("_"))
+        .replace("$LEAF", leaf)
+        .replace("\"\"\\\"", "\"\"\"")
+
+  createDir(subdir / "tests")
+  writeFile(module, fill(commandTemplate, libFromModule))
+  writeFile(test, fill(testTemplate, libFromTest))
+  outp.writeLine("Created " & module)
+  outp.writeLine("Created " & test)
+
+  let groupsFile = commandsDir / "groups.json"
+  var groups = loadGroups(groupsFile)
+  var seeded = false
+  for depth in 1 ..< words.len:
+    let key = words[0 ..< depth].join(" ")
+    if key notin groups:
+      groups[key] = "TODO one-line summary"
+      seeded = true
+  if seeded:
+    var node = newJObject()
+    for k, v in groups:
+      node[k] = %v
+    writeFile(groupsFile, node.pretty() & "\n")
+    outp.writeLine("Seeded groups.json — replace the TODO summary")
+  0
+
 # ---------------------------------------------------------------- completion
 
 proc zqEscape(s: string): string =
@@ -374,3 +539,82 @@ proc completionZsh*(specs: seq[CommandSpec],
                "          fi\n          ;;\n"
   result.add "        *) _files ;;\n      esac\n      ;;\n" &
              "  esac\n}\n\n_ax \"$@\"\n"
+
+proc completionBash*(specs: seq[CommandSpec],
+                     groups: OrderedTable[string, string]): string =
+  ## Word completion by depth: groups at position 1, children at 2-3,
+  ## long flags after a resolved command. No descriptions — bash's
+  ## compgen -W has nowhere to put them.
+  let paths = registryPaths(specs)
+
+  proc children(prefix: seq[string]): string =
+    childrenOf(paths, prefix).join(" ")
+
+  proc flagsFor(path: seq[string]): string =
+    for s in specs:
+      if s.path == path:
+        var names: seq[string]
+        for f in s.flags:
+          if f.long.len > 0: names.add "--" & f.long
+          elif f.short.len > 0: names.add "-" & f.short
+        return names.join(" ")
+    ""
+
+  result = "# Generated by `ax self completion bash` — do not edit.\n\n" &
+           "_ax_complete() {\n" &
+           "  local cur=\"${COMP_WORDS[COMP_CWORD]}\"\n" &
+           "  local w1=\"${COMP_WORDS[1]}\" w2=\"${COMP_WORDS[2]}\" w3=\"${COMP_WORDS[3]}\"\n" &
+           "  COMPREPLY=()\n" &
+           "  case $COMP_CWORD in\n" &
+           "    1)\n" &
+           "      COMPREPLY=($(compgen -W \"" & children(@[]) &
+           " help version self\" -- \"$cur\")) ;;\n" &
+           "    2)\n      case \"$w1\" in\n"
+  for group in childrenOf(paths, @[]):
+    result.add "        " & group & ") COMPREPLY=($(compgen -W \"" &
+               children(@[group]) & "\" -- \"$cur\")) ;;\n"
+  result.add "        help) COMPREPLY=($(compgen -W \"" & children(@[]) &
+             "\" -- \"$cur\")) ;;\n"
+  result.add "        self) COMPREPLY=($(compgen -W \"commands completion " &
+             "doctor new-command build-registry\" -- \"$cur\")) ;;\n"
+  result.add "      esac ;;\n    *)\n      case \"$w1 $w2\" in\n"
+  var twoWord: seq[seq[string]]
+  var subgroups: seq[seq[string]]
+  for p in paths:
+    if p.len == 2 and p notin twoWord: twoWord.add p
+    if p.len == 3 and p[0 .. 1] notin subgroups: subgroups.add p[0 .. 1]
+  for p in twoWord:
+    result.add "        '" & p.join(" ") & "') COMPREPLY=($(compgen -W \"" &
+               flagsFor(p) & "\" -- \"$cur\")) ;;\n"
+  for sub in subgroups:
+    result.add "        '" & sub.join(" ") & "')\n" &
+               "          if (( COMP_CWORD == 3 )); then\n" &
+               "            COMPREPLY=($(compgen -W \"" & children(sub) &
+               "\" -- \"$cur\"))\n          else\n            case \"$w3\" in\n"
+    for s in specs:
+      if s.path.len == 3 and s.path[0 .. 1] == sub:
+        result.add "              " & s.path[2] &
+                   ") COMPREPLY=($(compgen -W \"" & flagsFor(s.path) &
+                   "\" -- \"$cur\")) ;;\n"
+    result.add "            esac\n          fi ;;\n"
+  result.add "      esac ;;\n  esac\n}\n\ncomplete -o default -F _ax_complete ax\n"
+
+proc nuFlagLines(s: CommandSpec): string =
+  for f in s.flags:
+    if f.long.len == 0: continue
+    result.add "  --" & f.long
+    if f.takesValue:
+      result.add ": string"
+    if f.description.len > 0:
+      result.add "  # " & f.description
+    result.add "\n"
+
+proc completionNu*(specs: seq[CommandSpec],
+                   groups: OrderedTable[string, string]): string =
+  ## `export extern` declarations: nushell derives subcommand and flag
+  ## completion from the extern signatures themselves.
+  result = "# Generated by `ax self completion nu` — do not edit.\n\n" &
+           "export extern \"ax\" [command?: string]\n"
+  for s in specs:
+    result.add "\n# " & s.summary & "\nexport extern \"ax " &
+               s.path.join(" ") & "\" [\n  ...args\n" & nuFlagLines(s) & "]\n"
