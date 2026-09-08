@@ -1,5 +1,5 @@
 # See test_git.nim's header note: these tests need `git` on $PATH (already
-# in nim-functions-tests' nativeBuildInputs).
+# in flake.nix's nimToolchain).
 import std/[unittest, os, osproc, streams, strutils]
 import "../NewGitWipBranch"
 

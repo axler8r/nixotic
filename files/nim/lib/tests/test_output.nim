@@ -187,7 +187,7 @@ suite "output.table":
 
   test "real invocation: column -t -s| actually aligns pipe-delimited rows":
     # Requires util-linux's `column` for real, past the runner seam — see
-    # flake.nix's nim-functions-tests nativeBuildInputs / devShell packages.
+    # flake.nix's nimToolchain.
     let outTmp = getTempDir() / "test_output_table_real.txt"
     let outf = open(outTmp, fmWrite)
     let code = table("Name|Size\nfoo.txt|1.2 KB", raw = true, outp = outf)

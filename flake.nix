@@ -138,6 +138,87 @@
           dontInstall = true;
         };
 
+      # Toolchain plus every runtime dependency the tests exercise for real
+      # (not just past a checkDeps guard). Shared with the devShell so a local
+      # `nim c -r` run and the sandboxed check see the same set.
+      nimToolchain = [
+        pkgs.nim
+        pkgs.attr
+        pkgs.git
+        pkgs.xdg-utils
+        pkgs.parallel
+        pkgs.ffmpeg
+        pkgs.nix
+        pkgs.direnv
+        pkgs.util-linux
+      ];
+
+      # One derivation per test file, mirroring mkNimFunction's granularity:
+      # a test only rebuilds when its own fileset changes, and Nix runs the
+      # suites in parallel rather than serially in a single buildPhase.
+      #
+      # Deliberately built WITHOUT -d:release, unlike mkNimFunction above:
+      # live `assert`/`doAssert` checks and readable stack traces are worth
+      # more in a test binary than the speed release mode buys. Do not "fix"
+      # this to match the package build.
+      mkNimTest = { name, testPath, extraFiles ? [ ] }:
+        pkgs.stdenv.mkDerivation {
+          pname = "nixotic-nim-test-${name}";
+          version = "0.1.0";
+          src = lib.fileset.toSource {
+            root = nimDir;
+            fileset = lib.fileset.unions ([ nimShared (nimDir + "/${testPath}") ] ++ extraFiles);
+          };
+          nativeBuildInputs = nimToolchain;
+          buildPhase = ''
+            runHook preBuild
+            nim c -r --nimcache:"$TMPDIR/nimcache" -o:"$TMPDIR/${name}" ${testPath}
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            touch $out/${name}-passed
+            runHook postInstall
+          '';
+        };
+
+      nimTestFiles = subdir:
+        builtins.attrNames
+          (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nim" name)
+            (builtins.readDir (nimDir + "/${subdir}")));
+
+      # Every functions/tests/*.nim imports exactly the one function module it
+      # exercises. Reading that import back out is what lets a function test be
+      # scoped as narrowly as the function's own build, instead of pinning the
+      # whole functions/ directory. Fails at eval time if the convention breaks.
+      nimTestSubject = testFile:
+        let
+          lines = lib.splitString "\n"
+            (builtins.readFile (nimDir + "/functions/tests/${testFile}"));
+          hits = lib.filter (m: m != null)
+            (map (l: builtins.match "[[:space:]]*import[[:space:]]+\"\\.\\./([A-Za-z0-9]+)\".*" l) lines);
+        in
+        if hits == [ ] then
+          throw "flake.nix: functions/tests/${testFile} has no `import \"../<Module>\"` line to scope its build against"
+        else builtins.head (builtins.head hits);
+
+      nimTests =
+        (map
+          (f: mkNimTest {
+            name = lib.removeSuffix ".nim" f;
+            testPath = "lib/tests/${f}";
+          })
+          (nimTestFiles "lib/tests"))
+        ++
+        (map
+          (f: mkNimTest {
+            name = lib.removeSuffix ".nim" f;
+            testPath = "functions/tests/${f}";
+            extraFiles = [ (nimDir + "/functions/${nimTestSubject f}.nim") ];
+          })
+          (nimTestFiles "functions/tests"));
+
       # role selects the whole experience: "workstation" = Stylix +
       # home/desktop.nix, "server" = no Stylix + home/headless.nix.
       # homeConfig overrides the home profile only (e.g. WSL).
@@ -205,67 +286,52 @@
         paths = pkgs.lib.mapAttrsToList mkNimFunction checkedNimFunctionBinaries;
       };
 
-      checks.${system} = {
-        nim-functions-tests = pkgs.stdenv.mkDerivation {
-          pname = "nixotic-nim-functions-tests";
-          version = "0.1.0";
-          src = ./files/nim;
-          nativeBuildInputs = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv pkgs.util-linux ];
-          # Deliberately built WITHOUT -d:release, unlike packages.nim-functions above:
-          # live `assert`/`doAssert` checks and readable stack traces are worth more
-          # in a test binary than the speed release mode buys. Do not "fix" this to
-          # match the package build.
-          buildPhase = ''
-            runHook preBuild
-            for f in lib/tests/*.nim functions/tests/*.nim; do
-              nim c -r --nimcache:.nimcache -o:"$TMPDIR/$(basename "$f" .nim)" "$f"
-            done
-            runHook postBuild
-          '';
-          installPhase = ''
-            mkdir -p $out
-            touch $out/tests-passed
-          '';
+      checks.${system} =
+        # One check per test file, keyed by its module name, so `nix flake
+        # check` reports the failing suite by name and reruns only what changed.
+        (lib.listToAttrs (map (d: lib.nameValuePair d.pname d) nimTests))
+        // {
+          nim-functions-smoke =
+            pkgs.runCommand "nixotic-nim-functions-smoke"
+              { nativeBuildInputs = [ self.packages.${system}.nim-functions ]; }
+              ''
+                expected="${lib.concatStringsSep " " (builtins.attrNames checkedNimFunctionBinaries)}"
+                actual="$(cd ${self.packages.${system}.nim-functions}/bin && echo *)"
+
+                for name in $expected; do
+                  case " $actual " in
+                    *" $name "*) ;;
+                    *) echo "error: $name declared in nimFunctionBinaries but not built" >&2
+                       exit 1 ;;
+                  esac
+                done
+
+                # Catches a symlinkJoin collision or a stray file in an output
+                # bin/ — the declared-vs-built direction above cannot see either.
+                for name in $actual; do
+                  case " $expected " in
+                    *" $name "*) ;;
+                    *) echo "error: $name built but not declared in nimFunctionBinaries" >&2
+                       exit 1 ;;
+                  esac
+                done
+
+                for name in $expected; do
+                  bin="${self.packages.${system}.nim-functions}/bin/$name"
+                  if ! helpOutput="$("$bin" --help 2>&1)"; then
+                    echo "error: $name --help exited non-zero, output follows:" >&2
+                    printf '%s\n' "$helpOutput" >&2
+                    exit 1
+                  fi
+                done
+
+                touch $out
+              '';
         };
-
-        nim-functions-smoke =
-          pkgs.runCommand "nixotic-nim-functions-smoke"
-            { nativeBuildInputs = [ self.packages.${system}.nim-functions ]; }
-            ''
-              expected="${pkgs.lib.concatStringsSep " " (builtins.attrNames nimFunctionBinaries)}"
-              actual="$(cd ${self.packages.${system}.nim-functions}/bin && echo *)"
-
-              for name in $expected; do
-                case " $actual " in
-                  *" $name "*) ;;
-                  *) echo "error: $name declared in nimFunctionBinaries but not built" >&2
-                     exit 1 ;;
-                esac
-              done
-
-              for name in $actual; do
-                case " $expected " in
-                  *" $name "*) ;;
-                  *) echo "error: $name built but not declared in nimFunctionBinaries" >&2
-                     exit 1 ;;
-                esac
-              done
-
-              for name in $expected; do
-                bin="${self.packages.${system}.nim-functions}/bin/$name"
-                if ! "$bin" --help > /dev/null 2>&1; then
-                  echo "error: $name --help exited non-zero" >&2
-                  exit 1
-                fi
-              done
-
-              touch $out
-            '';
-      };
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = [ pkgs.nim pkgs.attr pkgs.git pkgs.xdg-utils pkgs.parallel pkgs.ffmpeg pkgs.nix pkgs.direnv pkgs.util-linux ];
+        packages = nimToolchain;
       };
     };
 }

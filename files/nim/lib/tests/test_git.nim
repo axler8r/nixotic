@@ -1,8 +1,8 @@
 # These tests need `git` on $PATH at runtime: fixtures shell out to a real
 # `git init`/`git commit`/etc. (via runGit below) to build real
 # repositories that requireGitRepo/gitCurrentBranch/etc. then inspect --
-# see flake.nix's nim-functions-tests nativeBuildInputs (already present,
-# used today by InitializeClaudeProject.nim's tests).
+# see flake.nix's nimToolchain (already present, used today by
+# InitializeClaudeProject.nim's tests).
 import std/[unittest, os, osproc, streams, strutils]
 import "../git"
 import "../process"

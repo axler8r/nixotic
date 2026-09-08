@@ -24,9 +24,9 @@ indefinitely, via the existing zsh path.
 
 ## Migration status
 
-Complete. Every zsh function identified as a migration candidate across the
-wave schedule has been ported to Nim, with two deliberate exceptions, both
-staying zsh indefinitely per the no-backfill-deadline policy above:
+Complete. Every zsh function identified as a migration candidate across the wave
+schedule has been ported to Nim, with two deliberate exceptions, both staying
+zsh indefinitely per the no-backfill-deadline policy above:
 
 - `Mount-Nfs` — considered over-engineered for its actual use; may be removed
   outright rather than migrated, so it was left as-is pending that decision.
@@ -207,31 +207,30 @@ scaffolder family, is the second. `lib/git.nim` (`requireGitRepo`,
 `gitCurrentBranch`, `requireCleanGitWorktree`, `requireBranchExists`,
 `requireNotBranch`, `requireWipBranch`), a port of the existing
 `files/zsh/lib/git.zsh` rather than logic newly extracted from duplicated zsh,
-is the third — and the first of these three whose zsh source file is *not*
+is the third — and the first of these three whose zsh source file is _not_
 deleted after the port, since `Update-GitWIPBranchHistory` (excluded from
-migration) still sources it. `lib/fdscan.nim`
-(`buildFdArgs`, `findFiles`, `isTextMimeType`, `mimeType`), forced by the
-fd-scan family (`Find-MixedIndentation`, `Measure-Words`,
-`Show-FileSizeHistogram` all build `fd` arguments from `-e`/`--all` and
-word-split its output the same way; two of the three also classify files via
-`file --brief --mime-type`), is the fourth.
+migration) still sources it. `lib/fdscan.nim` (`buildFdArgs`, `findFiles`,
+`isTextMimeType`, `mimeType`), forced by the fd-scan family
+(`Find-MixedIndentation`, `Measure-Words`, `Show-FileSizeHistogram` all build
+`fd` arguments from `-e`/`--all` and word-split its output the same way; two of
+the three also classify files via `file --brief --mime-type`), is the fourth.
 
 These modules follow the same import convention as `ax`: a plain
 `import "../lib/vault"` brings its exported procs into scope unqualified. They
 are not tracked in the "ported so far" / "not yet ported" tables above — those
 are specific to the generic `ax` surface — but do get their own
-`lib/tests/test_<family>.nim` file, compiled by the same
-`checks.${system}.nim-functions-tests` glob as everything else in `lib/tests/`.
+`lib/tests/test_<family>.nim` file, picked up as its own check derivation the
+same way as everything else in `lib/tests/`.
 
 `lib/git.nim` breaks one `ax`-established convention deliberately: its
 `require*` procs return `int`, not `bool`. The zsh original's
 `__ax_require_git_repo` calls `__ax_check_deps git` internally and its callers
 propagate `$?` verbatim, so callers need to distinguish "git is missing" (2)
-from "not a repository" (1) — a `bool` can't carry that third state. Every
-other `require*`-shaped proc in this codebase (`validation.nim`'s,
-`lib/vault.nim`'s) returns `bool` because none of them wrap a `checkDeps` call
-themselves; reach for the `int` shape only when a helper genuinely needs to
-convey more than pass/fail.
+from "not a repository" (1) — a `bool` can't carry that third state. Every other
+`require*`-shaped proc in this codebase (`validation.nim`'s, `lib/vault.nim`'s)
+returns `bool` because none of them wrap a `checkDeps` call themselves; reach
+for the `int` shape only when a helper genuinely needs to convey more than
+pass/fail.
 
 ## Regex avoidance
 
@@ -371,10 +370,22 @@ intercepts the spawn that `checkDeps`'s pass unlocks.
 ## Testing
 
 `std/unittest` (stdlib, no nimble dependency) covers the `ax` module and each
-function's `run()`. `checks.${system}.nim-functions-tests` in `flake.nix` runs
-every `lib/tests/*.nim` and `functions/tests/*.nim` file under
-`nix flake check`, so a broken function fails the same gate as a broken Nix
-expression.
+function's `run()`. `flake.nix` turns every `lib/tests/*.nim` and
+`functions/tests/*.nim` file into its own check derivation, named
+`nixotic-nim-test-<file stem>` and discovered by reading the two directories at
+eval time — adding a test file is enough, there is no list to update. All of
+them run under `nix flake check`, so a broken function fails the same gate as a
+broken Nix expression, and a failure names the offending suite directly.
+
+Each check is fileset-scoped rather than taking the whole `files/nim` tree, so
+editing one function does not invalidate every other function's test, and Nix
+runs the suites in parallel. A `lib/tests` check sees `nim.cfg` plus `lib/`; a
+`functions/tests` check sees that plus the single function module under test.
+The subject module is found by reading the test's own `import "../<Module>"`
+line, which is why that import must appear literally, on its own line, in every
+`functions/tests/*.nim` file — the flake throws at eval time if it is missing. A
+test needing a second function module is not currently expressible; add an
+explicit `extraFiles` entry to `mkNimTest` if that day comes.
 
 Dependency checks are testable in both directions, not just the happy path.
 `checkDeps` calls `findExe`, which reads `$PATH` at **runtime** — `nim c -r`
@@ -393,7 +404,10 @@ or absent" — e.g. `Get-Attribute`'s tests exercise `getfattr`, from the `attr`
 package, for real past the `checkDeps` call. Add that package to the `checks`
 derivation's `nativeBuildInputs`, and to the devShell's `packages` for local
 runs — and consider a comment in the test file noting the dependency, since a
-missing one produces confusing failures that look like validation bugs.
+missing one produces confusing failures that look like validation bugs. Both
+places are the same list: `nimToolchain` in `flake.nix` feeds the test
+derivations' `nativeBuildInputs` and the devShell's `packages`, so they cannot
+drift apart.
 
 The non-TTY and `NO_COLOR` branches of `output.error` are covered without any
 special terminal setup. The color-enabled branch needs a pseudo-terminal on this
@@ -411,15 +425,16 @@ via `nativeBuildInputs` — this is purely local ergonomics.
 
 ## Compile flags
 
-`files/nim/nim.cfg` sets `--styleCheck:error`. Both
-`packages.${system}.nim-functions` and `checks.${system}.nim-functions-tests`
-pick it up automatically — both derivations set `src = ./files/nim` and run
-`nim c` from that directory, and Nim reads `nim.cfg` relative to the directory a
-compile is invoked from. The two builds are otherwise deliberately asymmetric:
-the package build passes `-d:release`, the test build does not, trading compile
-speed and optimization for live `assert`/`doAssert` checks and readable stack
-traces in a test binary. Don't "fix" this to match — see the comment beside
-`nim-functions-tests` in `flake.nix`.
+`files/nim/nim.cfg` sets `--styleCheck:error`. Both the function builds and the
+test builds pick it up automatically — every derivation roots its source at
+`files/nim` and runs `nim c` from that directory, and Nim reads `nim.cfg`
+relative to the directory a compile is invoked from. `nim.cfg` is therefore part
+of the shared fileset each derivation is scoped to; dropping it would silently
+disable the style gate rather than fail. The two builds are otherwise
+deliberately asymmetric: the package build passes `-d:release`, the test build
+does not, trading compile speed and optimization for live `assert`/`doAssert`
+checks and readable stack traces in a test binary. Don't "fix" this to match —
+see the comment beside `mkNimTest` in `flake.nix`.
 
 Resist adding `--warningAsError` or similar for a stricter test gate. Compiling
 a function file as a test's `import` dependency (rather than as its own

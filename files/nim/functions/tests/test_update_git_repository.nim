@@ -1,8 +1,8 @@
 # Every test below that reaches checkDeps stubs `git` and `parallel` on a
 # fixture $PATH via testing.writeFakeExe/withPath, so this file is
 # environment-independent and cannot silently skip regardless of whether
-# this sandbox has the real binaries — see flake.nix's nim-functions-tests
-# nativeBuildInputs for where they'd come from if a stub were ever missing.
+# this sandbox has the real binaries — see flake.nix's nimToolchain for
+# where they'd come from if a stub were ever missing.
 # The `parallel` invocation (pull + submodule update) is characterized below
 # against a fake `parallel` that records its argv, and pinned exactly by the
 # contract test using a RecordingRunner -- real git network operations are
