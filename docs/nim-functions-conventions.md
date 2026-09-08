@@ -38,10 +38,11 @@ proc run*(
     return 0
 
   # manual option parsing over `args`, same shape as the zsh while/case loop
-  ...
+  if not validateArgs(cmdSpec, args, errp): return 64
+  ... # parse validated options; check their domain-specific values
 
   if not requireArg(name, "name", errp): return 64
-  if not checkDeps(["cryptsetup"], errp): return 2
+  if not checkDeps(cmdSpec.deps, errp): return 2
   ...
   result = runner.runInherited("cryptsetup", @[...])
 
@@ -52,6 +53,15 @@ when isMainModule:
 
 - Help-before-parsing is unchanged from the zsh era: the `-h`/`--help` check
   is the first thing in `run()`.
+- Call `validateArgs(cmdSpec, args, errp)` immediately after help. The driver
+  and executable preamble also validate, but direct `run()` callers must be
+  safe too. Unknown flags, missing values, and excess positionals exit 64
+  before dependency checks or effects. Never preserve “last positional wins”
+  or ignored-option behaviour from the old shell implementation.
+- Parsers must handle the forms validation accepts: `--long=value`, short
+  attached values (`-fVALUE`, `-f=VALUE`, `-f:VALUE`), and the `--` terminator.
+  Domain checks (positive counts, supported formats, package names) remain
+  the command's responsibility. Global flags must not appear in `cmdSpec`.
 - Logic lives in `run()`, separate from the entry point, so `std/unittest`
   calls `run()` directly with fake argv — no subprocess spawning for most
   cases.
@@ -69,10 +79,43 @@ when isMainModule:
 
 `axMain` (`lib/spec.nim`) supersedes the old `cliMain` for commands: it
 answers `--ax-spec` with the spec as JSON, refuses `AX_DRY_RUN=1` when the
-spec does not declare dry-run support, and keeps the CatchableError-to-exit-1
+spec does not declare dry-run support (help is exempt), validates arguments,
+and keeps the CatchableError-to-exit-1
 boundary that preserves stdout=data/stderr=status instead of printing a
 traceback. Treat that boundary as a backstop: a local check with a specific
 message ("Not a git repository") still beats the generic exception text.
+
+Specification decoding checks JSON field kinds explicitly: `getStr`,
+`getInt`, and `getBool` are not validators and silently return defaults on
+wrong kinds. Both registry loading and generation check schema versions,
+canonical command paths, kind/lexicon agreement, and reserved flag names.
+
+## Safety and error handling
+- Check every captured process's exit code **before** interpreting stdout.
+  Failed discovery is not an empty collection, a clean worktree, or a
+  successful inspection. Propagate renderer failures too.
+- Use `defer`/`finally` immediately after resource acquisition. Cleanup must
+  be attempted on exceptions, and a cleanup failure must not become success
+  or mask the primary error. Do not delete a vault backing file when closing
+  its mapping failed.
+- Preflight the complete operation before mutation. Inspect symlinks without
+  following them before recursive deletion: Nim's `removeDir` follows a
+  top-level directory symlink. Use `walkDir(checkDir = true)` when failed
+  discovery would otherwise cause reconciliation against an empty set.
+- Replace existing data via an adjacent temporary file and rename after a
+  complete write; preserve permissions and clean up temporary files. This
+  provides atomic replacement, not a guarantee of power-loss durability.
+- File discovery uses NUL-delimited paths. Display cells escape delimiters
+  and control characters; JSON retains original cell data.
+- These local preflight checks are not concurrency locks. Do not concurrently
+  mutate a project tree or open a vault while removal/resizing is running.
+
+Vault removal/resizing additionally inspect loop associations by backing-file
+identity, using non-interactive `sudo -n losetup`. Inspection failure refuses
+the operation; cached or non-interactive sudo authorisation is required.
+Resizing accepts an equal target to resume filesystem growth after partial
+success. Creation sets only the new ext4 root's owner; mounting never changes
+existing ownership.
 
 ## Shared libraries
 
@@ -88,6 +131,11 @@ Colour is suppressed when the stream isn't a TTY or `NO_COLOR` is set to
 set-ness test); `AX_COLOR=always|never` (from `--color`) overrides that
 detection. `info`/`success` are suppressed under `AX_QUIET`; `error`/`warn`
 never are.
+
+Prefer `func` for genuinely side-effect-free transformations and `openArray`
+for borrowed read-only collections. Use these selectively, not as a mechanical
+rewrite of existing command signatures. Prefer iteration over whole-file
+tokenisation when inputs can be large.
 
 When several commands in the same family reimplement identical logic, that
 logic gets its own small `lib/<family>.nim` rather than being force-fit into
@@ -155,6 +203,12 @@ argument, then assert on `rec.calls` — each entry records the kind
 drives post-processing of subprocess output without a real process. This is
 what argv-pinning "contract" tests use.
 
+The recorder also snapshots inherited-call environments and supports queued
+responses for multi-step failure paths. Use custom `Runner` callbacks to
+inject exceptions or command-dependent responses. Safety tests must assert
+that rejected requests make **no mutating calls**. Characterization tests
+must not make incorrect legacy success/cleanup behaviour a permanent contract.
+
 **`withPath` + `writeFakeExe`** cover what the recorder can't:
 `lib/process.nim`'s own fork/exec round-trip tests, and the
 dependency-missing branch, which needs `findExe` to genuinely fail.
@@ -176,13 +230,24 @@ otherwise compile it as a suite of its own.
 `std/unittest` (stdlib, no nimble dependency). One test file per command at
 `commands/<group>/[<subgroup>/]tests/test_<leaf>.nim`; shared-module suites
 in `lib/tests/`. `flake.nix` turns every test file into its own check
-derivation, discovered from the tree at eval time — adding a file is enough.
+derivation, discovered from the tree at eval time once the file belongs to
+the Git flake source. Untracked files are not included until staged by the
+user.
 All run under `nix flake check`, and a failure names the suite.
+
+The vault `tests/test_safety.nim` matrix deliberately imports all five vault
+commands; its explicit family fileset is the exception to the one-subject
+rule. `tests/integration.sh` exercises real executable dispatch, context,
+exit codes, exception handling, and builtin help/dry-run non-mutation through
+the `ax-integration` check. Local invocation runs from `files/nim` with Bash.
 
 Each check is fileset-scoped: a command test sees `nim.cfg` + `lib/` +
 `lexicon.json` + the one command module it exercises, derived from the test's
-own path — so editing one command invalidates only its own build and test,
-and Nix runs suites in parallel.
+own path — so editing a command preserves unrelated command compilations.
+Its tests, relevant family checks, final assembly, and smoke checks also
+invalidate. Nix runs suites in parallel; Nim receives `NIX_BUILD_CORES` rather
+than independently claiming every CPU. Test executables have a 120-second
+timeout. Test-only `lib/testing.nim` is excluded from production sources.
 
 Dependency checks are testable in both directions: `findExe` reads `$PATH` at
 runtime, so pointing `withPath` at an empty directory constructs the
@@ -196,10 +261,10 @@ list, cannot drift.
 
 `files/nim/nim.cfg` sets `--styleCheck:error`; every derivation roots its
 source at `files/nim` so it always applies. The package build passes
-`-d:release`, the test build deliberately does not — live
-`assert`/`doAssert` and readable stack traces are worth more in a test binary
-than speed. Don't "fix" this to match; see the comment beside `mkNimTest` in
-`flake.nix`. Resist `--warningAsError`: compiling a command module as a
+`-d:release`, the test build deliberately does not, to retain stack and line
+traces. In Nim 2.2, release mode retains ordinary assertions; `doAssert`
+remains enabled even under `--assertions:off`. `-d:danger`, not release,
+disables runtime checks. Resist blanket `--warningAsError`: compiling a command module as a
 test's import dependency triggers benign `UnusedImport` warnings for
 entry-point-only imports.
 
@@ -207,5 +272,12 @@ entry-point-only imports.
 
 `devShells.${system}.default` provides `nim` plus the runtime deps for
 editor/`nim-lsp` support; `.envrc` (`use flake`) activates it via direnv.
-Neither is required for the build — `nix build`/`nix flake check` are
-self-contained.
+Neither is required for the build — `nix build .#ax` and `nix flake check`
+provide their own build/test environments. Run them only with user approval.
+
+The resulting `ax` package is a **host-integrated toolbelt**, not a standalone
+runtime closure: external programs resolve through the host's `PATH`.
+`cmdSpec.deps` and matching checks describe command requirements; plain table
+rendering additionally needs `column` (util-linux), with `gum` optional.
+Privilege infrastructure (`sudo`), services, devices, and authorisation remain
+host-managed. Optional-operation dependencies must be checked before mutation.

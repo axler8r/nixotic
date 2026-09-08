@@ -4,8 +4,8 @@
 the flat PascalCase `Verb-Noun` binaries with a resource-first command tree, a
 small lexicon of ordinary Linux verbs, and one registry **derived at build
 time** from the binaries actually built. The registry is the sole source for
-dispatch, help, and shell completion — nothing declares what exists, so
-nothing can drift from what exists.
+dispatch and shell completion. This guarantees command inventory agreement;
+manual parsers and help text still need contract and integration tests.
 
 Companion doc: `docs/nim-functions-conventions.md` covers the Nim
 implementation patterns every command follows (process execution through
@@ -74,6 +74,11 @@ the context **exclusively from the environment** (`lib/context.nim`), so a
 binary behaves identically whether reached through `ax` or invoked directly
 from `libexec/ax/` with `AX_*` set.
 
+The driver preserves `--` for the command parser. Direct libexec callers may
+also use the legacy `--raw` alias and supported dry-run switches. Specifications
+may not redeclare global options: for example, word counts use `--top`, not
+the reserved `-n`.
+
 | Flag | Env | Values / notes |
 | --- | --- | --- |
 | `-o, --output <v>` | `AX_OUTPUT` | `table` (default) \| `plain` \| `json`. `--raw` is a deprecated alias for `-o plain`. |
@@ -82,6 +87,10 @@ from `libexec/ax/` with `AX_*` set.
 | `-q, --quiet` | `AX_QUIET` | `1` when set: suppresses `Info:`/`Success:` status lines. |
 | `-v, --verbose` | `AX_VERBOSE` | `1` when set: commands may add diagnostics on stderr. |
 | `-h, --help` / `-V, --version` | — | driver-handled. |
+
+Builtin help is handled before effects or registry loading. Mutating builtins
+must enforce dry-run policy too; `self new-command` refuses dry-run rather
+than writing files. Help remains available when `AX_DRY_RUN=1` is inherited.
 
 **stdout carries data, stderr carries status** — unchanged. Every list and
 report command renders tabular data through `lib/output.nim`'s `render()`:
@@ -185,6 +194,12 @@ The `ax-smoke` check then asserts, in both directions: sources ↔
 `ax <path> --help` exits 0 through the driver for every command; and the
 generated `_ax` parses.
 
+The independent `ax-integration` check compiles a harmless fixture command
+and exercises actual exec dispatch, argv/context preservation, failures,
+exception reporting, and builtin help/dry-run non-mutation. Command suites
+normally have one subject; the vault safety matrix includes all five vault
+commands explicitly to test lifecycle interactions.
+
 ## Adding a command
 
 ```
@@ -199,7 +214,8 @@ the group is new — after validating the leaf against the lexicon. Then:
    following `docs/nim-functions-conventions.md` (injectable streams and
    `Runner`, `checkDeps` guards, usage errors exit 64).
 2. Write the tests — one test file per command, exercising `run()` directly.
-3. `nix flake check` — the new command and its test are discovered from the
+3. Review and stage new files so they belong to the Git flake source.
+4. With user approval, `nix flake check` — the new command and its test are discovered from the
    tree; there is no list to update.
 
 If the command belongs to a new group, give the group a real one-line summary
