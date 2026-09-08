@@ -1,0 +1,27 @@
+{
+  "verbs": [
+    { "name": "list", "aliases": ["ls"], "meaning": "enumerate a collection to stdout" },
+    { "name": "get", "aliases": [], "meaning": "print one scalar value, script-friendly" },
+    { "name": "show", "aliases": ["info"], "meaning": "render one item in detail" },
+    { "name": "search", "aliases": [], "meaning": "query a remote index" },
+    { "name": "create", "aliases": ["new"], "meaning": "make a new resource" },
+    { "name": "remove", "aliases": ["rm"], "meaning": "delete a named resource" },
+    { "name": "set", "aliases": [], "meaning": "write a value" },
+    { "name": "update", "aliases": [], "meaning": "refresh in place" },
+    { "name": "sync", "aliases": [], "meaning": "reconcile with a source of truth" },
+    { "name": "prune", "aliases": [], "meaning": "remove unreferenced or dangling resources" },
+    { "name": "mount", "aliases": [], "meaning": "attach" },
+    { "name": "unmount", "aliases": ["umount"], "meaning": "detach" },
+    { "name": "resize", "aliases": [], "meaning": "change a resource's size" },
+    { "name": "start", "aliases": [], "meaning": "begin a lifecycle" },
+    { "name": "finish", "aliases": [], "meaning": "complete a lifecycle" },
+    { "name": "drop", "aliases": [], "meaning": "abandon a lifecycle" },
+    { "name": "optimize", "aliases": [], "meaning": "maintenance pass" },
+    { "name": "check", "aliases": [], "meaning": "validate, non-zero on failure" },
+    { "name": "fix", "aliases": [], "meaning": "mutating twin of check" },
+    { "name": "convert", "aliases": [], "meaning": "transform format" },
+    { "name": "init", "aliases": [], "meaning": "bootstrap in the current directory" },
+    { "name": "shell", "aliases": [], "meaning": "open an interactive session" }
+  ],
+  "reportNouns": ["browser", "histogram", "root", "swap", "templates", "words"]
+}

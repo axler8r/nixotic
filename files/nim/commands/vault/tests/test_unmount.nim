@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../DismountVault"
-import "../../lib/testing"
+import "../unmount"
+import "../../../lib/testing"
 
-suite "Dismount-Vault resolveTarget":
+suite "ax vault unmount resolveTarget":
   test "an existing, currently-mounted directory resolves the mapper name from the source column":
     let mountOutput = "/dev/mapper/mydata on " & getTempDir() &
                        " type ext4 (rw,relatime)\n"
@@ -47,7 +47,7 @@ suite "Dismount-Vault resolveTarget":
     check r.invalid == false
     check r.mapperName == "reldir"
 
-suite "Dismount-Vault run":
+suite "ax vault unmount run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_dismount_vault_help.txt"
     let f = open(tmp, fmWrite)
@@ -56,7 +56,7 @@ suite "Dismount-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Dismount-Vault")
+    check content.contains("Usage: ax vault unmount")
 
   test "prints usage and returns 0 for -h (fixed: zsh original only checked --help)":
     let tmp = getTempDir() / "test_dismount_vault_h.txt"
@@ -66,7 +66,7 @@ suite "Dismount-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Dismount-Vault")
+    check content.contains("Usage: ax vault unmount")
 
   test "no argument is an error":
     let tmp = getTempDir() / "test_dismount_vault_no_arg.txt"
@@ -75,7 +75,7 @@ suite "Dismount-Vault run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Mount point or vault name required")
 
   test "an unresolvable target is an error, checkDeps never reached":
@@ -118,11 +118,11 @@ suite "Dismount-Vault run":
   # No test exercises past the mapperPresent(mapperName) guard -- neither
   # its exit-2 checkDeps branch nor the unmount/close success path -- for
   # a resolvable target: every such path requires mapperPresent to
-  # answer true, which needs a real /dev/mapper node. Unlike Mount-Vault
-  # and New-Vault (whose "already mounted"/opened checks are satisfied by
+  # answer true, which needs a real /dev/mapper node. Unlike ax vault mount
+  # and ax vault create (whose "already mounted"/opened checks are satisfied by
   # a fakeable `mount` table or a fakeable `sudo cryptsetup`/`mkfs`
-  # sequence), Dismount-Vault's entire reason to run is acting on an
+  # sequence), ax vault unmount's entire reason to run is acting on an
   # already-open vault, so this is a hard, unfakeable constraint in this
   # sandbox rather than a "feasible but deferred" gap -- the same one
   # noted for lib/vault's mapperPresent tests and, later, for
-  # Remove-Vault/Resize-Vault's mounted-vault guards.
+  # ax vault remove/ax vault resize's mounted-vault guards.

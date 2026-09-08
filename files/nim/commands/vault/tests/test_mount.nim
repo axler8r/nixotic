@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../MountVault"
-import "../../lib/testing"
+import "../mount"
+import "../../../lib/testing"
 
-suite "Mount-Vault parseArgs":
+suite "ax vault mount parseArgs":
   test "no args: both fields empty":
     let p = parseArgs(@[])
     check p.vaultInput == ""
@@ -23,7 +23,7 @@ suite "Mount-Vault parseArgs":
     check p.vaultInput == "mydata"
     check p.mountPoint == "/mnt/y"
 
-suite "Mount-Vault run":
+suite "ax vault mount run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_mount_vault_help.txt"
     let f = open(tmp, fmWrite)
@@ -32,7 +32,7 @@ suite "Mount-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Mount-Vault")
+    check content.contains("Usage: ax vault mount")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_mount_vault_h.txt"
@@ -42,7 +42,7 @@ suite "Mount-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Mount-Vault")
+    check content.contains("Usage: ax vault mount")
 
   test "missing vault input is a requireArg error (no dead _synopsis call)":
     let tmp = getTempDir() / "test_mount_vault_no_input.txt"
@@ -51,7 +51,7 @@ suite "Mount-Vault run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: vault file")
 
   test "missing deps is exit 2 with a Missing commands error":

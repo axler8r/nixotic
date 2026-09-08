@@ -1,4 +1,5 @@
-import std/[os, strutils, terminal]
+import std/[json, os, strutils, terminal]
+import context
 import process
 
 const
@@ -8,7 +9,17 @@ const
   ansiReset = "\e[0m"
 
 proc colorEnabled*(f: File): bool =
-  isatty(f) and not existsEnv("NO_COLOR")
+  ## AX_COLOR=always/never (set by the driver from --color) overrides the
+  ## auto detection; auto or unset keeps the original behaviour, so
+  ## NO_COLOR stays honoured by default and an explicit `always` wins over
+  ## it (no-color.org convention).
+  case getEnv(axColorEnv)
+  of "always": true
+  of "never": false
+  else: isatty(f) and not existsEnv("NO_COLOR")
+
+proc quietEnabled(): bool =
+  getEnv(axQuietEnv) == "1"
 
 proc error*(msg: string, errp: File = stderr) =
   if colorEnabled(errp):
@@ -17,12 +28,18 @@ proc error*(msg: string, errp: File = stderr) =
     errp.writeLine("Error: " & msg)
 
 proc info*(msg: string, errp: File = stderr) =
+  ## Suppressed under -q/AX_QUIET; error and warn never are.
+  if quietEnabled():
+    return
   if colorEnabled(errp):
     errp.writeLine(ansiGreen & "Info:" & ansiReset & " " & msg)
   else:
     errp.writeLine("Info: " & msg)
 
 proc success*(msg: string, errp: File = stderr) =
+  ## Suppressed under -q/AX_QUIET; error and warn never are.
+  if quietEnabled():
+    return
   if colorEnabled(errp):
     errp.writeLine(ansiGreen & "Success:" & ansiReset & " " & msg)
   else:
@@ -67,3 +84,31 @@ proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
   if cr.error.len > 0:
     errp.write(cr.error)
   cr.exitCode
+
+proc jsonKey(header: string): string =
+  header.strip().toLowerAscii().replace(" ", "_")
+
+proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
+             runner: Runner = defaultRunner,
+             outp: File = stdout, errp: File = stderr): int =
+  ## Ctx-aware renderer for tabular data — every list and report command
+  ## goes through it. `table` and `plain` reproduce the pre-ax behaviour
+  ## (gum/column and --raw respectively); `json` emits an array of objects
+  ## keyed by the lowercased, underscore-joined header cells, making every
+  ## such command a first-class jq source.
+  case ctx.output
+  of omJson:
+    var arr = newJArray()
+    for row in rows:
+      var obj = newJObject()
+      for i, h in header:
+        obj[jsonKey(h)] = %(if i < row.len: row[i] else: "")
+      arr.add obj
+    outp.writeLine(arr.pretty())
+    0
+  of omTable, omPlain:
+    var data = header.join("|") & "\n"
+    for row in rows:
+      data.add row.join("|") & "\n"
+    table(data, raw = ctx.output == omPlain, runner = runner,
+          outp = outp, errp = errp)

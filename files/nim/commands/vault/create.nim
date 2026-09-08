@@ -1,8 +1,28 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["vault", "create"],
+  kind: ckVerb,
+  summary: "create a new LUKS vault",
+  usage: "ax vault create <name> [--size SIZE] [--location DIR]",
+  args: @[
+    ArgSpec(name: "name", required: true,
+            description: "vault name, e.g. mydata")
+  ],
+  flags: @[
+    FlagSpec(long: "size", takesValue: true,
+             description: "vault size (default: 1G)"),
+    FlagSpec(long: "location", takesValue: true,
+             description: "directory to store the vault file (default: ~/Vaults)")
+  ],
+  deps: @["fallocate", "cryptsetup", "mkdir", "rm"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   vaultName*: string
@@ -44,7 +64,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: New-Vault <vault-name> [opts]
+    outp.writeLine """Usage: ax vault create <name> [opts]
 
 Create a new LUKS encrypted vault using fallocate, cryptsetup, and mkfs.
 Specify a vault name (e.g., 'mydata') to create at ~/Vaults/.<name>.vault
@@ -56,17 +76,17 @@ Options:
     --location DIR      Directory to store vault file (default: ~/Vaults)
 
 Examples:
-    New-Vault mydata
-    New-Vault secrets --size 1G
-    New-Vault backup --size 5G
-    New-Vault external --location /mnt/storage"""
+    ax vault create mydata
+    ax vault create secrets --size 1G
+    ax vault create backup --size 5G
+    ax vault create external --location /mnt/storage"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
-    return 1
-  if not requireArg(parsed.vaultName, "vault name", errp): return 1
+    return 64
+  if not requireArg(parsed.vaultName, "vault name", errp): return 64
   if not checkDeps(["fallocate", "cryptsetup", "mkdir", "rm"], errp): return 2
 
   let vaultFile = parsed.location / ("." & parsed.vaultName & ".vault")
@@ -108,8 +128,9 @@ Examples:
   discard runner.runInherited("sudo", @["cryptsetup", "close", mapperName])
 
   outp.writeLine("Vault created successfully: " & vaultFile)
-  outp.writeLine("Mount with: mount-vault " & vaultFile)
+  outp.writeLine("Mount with: ax vault mount " & parsed.vaultName)
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

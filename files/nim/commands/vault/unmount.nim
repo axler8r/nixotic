@@ -1,9 +1,23 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/vault"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+import "../../lib/vault"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["vault", "unmount"],
+  kind: ckVerb,
+  summary: "unmount a LUKS vault and close its mapping",
+  usage: "ax vault unmount <name>",
+  args: @[
+    ArgSpec(name: "name", required: true,
+            description: "vault name (e.g. mydata) or mount point path")
+  ],
+  deps: @["mount", "umount", "cryptsetup"],
+  dryRun: false
+)
 
 type ResolvedTarget* = object
   mapperName*: string
@@ -48,24 +62,24 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Dismount-Vault <vault-name-or-mount-point>
+    outp.writeLine """Usage: ax vault unmount <name>
 
 Description:
     Unmount a LUKS encrypted vault and close the cryptsetup mapping.
     Specify a vault name (e.g., 'mydata') or mount point path.
 
 Arguments:
-    vault-name-or-mount-point    Vault name (e.g., mydata) or mount point (e.g., ~/Vaults/mydata)
+    name    Vault name (e.g., mydata) or mount point (e.g., ~/Vaults/mydata)
 
 Examples:
-    Dismount-Vault mydata
-    Dismount-Vault ~/Vaults/mydata"""
+    ax vault unmount mydata
+    ax vault unmount ~/Vaults/mydata"""
     return 0
 
   if args.len == 0 or args[0].len == 0:
     error("Mount point or vault name required", errp)
-    outp.writeLine("Usage: Dismount-Vault <mount-point-or-vault-name>")
-    return 1
+    outp.writeLine("Usage: ax vault unmount <name>")
+    return 64
   let target = args[0]
 
   let mountOutput = runner.capture("mount", @[]).output
@@ -92,4 +106,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

@@ -1,9 +1,28 @@
 import std/[os, strutils]
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/vault"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+import "../../lib/vault"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["vault", "resize"],
+  kind: ckVerb,
+  summary: "grow a LUKS vault's file, container, and filesystem",
+  usage: "ax vault resize <name> --size SIZE",
+  args: @[
+    ArgSpec(name: "name", required: true,
+            description: "vault name (e.g. mydata) or full path to the vault file")
+  ],
+  flags: @[
+    FlagSpec(long: "size", takesValue: true,
+             description: "new total target size (e.g. 5G) — must be larger than current")
+  ],
+  deps: @["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "stat",
+          "numfmt"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   vaultInput*: string
@@ -31,7 +50,7 @@ proc run*(
   runner: Runner = defaultRunner
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Resize-Vault <vault-name> --size SIZE
+    outp.writeLine """Usage: ax vault resize <name> --size SIZE
 
 Grow a LUKS encrypted vault's underlying file, container, and ext4 filesystem.
 Vault must be dismounted before resizing. Shrinking is not supported.
@@ -41,19 +60,19 @@ Options:
     --size SIZE   New total target size (e.g., 5G) — must be larger than current size
 
 Arguments:
-    vault-name    Vault name (e.g., mydata) or full path to vault file
+    name    Vault name (e.g., mydata) or full path to vault file
 
 Examples:
-    Resize-Vault mydata --size 5G
-    Resize-Vault ~/Vaults/.mydata.vault --size 10G"""
+    ax vault resize mydata --size 5G
+    ax vault resize ~/Vaults/.mydata.vault --size 10G"""
     return 0
 
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
-    return 1
-  if not requireArg(parsed.vaultInput, "vault name", errp): return 1
-  if not requireArg(parsed.size, "--size", errp): return 1
+    return 64
+  if not requireArg(parsed.vaultInput, "vault name", errp): return 64
+  if not requireArg(parsed.size, "--size", errp): return 64
   if not checkDeps(["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid",
                      "stat", "numfmt"], errp): return 2
 
@@ -64,7 +83,7 @@ Examples:
 
   if mapperPresent(v.mapperName):
     error("Vault is currently mounted. Dismount first with:", errp)
-    outp.writeLine("  dismount-vault " & v.vaultName)
+    outp.writeLine("  ax vault unmount " & v.vaultName)
     return 1
 
   let statResult = runner.capture("stat", @["--format=%s", v.vaultFile])
@@ -80,7 +99,7 @@ Examples:
 
   if targetBytes <= currentBytes:
     let currentIec = runner.capture("numfmt", @["--to=iec", $currentBytes]).output.strip()
-    error("Resize-Vault does not support shrinking (current: " & currentIec &
+    error("ax vault resize does not support shrinking (current: " & currentIec &
           ", requested: " & parsed.size & ")", errp)
     return 1
 
@@ -97,7 +116,7 @@ Examples:
       @["blkid", "--output", "value", "--match-tag", "TYPE",
         "/dev/mapper" / v.mapperName]).output.strip()
   if fsType != "ext4":
-    error("Resize-Vault only supports ext4 filesystems (found: " &
+    error("ax vault resize only supports ext4 filesystems (found: " &
           (if fsType.len > 0: fsType else: "unknown") & ")", errp)
     discard runner.runInherited("sudo", @["cryptsetup", "close", v.mapperName])
     return 1
@@ -123,8 +142,9 @@ Examples:
   discard runner.runInherited("sudo", @["cryptsetup", "close", v.mapperName])
 
   outp.writeLine("Vault resized successfully: " & v.vaultFile & " is now " & parsed.size)
-  outp.writeLine("Mount with: mount-vault " & v.vaultName)
+  outp.writeLine("Mount with: ax vault mount " & v.vaultName)
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

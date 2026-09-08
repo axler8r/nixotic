@@ -1,4 +1,5 @@
-import std/[unittest, os, strutils]
+import std/[json, unittest, os, strutils]
+import "../context"
 import "../output"
 import "../process"
 import "../testing"
@@ -198,3 +199,50 @@ suite "output.table":
     check content.contains("Name")
     check content.contains("foo.txt")
     check not content.contains("|")
+
+suite "output.render":
+  test "json mode emits an array of objects keyed by normalised headers":
+    let tmp = getTempDir() / "test_output_render_json.txt"
+    let f = open(tmp, fmWrite)
+    var ctx = Ctx()
+    ctx.output = omJson
+    let code = render(@["Repository", "Tag Name"],
+                      @[@["nginx", "latest"], @["redis", "7"]],
+                      ctx, outp = f, errp = f)
+    f.close()
+    let parsed = parseJson(readFile(tmp))
+    removeFile(tmp)
+    check code == 0
+    check parsed.len == 2
+    check parsed[0]["repository"].getStr == "nginx"
+    check parsed[0]["tag_name"].getStr == "latest"
+    check parsed[1]["tag_name"].getStr == "7"
+
+  test "plain mode routes through table with raw alignment":
+    let tmp = getTempDir() / "test_output_render_plain.txt"
+    let f = open(tmp, fmWrite)
+    var ctx = Ctx()
+    ctx.output = omPlain
+    let rec = newRecordingRunner(exitCode = 0, output = "aligned\n")
+    let code = render(@["Name"], @[@["foo"]], ctx, runner = rec.runner,
+                      outp = f, errp = f)
+    f.close()
+    let content = readFile(tmp)
+    removeFile(tmp)
+    check code == 0
+    check content == "aligned\n"
+    check rec.calls.len == 1
+    check rec.calls[0].cmd == "column"
+    check rec.calls[0].input == "Name\nfoo\n"
+
+  test "a short row pads missing json fields with empty strings":
+    let tmp = getTempDir() / "test_output_render_short_row.txt"
+    let f = open(tmp, fmWrite)
+    var ctx = Ctx()
+    ctx.output = omJson
+    let code = render(@["Name", "Size"], @[@["foo"]], ctx, outp = f, errp = f)
+    f.close()
+    let parsed = parseJson(readFile(tmp))
+    removeFile(tmp)
+    check code == 0
+    check parsed[0]["size"].getStr == ""

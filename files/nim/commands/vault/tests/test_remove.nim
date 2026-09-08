@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../RemoveVault"
-import "../../lib/testing"
+import "../remove"
+import "../../../lib/testing"
 
-suite "Remove-Vault parseArgs":
+suite "ax vault remove parseArgs":
   test "no args: empty input, force false":
     let p = parseArgs(@[])
     check p.vaultInput == ""
@@ -20,7 +20,7 @@ suite "Remove-Vault parseArgs":
     let p = parseArgs(@["first", "second"])
     check p.vaultInput == "second"
 
-suite "Remove-Vault run":
+suite "ax vault remove run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_remove_vault_help.txt"
     let f = open(tmp, fmWrite)
@@ -29,7 +29,7 @@ suite "Remove-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-Vault")
+    check content.contains("Usage: ax vault remove")
 
   test "prints usage and returns 0 for -h (fixed: zsh original only checked --help)":
     let tmp = getTempDir() / "test_remove_vault_h.txt"
@@ -39,7 +39,7 @@ suite "Remove-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: Remove-Vault")
+    check content.contains("Usage: ax vault remove")
 
   test "missing vault name is a requireArg error":
     let tmp = getTempDir() / "test_remove_vault_no_name.txt"
@@ -48,7 +48,7 @@ suite "Remove-Vault run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: vault name")
 
   test "missing deps is exit 2 with a Missing commands error":
@@ -85,7 +85,7 @@ suite "Remove-Vault run":
   # No test exercises the "vault is currently mounted" guard here: it
   # requires mapperPresent to answer true, which needs a real /dev/mapper
   # node -- the same hard, unfakeable constraint documented for
-  # lib/vault's own mapperPresent tests and for Dismount-Vault.
+  # lib/vault's own mapperPresent tests and for ax vault unmount.
 
   test "contract: --force skips the confirmation prompt entirely and removes the file":
     let dir = getTempDir() / "contract_remove_vault_force"

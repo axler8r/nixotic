@@ -1,9 +1,27 @@
 import std/os
-import "../lib/cli"
-import "../lib/output"
-import "../lib/process"
-import "../lib/validation"
-import "../lib/vault"
+import "../../lib/output"
+import "../../lib/process"
+import "../../lib/spec"
+import "../../lib/validation"
+import "../../lib/vault"
+
+let cmdSpec* = CommandSpec(
+  specVersion: specVersionCurrent,
+  path: @["vault", "remove"],
+  kind: ckVerb,
+  summary: "delete a LUKS vault file",
+  usage: "ax vault remove <name> [--force]",
+  args: @[
+    ArgSpec(name: "name", required: true,
+            description: "vault name (e.g. mydata) or full path to the vault file")
+  ],
+  flags: @[
+    FlagSpec(long: "force", takesValue: false,
+             description: "skip the confirmation prompt")
+  ],
+  deps: @["rm"],
+  dryRun: false
+)
 
 type ParsedArgs* = object
   vaultInput*: string
@@ -24,7 +42,7 @@ proc run*(
   inp: File = stdin
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
-    outp.writeLine """Usage: Remove-Vault <vault-name> [--force]
+    outp.writeLine """Usage: ax vault remove <name> [--force]
 
 Description:
     Delete a LUKS encrypted vault file. Ensures the vault is not mounted before deletion.
@@ -35,16 +53,16 @@ Options:
     --force    Skip confirmation prompt
 
 Arguments:
-    vault-name    Vault name (e.g., mydata) or full path to vault file
+    name    Vault name (e.g., mydata) or full path to vault file
 
 Examples:
-    Remove-Vault mydata
-    Remove-Vault secrets --force
-    Remove-Vault ~/Vaults/.mydata.vault      # Explicit path"""
+    ax vault remove mydata
+    ax vault remove secrets --force
+    ax vault remove ~/Vaults/.mydata.vault      # Explicit path"""
     return 0
 
   let parsed = parseArgs(args)
-  if not requireArg(parsed.vaultInput, "vault name", errp): return 1
+  if not requireArg(parsed.vaultInput, "vault name", errp): return 64
   if not checkDeps(["rm"], errp): return 2
 
   let v = resolveVault(parsed.vaultInput)
@@ -54,7 +72,7 @@ Examples:
 
   if mapperPresent(v.mapperName):
     error("Vault is currently mounted. Dismount first with:", errp)
-    outp.writeLine("  dismount-vault " & v.vaultName)
+    outp.writeLine("  ax vault unmount " & v.vaultName)
     return 1
 
   if not parsed.force:
@@ -71,4 +89,5 @@ Examples:
   0
 
 when isMainModule:
-  cliMain(run(commandLineParams()))
+  axMain(cmdSpec):
+    run(commandLineParams())

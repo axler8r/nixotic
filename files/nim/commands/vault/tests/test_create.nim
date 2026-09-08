@@ -1,8 +1,8 @@
 import std/[unittest, os, strutils]
-import "../NewVault"
-import "../../lib/testing"
+import "../create"
+import "../../../lib/testing"
 
-suite "New-Vault parseArgs":
+suite "ax vault create parseArgs":
   test "defaults: 1G size, $HOME/Vaults location, empty name":
     let home = getTempDir() / "test_new_vault_parseargs_home"
     createDir(home)
@@ -39,7 +39,7 @@ suite "New-Vault parseArgs":
     let p = parseArgs(@["mydata", "--location"])
     check p.missingFlagValue == "--location"
 
-suite "New-Vault run":
+suite "ax vault create run":
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_new_vault_help.txt"
     let f = open(tmp, fmWrite)
@@ -48,7 +48,7 @@ suite "New-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-Vault")
+    check content.contains("Usage: ax vault create")
 
   test "prints usage and returns 0 for -h":
     let tmp = getTempDir() / "test_new_vault_h.txt"
@@ -58,7 +58,7 @@ suite "New-Vault run":
     let content = readFile(tmp)
     removeFile(tmp)
     check code == 0
-    check content.contains("Usage: New-Vault")
+    check content.contains("Usage: ax vault create")
 
   test "missing --size value is an error before requireArg":
     let tmp = getTempDir() / "test_new_vault_missing_size.txt"
@@ -67,7 +67,7 @@ suite "New-Vault run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing value for --size")
 
   test "missing vault name is a requireArg error":
@@ -77,7 +77,7 @@ suite "New-Vault run":
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
-    check code == 1
+    check code == 64
     check content.contains("Missing required argument: vault name")
 
   test "missing deps is exit 2 with a Missing commands error":
