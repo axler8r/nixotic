@@ -1,17 +1,19 @@
 # Migration Plan: .dotfiles (Ansible/Stow) → .nixotic (NixOS Flakes + Home Manager)
+
 > Created: 7 January 2026
 
-
 ## Overview
+
 Migrate from GNU Stow-managed dotfiles with Ansible provisioning to a
 declarative NixOS Flakes + Home Manager configuration.
 
 **Source:** `~/.dotfiles/` (Ansible roles, Stow packages)  
 **Target:** `~/.nixotic/` (NixOS Flake + Home Manager)
 
-
 ## Decisions & Agreements
+
 Tracking key decisions made during migration:
+
 | Decision                      | Rationale                                              |
 | ----------------------------- | ------------------------------------------------------ |
 | **No btop/nvtop in base**     | Nice-to-have, add via project `shell.nix` if needed    |
@@ -26,18 +28,20 @@ Tracking key decisions made during migration:
 | **Project-specific tools**    | Use `shell.nix` / `flake.nix` + direnv                 |
 | **Neovim migration deferred** | Keep vim-plug for now; migrate later                   |
 
-
 ## Phase 0 — Scaffold Flake Structure
+
 Set up `.nixotic/` as a flake that imports existing `/etc/nixos/` configs,
 enabling incremental migration without breaking the working system.
 
 ### Deliverables
+
 - [x] `flake.nix` with nixpkgs + home-manager inputs
 - [x] `hosts/nix000/` importing current `configuration.nix` + `hardware-configuration.nix`
 - [x] Symlink from `/etc/nixos/hardware-configuration.nix` → `.nixotic/hosts/nix000/`
 - [x] Added `hardware-configuration.nix` to `.gitignore` (machine-specific)
 
 ### Target Structure
+
 ```
 .nixotic/
 ├── flake.nix
@@ -50,34 +54,38 @@ enabling incremental migration without breaking the working system.
     └── default.nix
 ```
 
-
 ## Phase 1 — Consolidate Packages
+
 Review and finalize package placement. Packages are currently in:
+
 - `users.users.axl.packages` (user CLI tools)
 - `environment.systemPackages` (system-wide tools)
 
 ### Deliverables
+
 - [x] Audit packages from `ansible/roles/packages/vars/main.yml`
 - [x] Audit tools from `ansible/roles/asdf/vars/main.yml`
 - [x] Confirm all needed packages are in NixOS config
 - [x] Powerline not added (replaced by Starship in Phase 3)
 - [x] Philosophy: minimal base + project-specific `shell.nix`
 
-
 ## Phase 2 — Add Home Manager (Minimal)
+
 Integrate Home Manager as a NixOS module with minimal configuration.
 
 ### Deliverables
+
 - [x] Add Home Manager flake input
 - [x] Import `home-manager.nixosModules.home-manager`
 - [x] Create `home/default.nix` with `home.stateVersion`
 - [x] Verify `nixos-rebuild switch` works
 
-
 ## Phase 3 — Migrate Easy Dotfiles
+
 Port quick-win configs with native Home Manager modules.
 
 ### Deliverables
+
 | Module               | Source                                             | Target              |
 | -------------------- | -------------------------------------------------- | ------------------- |
 | `programs.starship`  | `dotfiles/terminal/.config/starship/starship.toml` | `home/starship.nix` |
@@ -92,16 +100,18 @@ Port quick-win configs with native Home Manager modules.
 - [x] Remove corresponding stow package symlinks
 
 ### Notes
+
 - Starship migrated to pure Nix in Phase 9 (`programs.starship.settings`)
 - Bat migrated to pure Nix in Phase 9 (`programs.bat.config`)
 - Git config migrated to pure Nix in Phase 9 (`programs.git.settings`)
 
-
 ## Phase 4 — Migrate Terminal (tmux + kitty)
+
 Port terminal configs with Solarized theme, replacing Powerline with custom
 status bar.
 
 ### Deliverables
+
 | Module           | Source                             | Target           |
 | ---------------- | ---------------------------------- | ---------------- |
 | `programs.tmux`  | `dotfiles/tmux/.tmux.conf`         | `home/tmux.nix`  |
@@ -114,31 +124,35 @@ status bar.
 - [x] Remove corresponding stow package symlinks
 
 ### Notes
+
 - `jaclu/tmux-menus` not in nixpkgs — omitted for now
 - Kitty uses `xdg.configFile.source` to preserve original configs
 - Powerline replaced by custom Solarized status bar in tmux
 
+## Phase 5 — Migrate Neovim _(DEFERRED)_
 
-## Phase 5 — Migrate Neovim *(DEFERRED)*
 Port editor config. Decide on plugin management strategy.
 
 **Status:** Deferred — will use Option A (keep vim-plug) later to maintain momentum.
 
 ### Options
-- **Option A:** Keep vim-plug, use `extraConfig = builtins.readFile ./init.vim` ← *preferred*
+
+- **Option A:** Keep vim-plug, use `extraConfig = builtins.readFile ./init.vim` ← _preferred_
 - **Option B:** Migrate to `programs.neovim.plugins` with Nix packages
 
 ### Deliverables
+
 - [ ] Create `home/neovim.nix`
 - [ ] Decide on plugin strategy
 - [ ] Move neovim from `environment.systemPackages` to Home Manager
 - [ ] Remove corresponding stow package symlinks
 
-
 ## Phase 6 — Migrate Zsh (Most Complex)
+
 Port shell config including 54 custom functions and extensive aliases.
 
 ### Deliverables
+
 | Component           | Approach                                      |
 | ------------------- | --------------------------------------------- |
 | Aliases (357 lines) | `home.file.".zshalias"` (kept as source file) |
@@ -158,15 +172,17 @@ Port shell config including 54 custom functions and extensive aliases.
 - [x] Remove corresponding stow package symlinks
 
 ### Notes
+
 - Aliases kept as source file (complex with local variables)
 - Functions copied to `files/zsh/functions/` and autoloaded via loop
 - Used `initExtra` for shell options, keybindings, environment setup
 
-
 ## Phase 7 — System Files + Cleanup
+
 Port remaining files and retire Ansible/Stow.
 
 ### Deliverables
+
 | File              | Approach                     |
 | ----------------- | ---------------------------- |
 | `.XCompose`       | `home.file.".XCompose"`      |
@@ -183,8 +199,8 @@ Port remaining files and retire Ansible/Stow.
 - [x] Copy remaining system files to `files/`
 - [x] Keep `.dotfiles` as archive for reference
 
-
 ## Final .nixotic Structure
+
 ```
 .nixotic/
 ├── flake.nix
@@ -251,8 +267,8 @@ Port remaining files and retire Ansible/Stow.
         └── configuration.nix
 ```
 
-
 ## Home Manager Module Reference
+
 | Stow Package | Home Manager Module  | Notes                                    |
 | ------------ | -------------------- | ---------------------------------------- |
 | bat          | `programs.bat`       | Direct mapping                           |
@@ -269,18 +285,20 @@ Port remaining files and retire Ansible/Stow.
 ---
 
 ## Notes
+
 - Keep `.dotfiles` and `.nixotic` parallel during migration
 - Retire stow packages incrementally as Home Manager takes over
 - Test each phase with `nixos-rebuild switch` before proceeding
 - Powerline is fully replaced by Starship (prompt) + custom tmux status bar
 
-
 ## Phase 8 — Production Readiness
+
 > Added: 10 January 2026
 
 Prepare configuration for multi-host deployment.
 
 ### Deliverables
+
 - [x] Rename host from `prototype`/`nix000` to `demonstr8r`
 - [x] Create placeholder hosts (`ambul8r`, `infer8r`)
 - [x] Refactor `flake.nix` with `mkHost` helper function
@@ -292,6 +310,7 @@ Prepare configuration for multi-host deployment.
 - [x] Update Migration.md
 
 ### Host Naming Convention
+
 | Host         | Derivation  | Purpose        |
 | ------------ | ----------- | -------------- |
 | `demonstr8r` | demonstrate | Development VM |
@@ -299,13 +318,14 @@ Prepare configuration for multi-host deployment.
 | `infer8r`    | infer       | ML workstation |
 
 ### Next Steps
+
 - [x] Add CI/CD validation (`nix flake check`)
 - [ ] Consider secrets management (sops-nix or agenix)
 - [ ] Pin nixpkgs to stable for production hosts
 - [ ] Complete Neovim migration (Phase 5)
 
-
 ## Phase 9 — Pure Nix Configuration
+
 > Added: 16 January 2026
 
 Migrate dotfiles from `files/` symlinks to pure Nix configuration using
@@ -315,8 +335,9 @@ conditional configuration, type checking, and better composition.
 ### Migration Tiers
 
 **Tier 1: Easy Wins**
-| Module        | Status | Notes                                |
-| ------------- | ------ | ------------------------------------ |
+
+| Module        | Status  | Notes                                |
+| ------------- | ------- | ------------------------------------ |
 | starship.nix  | ✅ Done | TOML → `programs.starship.settings`  |
 | git.nix       | ✅ Done | Consolidated `files/git/config`      |
 | bat.nix       | ✅ Done | Use `programs.bat.config`            |
@@ -324,32 +345,37 @@ conditional configuration, type checking, and better composition.
 | eza.nix       | ✅ N/A  | Already pure Nix                     |
 
 **Tier 2: Medium Effort**
-| Module     | Status | Notes                                         |
-| ---------- | ------ | --------------------------------------------- |
-| tmux.nix   | ✅ Done | Moved `tmux.conf` into `extraConfig`          |
-| ranger.nix | ✅ Done | `settings` + inline `scope.sh`                |
-| atuin.nix  | ✅ N/A  | Already pure Nix                              |
-| htop.nix   | ✅ N/A  | Already pure Nix                              |
+
+| Module     | Status  | Notes                                |
+| ---------- | ------- | ------------------------------------ |
+| tmux.nix   | ✅ Done | Moved `tmux.conf` into `extraConfig` |
+| ranger.nix | ✅ Done | `settings` + inline `scope.sh`       |
+| atuin.nix  | ✅ N/A  | Already pure Nix                     |
+| htop.nix   | ✅ N/A  | Already pure Nix                     |
 
 **Tier 3: Complex (Selective)**
-| Module     | Status | Notes                                         |
-| ---------- | ------ | --------------------------------------------- |
-| kitty.nix  | ⬜ Todo | Settings yes, theme files maybe keep          |
-| zsh.nix    | ⬜ Skip | Keep `initContent` + `builtins.readFile`      |
-| zshalias   | ⬜ Todo | Move to `programs.zsh.shellAliases`           |
-| nushell.nix| ⬜ Skip | Complex config, keep as dotfiles              |
+
+| Module      | Status  | Notes                                    |
+| ----------- | ------- | ---------------------------------------- |
+| kitty.nix   | ⬜ Todo | Settings yes, theme files maybe keep     |
+| zsh.nix     | ⬜ Skip | Keep `initContent` + `builtins.readFile` |
+| zshalias    | ⬜ Todo | Move to `programs.zsh.shellAliases`      |
+| nushell.nix | ⬜ Skip | Complex config, keep as dotfiles         |
 
 **Tier 4: Keep As Dotfiles**
-| File                | Reason                                         |
-| ------------------- | ---------------------------------------------- |
-| 54 zsh functions    | Shell scripts with complex quoting/regex       |
-| Julia configs       | Niche, no HM module, rarely changes            |
-| tigrc               | No HM module, stable config                    |
-| kitty themes        | Theme files work well as source files          |
-| .XCompose, .ctags   | System files, no benefit to Nix-ifying         |
+
+| File              | Reason                                   |
+| ----------------- | ---------------------------------------- |
+| 54 zsh functions  | Shell scripts with complex quoting/regex |
+| Julia configs     | Niche, no HM module, rarely changes      |
+| tigrc             | No HM module, stable config              |
+| kitty themes      | Theme files work well as source files    |
+| .XCompose, .ctags | System files, no benefit to Nix-ifying   |
 
 ### Deleted Dotfiles
+
 Files removed after successful migration:
+
 - [x] `files/starship/starship.toml` — replaced by `programs.starship.settings`
 - [x] `files/git/config` — replaced by `programs.git.settings`
 - [x] `files/bat/config` — replaced by `programs.bat.config`
@@ -359,20 +385,24 @@ Files removed after successful migration:
 - [x] `files/ranger/scope.sh` — inlined into `xdg.configFile` with `text`
 
 ### Validation Workflow
+
 See [Configuration Validation Workflow](Workflow.md#configuration-validation-workflow)
 for the staged approach used during migrations.
-
 
 ## Future Considerations
 
 ### Secrets Management
+
 When API keys, tokens, or other secrets are needed in the configuration:
+
 - **sops-nix** — Encrypts secrets with age/GPG, decrypts at build time
 - **agenix** — Similar approach, slightly simpler setup
 - Evaluate when first secret is needed (e.g., Tailscale auth key, API tokens)
 
 ### nixos-anywhere + disko
+
 For deploying to new machines (ambul8r, infer8r):
+
 - **nixos-anywhere** — Deploy NixOS over SSH to any Linux machine
 - **disko** — Declarative disk partitioning in Nix
 - Add `disko` flake input when ready to provision new hardware
@@ -387,13 +417,16 @@ inputs.disko = {
 
 > ⚠️ **IMPORTANT:** Placeholder `hardware-configuration.nix` files exist for `ambul8r` and `infer8r`.
 > These **MUST be replaced** when deploying to actual hardware:
+>
 > ```bash
 > # On the target machine, generate real hardware config:
 > nixos-generate-config --show-hardware-config > ~/.nixotic/hosts/<hostname>/hardware-configuration.nix
 > ```
+>
 > The placeholders use generic disk labels (`/dev/disk/by-label/nixos`) that won't match real hardware.
 
 ### Regenerating Hardware Configuration
+
 If you add hardware (disks, GPUs, etc.), regenerate the config **directly into your flake**:
 
 ```bash
@@ -409,18 +442,23 @@ cp /etc/nixos/hardware-configuration.nix ~/.nixotic/hosts/demonstr8r/
 Always specify `--dir` or copy the file manually to keep your flake up to date.
 
 After regenerating, review changes before committing:
+
 ```bash
 git diff ~/.nixotic/hosts/demonstr8r/hardware-configuration.nix
 ```
 
 ### lib/ Directory
+
 When configuration grows beyond 3 hosts or shared logic emerges:
+
 - Extract `mkHost` helper to `lib/mkHost.nix`
 - Add shared color definitions (`lib/colors.nix`) for Solarized theme
 - Centralise custom options in `lib/options.nix`
 
 ### Host-Specific Modules
+
 Future modules to consider per-host:
+
 | Host         | Potential Modules                                       |
 | ------------ | ------------------------------------------------------- |
 | `demonstr8r` | VirtualBox guest additions, development tools           |
@@ -428,7 +466,9 @@ Future modules to consider per-host:
 | `infer8r`    | NVIDIA drivers, CUDA, container runtime (podman/docker) |
 
 ### Cachix (Optional)
+
 For faster CI builds and sharing binary caches:
+
 - Create a Cachix cache for nixotic
 - Push builds from CI to cache
 - Pull cached builds on all hosts
