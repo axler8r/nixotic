@@ -73,24 +73,27 @@ flowchart TD
     HostEntry["nixosConfigurations.<hostname>"]
     MkHost["mkHost\nrole default: workstation\nhomeConfig default: null"]
     IsWorkstation["isWorkstation = true"]
-    HomeProfile["home profile\nhome/desktop.nix"]
+    RoleModule["profiles/roles/workstation.nix"]
+    HomeProfile["home profile\nhome/workstation.nix"]
     NixosSystem["nixpkgs.lib.nixosSystem"]
 
     HostPath["hostPath\nhosts/<hostname>/configuration.nix"]
     DiskoModule["disko.nixosModules.disko"]
     HMModule["home-manager.nixosModules.home-manager"]
-    HMUser["home-manager.users.axl\nimport home/desktop.nix"]
+    HMUser["home-manager.users.axl\nimport home/workstation.nix"]
     StylixModule["stylix.nixosModules.stylix"]
     StylixConfig["stylix.nix"]
 
     Flake --> HostEntry
     HostEntry --> MkHost
     MkHost --> HostPath
+    MkHost --> RoleModule
     MkHost --> IsWorkstation
     IsWorkstation --> HomeProfile
     MkHost --> NixosSystem
 
     HostPath --> NixosSystem
+    RoleModule --> NixosSystem
     DiskoModule --> NixosSystem
     HMModule --> NixosSystem
     HMUser --> NixosSystem
@@ -101,23 +104,27 @@ flowchart TD
 For every future workstation, `mkHost` adds:
 
 - the host's own `configuration.nix`
+- the system role module `profiles/roles/workstation.nix` (which imports
+  `profiles/roles/base.nix`)
 - Disko support
 - Home Manager as a NixOS module
-- `home/desktop.nix` for user `axl`
+- `home/workstation.nix` for user `axl`
 - Stylix's NixOS module
 - the root `stylix.nix` theme configuration
 
+`mkHost` is the only place a host's role is declared. Host files never import a
+role module; they import only orthogonal profiles (storage, hardware, platform).
+
 ## Generated Host Module
 
-For a workstation, `Prepare-NewHost` generates this import shape:
+For a fixed workstation, `Prepare-NewHost` generates this import shape:
 
 ```nix
 {
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
-    ../common/zfs-root.nix
-    ../common/workstation.nix
+    ../../profiles/storage/zfs-root.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -130,9 +137,12 @@ For a workstation, `Prepare-NewHost` generates this import shape:
 }
 ```
 
+A portable workstation additionally imports `../../profiles/hardware/laptop.nix`.
+
 Current-state note: `ambul8r` is a legacy workstation and does not currently
-import `../common/zfs-root.nix`; it keeps its existing ZFS/runtime settings in
-`hosts/ambul8r/configuration.nix`.
+import `../../profiles/storage/zfs-root.nix`; it keeps its existing ZFS/runtime
+settings in `hosts/ambul8r/configuration.nix`. It does import
+`profiles/hardware/laptop.nix`.
 
 That file is deliberately small. It owns only the host identity and the first
 boot defaults. Hardware quirks are added there later only when the running
@@ -143,9 +153,11 @@ flowchart TD
     HostConfig["hosts/<hostname>/configuration.nix"]
     Hardware["hardware-configuration.nix\nplaceholder, replaced during install"]
     DiskWrapper["disk.nix\nfixed or portable wrapper"]
-    ZfsRoot["hosts/common/zfs-root.nix\nZFS runtime settings"]
-    Workstation["hosts/common/workstation.nix\nGNOME workstation role"]
-    Base["hosts/common/base.nix\nshared host baseline"]
+    ZfsRoot["profiles/storage/zfs-root.nix\nZFS runtime settings"]
+    Laptop["profiles/hardware/laptop.nix\nportable only"]
+    MkHost["mkHost\nrole = workstation"]
+    Workstation["profiles/roles/workstation.nix\nGNOME workstation role"]
+    Base["profiles/roles/base.nix\nshared host baseline"]
 
     Identity["Host identity\nhostName, hostId"]
     Boot["Boot defaults\nsystemd-boot, EFI"]
@@ -154,7 +166,9 @@ flowchart TD
     HostConfig --> Hardware
     HostConfig --> DiskWrapper
     HostConfig --> ZfsRoot
-    HostConfig --> Workstation
+    HostConfig --> Laptop
+    MkHost --> HostConfig
+    MkHost --> Workstation
     Workstation --> Base
 
     HostConfig --> Identity
@@ -165,12 +179,12 @@ flowchart TD
 ## Disk Route
 
 Future workstations use the shared ZFS-on-root Disko layout in
-`hosts/common/zfs-root-disk.nix`.
+`profiles/storage/zfs-root-disk.nix`.
 
 For a fixed workstation, `disk.nix` is generated as:
 
 ```nix
-import ../common/zfs-root-disk.nix {
+import ../../profiles/storage/zfs-root-disk.nix {
   device = "/dev/nvme0n1";
   swap   = "zram";
 }
@@ -179,7 +193,7 @@ import ../common/zfs-root-disk.nix {
 For a portable workstation, `disk.nix` is generated as:
 
 ```nix
-import ../common/zfs-root-disk.nix {
+import ../../profiles/storage/zfs-root-disk.nix {
   device      = "/dev/nvme0n1";
   swap        = "hibernate";
   swapSizeGiB = 64;
@@ -193,7 +207,7 @@ machine's RAM.
 ```mermaid
 flowchart TD
     DiskNix["hosts/<hostname>/disk.nix"]
-    SharedLayout["hosts/common/zfs-root-disk.nix"]
+    SharedLayout["profiles/storage/zfs-root-disk.nix"]
     Profile{"profile"}
     Fixed["fixed\nzram swap\nno hibernation"]
     Portable["portable\nswap partition\nresumeDevice"]
@@ -221,13 +235,14 @@ flowchart TD
 
 ## Workstation System Role
 
-The shared workstation role is `hosts/common/workstation.nix`. It imports the
-shared base role and then adds desktop system behavior.
+The shared workstation role is `profiles/roles/workstation.nix`. It imports the
+shared base role and then adds desktop system behavior. `mkHost` injects it for
+every `role = "workstation"` host.
 
 ```mermaid
 flowchart TD
-    Workstation["hosts/common/workstation.nix"]
-    Base["hosts/common/base.nix"]
+    Workstation["profiles/roles/workstation.nix"]
+    Base["profiles/roles/base.nix"]
 
     Network["NetworkManager"]
     Desktop["GNOME\nGDM, X server, keyboard"]
@@ -260,20 +275,28 @@ flowchart TD
 This role is the reusable system-level template for workstations. Host-specific
 hardware should not be added here unless it applies to all future workstations.
 
+## Hardware Profiles
+
+Form factor is orthogonal to role, so it is a separate profile rather than a
+host directory. `profiles/hardware/laptop.nix` holds what every portable host
+wants regardless of vendor (currently `fwupd`). Vendor-specific facts such as
+GPU driver, PRIME bus IDs, and the resume device UUID stay in the host file.
+There is no `desktop.nix` until a fixed workstation exists to justify one.
+
 ## Home Manager Route
 
 All workstation hosts use the same Home Manager profile as `ambul8r`:
-`home/desktop.nix`.
+`home/workstation.nix`.
 
 ```mermaid
 flowchart TD
     HM["home-manager.users.axl"]
-    Desktop["home/desktop.nix"]
+    Desktop["home/workstation.nix"]
     HomeBase["home/base.nix"]
 
-    DesktopImports["desktop imports\natuin, bat, btop, claude, eza,\nfastfetch, fd, gh, gnome, gpg,\nhtop, jq, kitty, neovim, nh,\nnushell, ripgrep, stylix, vscode, yazi"]
+    DesktopImports["workstation imports\natuin, bat, btop, claude, eza,\nfastfetch, fd, gh, gnome, gpg,\nhtop, jq, kitty, neovim, nh,\nnushell, ripgrep, stylix, vscode, yazi"]
     BaseImports["base imports\ndircolors, direnv, files, git,\nhelix, starship, tmux, zsh"]
-    DesktopPackages["desktop packages\ncodex, claude-code, dev tools,\nCLI tools, media tools"]
+    DesktopPackages["workstation packages\ncodex, claude-code, dev tools,\nCLI tools, media tools"]
     GnomeUser["home/gnome.nix\nGNOME apps, dconf,\nXDG dirs, extensions"]
     Files["files/\ndotfiles, zsh functions,\ncompletions, app configs"]
     Editor["EDITOR = nvim"]
@@ -331,11 +354,12 @@ flowchart LR
     Flake["flake.nix + nix/mkhost.nix\nmkHost default workstation"]
     Host["hosts/<hostname>/configuration.nix\nthin host wrapper"]
     Disk["hosts/<hostname>/disk.nix\nZFS-on-root wrapper"]
-    ZfsDisk["hosts/common/zfs-root-disk.nix\npartition and dataset layout"]
-    ZfsRuntime["hosts/common/zfs-root.nix\nruntime ZFS settings"]
-    Workstation["hosts/common/workstation.nix\nshared workstation system"]
-    Base["hosts/common/base.nix\nshared host baseline"]
-    Home["home/desktop.nix\nshared user profile"]
+    ZfsDisk["profiles/storage/zfs-root-disk.nix\npartition and dataset layout"]
+    ZfsRuntime["profiles/storage/zfs-root.nix\nruntime ZFS settings"]
+    Laptop["profiles/hardware/laptop.nix\nportable only"]
+    Workstation["profiles/roles/workstation.nix\nshared workstation system"]
+    Base["profiles/roles/base.nix\nshared host baseline"]
+    Home["home/workstation.nix\nshared user profile"]
     Files["files/\nlinked user assets and scripts"]
     Theme["stylix.nix + home/stylix.nix\nshared theme route"]
     System["Future workstation\nNixOS + Home Manager"]
@@ -345,7 +369,8 @@ flowchart LR
     Host --> Disk
     Disk --> ZfsDisk
     Host --> ZfsRuntime
-    Host --> Workstation
+    Host --> Laptop
+    Flake --> Workstation
     Workstation --> Base
     Flake --> Home
     Home --> Files
@@ -353,6 +378,7 @@ flowchart LR
 
     ZfsDisk --> System
     ZfsRuntime --> System
+    Laptop --> System
     Workstation --> System
     Base --> System
     Home --> System
@@ -364,18 +390,18 @@ flowchart LR
 Future workstation hosts share:
 
 - the same `mkHost` workstation path in `flake.nix`
-- the same system baseline from `hosts/common/base.nix`
-- the same workstation system role from `hosts/common/workstation.nix`
-- the same ZFS-on-root layout from `hosts/common/zfs-root-disk.nix`
-- the same ZFS runtime settings from `hosts/common/zfs-root.nix`
-- the same Home Manager profile from `home/desktop.nix`
+- the same system baseline from `profiles/roles/base.nix`
+- the same workstation system role from `profiles/roles/workstation.nix`
+- the same ZFS-on-root layout from `profiles/storage/zfs-root-disk.nix`
+- the same ZFS runtime settings from `profiles/storage/zfs-root.nix`
+- the same Home Manager profile from `home/workstation.nix`
 - the same user dotfile source tree under `files/`
 - the same Stylix theme path
 
 They should differ only where the physical machine requires it:
 
 - disk device name
-- fixed versus portable swap profile
+- fixed versus portable swap profile and the laptop hardware profile
 - generated hardware configuration
 - GPU driver and bus IDs
 - hibernation, suspend, or firmware quirks
@@ -383,18 +409,21 @@ They should differ only where the physical machine requires it:
 
 ## Where Changes Belong
 
-| Change type                                                          | Usual location                                         |
-| -------------------------------------------------------------------- | ------------------------------------------------------ |
-| Make every future workstation behave differently at the system level | `hosts/common/workstation.nix`                         |
-| Make every host behave differently, workstation or server            | `hosts/common/base.nix`                                |
-| Change the default future workstation disk layout                    | `hosts/common/zfs-root-disk.nix`                       |
-| Change runtime ZFS behavior for new ZFS-on-root hosts                | `hosts/common/zfs-root.nix`                            |
-| Change all workstation user tools or dotfiles                        | `home/desktop.nix`, imported `home/*.nix`, or `files/` |
-| Change GNOME user preferences or desktop apps                        | `home/gnome.nix`                                       |
-| Change shared workstation theming                                    | `stylix.nix` or `home/stylix.nix`                      |
-| Add one machine's hardware-specific settings                         | `hosts/<hostname>/configuration.nix`                   |
-| Change how hosts are composed                                        | `nix/mkhost.nix`                                       |
+| Change type                                                          | Usual location                                             |
+| -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Make every future workstation behave differently at the system level | `profiles/roles/workstation.nix`                           |
+| Make every host behave differently, workstation or server            | `profiles/roles/base.nix`                                  |
+| Make every laptop behave differently                                 | `profiles/hardware/laptop.nix`                             |
+| Change the default future workstation disk layout                    | `profiles/storage/zfs-root-disk.nix`                       |
+| Change runtime ZFS behavior for new ZFS-on-root hosts                | `profiles/storage/zfs-root.nix`                            |
+| Change all workstation user tools or dotfiles                        | `home/workstation.nix`, imported `home/*.nix`, or `files/` |
+| Change GNOME user preferences or desktop apps                        | `home/gnome.nix`                                           |
+| Change shared workstation theming                                    | `stylix.nix` or `home/stylix.nix`                          |
+| Add one machine's hardware-specific settings                         | `hosts/<hostname>/configuration.nix`                       |
+| Change how hosts are composed, or which role a host has              | `nix/mkhost.nix`, `flake.nix`                              |
 
-The rule of thumb is simple: shared workstation policy goes in the shared
-workstation modules; machine facts and quirks stay in the generated host
-directory.
+The rule of thumb is simple: shared policy goes in `profiles/` split by concern
+(role, hardware, platform, storage); machine facts and quirks stay in the
+generated host directory. `hosts/` stays flat: one directory per machine, never
+partitioned by role or form factor, because those are orthogonal axes expressed
+as imports.

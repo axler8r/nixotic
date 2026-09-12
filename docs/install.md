@@ -368,7 +368,7 @@ sudo nixos-rebuild switch --flake .#illumin8r
 ## Disk Layout
 
 New hosts use a ZFS-on-root layout declared in
-[`hosts/common/zfs-root-disk.nix`](../hosts/common/zfs-root-disk.nix). Two
+[`profiles/storage/zfs-root-disk.nix`](../profiles/storage/zfs-root-disk.nix). Two
 profiles share the same base:
 
 **`fixed` — desktop / server / VM**
@@ -444,13 +444,13 @@ create a LUKS vault on demand with
 snapshot schedule and quotas independently.
 
 Dataset ownership is set by `systemd.tmpfiles.rules` in
-[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix), which runs on every
+[`profiles/storage/zfs-root.nix`](../profiles/storage/zfs-root.nix), which runs on every
 boot.
 
 ## Required NixOS Configuration
 
 ZFS-on-root hosts import
-[`hosts/common/zfs-root.nix`](../hosts/common/zfs-root.nix) from their
+[`profiles/storage/zfs-root.nix`](../profiles/storage/zfs-root.nix) from their
 `configuration.nix`. That shared module owns all the common runtime settings:
 
 ```nix

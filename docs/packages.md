@@ -14,12 +14,12 @@ reflect that boundary.
 ```mermaid
 flowchart TD
     Start([Need a package?]) --> Q1{All users?<br/>Root access?}
-    Q1 -->|Yes| Sys[environment.systemPackages<br/>`hosts/*/configuration.nix`]
+    Q1 -->|Yes| Sys[environment.systemPackages<br/>`profiles/roles/*.nix` or `hosts/*/configuration.nix`]
     Q1 -->|No| Q2{Needs polkit/setuid/<br/>system D-Bus service?}
-    Q2 -->|Yes| User[users.users.axl.packages<br/>`hosts/*/configuration.nix`]
+    Q2 -->|Yes| User[users.users.axl.packages<br/>`profiles/roles/*.nix` or `hosts/*/configuration.nix`]
     Q2 -->|No| Q3{Home Manager<br/>module exists?}
     Q3 -->|Yes| Prog[programs.&lt;name&gt;.enable<br/>`home/*.nix`]
-    Q3 -->|No| Home[home.packages<br/>`home/desktop.nix`]
+    Q3 -->|No| Home[home.packages<br/>`home/workstation.nix`]
 
     Sys --> End([Package installed])
     User --> End
@@ -36,7 +36,7 @@ flowchart TD
 
 ### 1. `environment.systemPackages`
 
-**Location:** `hosts/*/configuration.nix`  
+**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix` (one host)  
 **Use for:** System-wide tools, root access, all users
 
 Examples:
@@ -47,7 +47,7 @@ Examples:
 
 ### 2. `users.users.<name>.packages`
 
-**Location:** `hosts/*/configuration.nix`  
+**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix` (one host)  
 **Use for:** User-specific packages needing system integration
 
 This tier exists for packages that need genuine system-level integration —
@@ -64,10 +64,10 @@ Examples:
 
 ### 3. `home.packages`
 
-**Location:** `home/desktop.nix` or `home/gnome.nix` (GUI apps)  
+**Location:** `home/workstation.nix` or `home/gnome.nix` (GUI apps)  
 **Use for:** Most user CLI tools and development packages
 
-Examples in `home/desktop.nix`:
+Examples in `home/workstation.nix`:
 
 - Version control: `tig`, `gitflow`
 - CLI tools: `curl`, `wget`, `tokei`, `fdupes`, `bfs`

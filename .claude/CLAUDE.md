@@ -1,29 +1,30 @@
 # Nixotic Configuration Guidelines
 
-
 ## Context
+
 This project manages desired state configuration for my computers using:
+
 - **NixOS flake** with Home Manager as a module.
-- **Hosts**: two roles — workstation (GNOME) and server (CLI only). `ambul8r` (workstation: laptop, NVIDIA), `illumin8r` (server: WSL dev container host), `cre8r` (server: provisioning helper VM).
+- **Hosts**: two roles — workstation (GNOME) and server (CLI only). `ambul8r` (workstation: laptop, NVIDIA), `illumin8r` (server: WSL dev container host), `cre8r` (server: provisioning helper VM). Role is declared once in `flake.nix` via `mkHost { role }`; `hosts/<name>/` is flat, and shared modules live in `profiles/{roles,hardware,platform,storage}/`.
 - **Desktop**: GNOME and only GNOME.
 - **Shell**: ZSH with custom functions in `files/zsh/functions/` (repo-relative — edited here; `~/.zsh/functions/` is the generated copy).
 - **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/colour-token-taxonomy.md`.
 
-
 ## On Startup
+
 Familiarize yourself with the project structure and files.
 
-
 ## About Theming
+
 If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as the source of truth.
 
-
 ## File Naming
+
 - All files in `files/` must be visible in the repository (no leading dot), even if they are mapped to hidden paths in the build.
 - The dotfile mapping is handled in `home/files.nix` or equivalent Nix configuration, not in the filename.
 
-
 ## Code Standards
+
 - ZSH functions use PowerShell approved verbs.
 - ZSH functions use PascalCase Verb-Noun naming (see `docs/zsh-functions-conventions.md`, repo-relative source of truth).
 - Use `command -v` not `which` for command detection.
@@ -33,8 +34,8 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 - Do not rely on Stylix/Base16 for terminal and editor syntax theming.
 - Keep syntax roles consistent across tools per `docs/colour-token-taxonomy.md`.
 
-
 ## Git Workflow
+
 - Add, rename, move and delete files as needed.
 - Stage and commit freely on WIP branches.
 - Use git commands to rename, move and delete files under version control.
@@ -45,23 +46,23 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
   4. `git branch --delete wip/<branch>`
 - Do not run `git push` — the user always pushes by hand.
 
-
 ## Git Commit Messages
+
 - Follow conventional commits.
 - Use `${HOME}/.gitcommit` as the source for type, scope/context, and subject format.
 - Use the `writing-git-commits` skill for subheadings and body format.
 - Descriptions must not exceed 100 characters.
 
-
 ## Build Commands
+
 - `nh os build` — test build without switching.
 - `nix flake check` — validate flake.
 - Do not run build commands automatically — offer them and let the user decide. Builds can take a long time.
 - Do not run `nh os switch`; only the user applies changes in a separate terminal.
 - If Python is needed for a task, use `nix run nixpkgs#python3 -- <args>`.
 
-
 ## Style
+
 - No emoticons.
 - Be direct and concise.
 - Ask one question at a time and wait for an answer before asking the next.

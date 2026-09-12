@@ -5,7 +5,10 @@
 This project manages desired state configuration for my computers using:
 
 - **NixOS flake** with Home Manager as a module.
-- **Host Roles**: workstation (GNOME) and server (CLI only).
+- **Host Roles**: workstation (GNOME) and server (CLI only). Role is declared
+  once, in `flake.nix` via `mkHost { role }`. `hosts/<name>/` is flat (one
+  directory per machine); shared modules live in `profiles/` split by concern:
+  `roles/`, `hardware/`, `platform/`, `storage/`.
 - **Desktop**: GNOME and only GNOME.
 - **CLI**: primary command surface is Nim via `ax` (`files/nim/`); ZSH
   functions in `files/zsh/functions/` are legacy/compatibility only
