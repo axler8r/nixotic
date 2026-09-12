@@ -4,7 +4,6 @@
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
-    ../../profiles/roles/workstation.nix
   ];
 
   boot.loader.efi.canTouchEfiVariables = true;

@@ -3,7 +3,6 @@
 {
   imports = [
     inputs.nixos-wsl.nixosModules.default
-    ../../profiles/roles/base.nix
   ];
 
   wsl.enable = true;

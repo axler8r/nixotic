@@ -1,6 +1,7 @@
 # Shared configuration for every nixotic host, workstation or server.
-# WSL-safe: no bootloader, disk, or ZFS assumptions — those live in the
-# host's own configuration.nix or in zfs-root.nix.
+# Imported by every role module; hosts do not import it. WSL-safe: no
+# bootloader, disk, or ZFS assumptions — those live in the host's own
+# configuration.nix or in profiles/storage/zfs-root.nix.
 { pkgs, ... }:
 
 {

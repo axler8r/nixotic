@@ -1,23 +1,25 @@
-# role selects the whole experience: "workstation" = Stylix +
-# home/workstation.nix, "server" = no Stylix + home/server.nix.
+# role is the single place a host's role is declared. It selects the system
+# role module (profiles/roles/<role>.nix, which imports base.nix), the home
+# profile (home/<role>.nix), and Stylix for workstations.
 # homeConfig overrides the home profile only (e.g. WSL).
 { inputs, self, system }:
 let
   inherit (inputs) nixpkgs home-manager stylix disko;
 in
 { hostPath, role ? "workstation", homeConfig ? null }:
+assert role == "workstation" || role == "server";
 let
   isWorkstation = role == "workstation";
   home =
     if homeConfig != null then homeConfig
-    else if isWorkstation then ../home/workstation.nix
-    else ../home/server.nix;
+    else ../home + "/${role}.nix";
 in
 nixpkgs.lib.nixosSystem {
   inherit system;
   specialArgs = { inherit inputs; };
   modules = [
     hostPath
+    (../profiles/roles + "/${role}.nix")
     disko.nixosModules.disko
     home-manager.nixosModules.home-manager
     {

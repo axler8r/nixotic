@@ -1,6 +1,7 @@
 # GNOME workstation role: everything a workstation needs beyond base.nix.
+# Injected by mkHost (role = "workstation"); hosts do not import it.
 # Hardware quirks (GPU driver, resume device, extra ZFS pools) stay in the
-# host's own configuration.nix.
+# host's own configuration.nix or a profiles/hardware module.
 { pkgs, ... }:
 
 {
