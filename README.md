@@ -25,7 +25,7 @@ New hosts are provisioned over SSH from a Nixotic Source using nixos-anywhere â€
 one command, unattended. The new machine boots the stock NixOS ISO and waits;
 nothing is typed on it beyond setting a root password.
 
-See [docs/install.md](../docs/install.md) for the full walkthrough.
+See [docs/install.md](docs/install.md) for the full walkthrough.
 
 ## Ongoing Updates
 
@@ -33,7 +33,7 @@ See [docs/install.md](../docs/install.md) for the full walkthrough.
 nh os switch
 ```
 
-See [docs/validation.md](../docs/validation.md) for the validation pipeline
+See [docs/validation.md](docs/validation.md) for the validation pipeline
 to run before applying changes.
 
 ## License
