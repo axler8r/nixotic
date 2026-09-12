@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
+    ../../profiles/platform/proxmox-vm.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -13,17 +14,6 @@
 
   # Console fallback for the Proxmox VM console; change after first login.
   users.users.axl.initialPassword = "Ch4ng3Me!";
-
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false;
-      PermitRootLogin = "no";
-    };
-  };
-
-  # Proxmox guest integration (clean shutdown, IP reporting in the UI).
-  services.qemuGuest.enable = true;
 
   system.stateVersion = "25.11";
 }

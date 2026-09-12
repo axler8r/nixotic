@@ -1,12 +1,9 @@
-{ inputs, ... }:
+{ ... }:
 
 {
   imports = [
-    inputs.nixos-wsl.nixosModules.default
+    ../../profiles/platform/wsl.nix
   ];
-
-  wsl.enable = true;
-  wsl.defaultUser = "axl";
 
   networking.hostName = "illumin8r";
 

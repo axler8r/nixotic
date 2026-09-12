@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
+    ../../profiles/hardware/laptop.nix
   ];
 
   boot.loader.efi.canTouchEfiVariables = true;
@@ -20,7 +21,6 @@
   networking.hostId = "001421c4"; # Required for ZFS — random, permanent per host
   networking.hostName = "ambul8r";
 
-  services.fwupd.enable = true;   
   services.rpcbind.enable = true;
   services.xserver.videoDrivers = [ "nvidia" ];
   services.zfs = {
