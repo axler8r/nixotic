@@ -229,8 +229,8 @@ otherwise compile it as a suite of its own.
 
 `std/unittest` (stdlib, no nimble dependency). One test file per command at
 `commands/<group>/[<subgroup>/]tests/test_<leaf>.nim`; shared-module suites
-in `lib/tests/`. `flake.nix` turns every test file into its own check
-derivation, discovered from the tree at eval time once the file belongs to
+in `lib/tests/`. `nix/nim.nix` and `nix/ax.nix` turn every test file into its
+own check derivation, discovered from the tree at eval time once the file belongs to
 the Git flake source. Untracked files are not included until staged by the
 user.
 All run under `nix flake check`, and a failure names the suite.
@@ -253,7 +253,7 @@ Dependency checks are testable in both directions: `findExe` reads `$PATH` at
 runtime, so pointing `withPath` at an empty directory constructs the
 "command missing" branch for real (exit 2, `Missing commands:` on stderr). A
 test needing a genuinely-present tool past the `checkDeps` gate (the attr
-suite uses real `getfattr`) gets it from `nimToolchain` in `flake.nix`, which
+suite uses real `getfattr`) gets it from `nimToolchain` in `nix/nim.nix`, which
 feeds both the check derivations' `nativeBuildInputs` and the devShell — one
 list, cannot drift.
 

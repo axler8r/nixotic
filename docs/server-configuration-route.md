@@ -326,7 +326,7 @@ This is the complete reusable server route in one diagram.
 ```mermaid
 flowchart LR
     Prepare["Prepare-NewHost\n--role server"]
-    Flake["flake.nix\nmkHost role server"]
+    Flake["flake.nix + nix/mkhost.nix\nmkHost role server"]
     Host["hosts/<hostname>/configuration.nix\nthin server wrapper\nplus SSH block"]
     Disk["hosts/<hostname>/disk.nix\nZFS-on-root wrapper"]
     ZfsDisk["hosts/common/zfs-root-disk.nix\npartition and dataset layout"]
@@ -384,7 +384,7 @@ They should differ only where the machine or service role requires it:
 | Change runtime ZFS behavior for new ZFS-on-root hosts     | `hosts/common/zfs-root.nix`                             |
 | Change all server user tools or dotfiles                  | `home/headless.nix`, imported `home/*.nix`, or `files/` |
 | Add one machine's workload or hardware-specific settings  | `hosts/<hostname>/configuration.nix`                    |
-| Change how server hosts are composed                      | `flake.nix`                                             |
+| Change how server hosts are composed                      | `nix/mkhost.nix`                                        |
 
 The rule of thumb is simple: shared host baseline goes in `base.nix`, repeated
 server policy should eventually move into a server role module, and machine

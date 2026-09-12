@@ -37,6 +37,21 @@ until the operator explicitly approves step 3.
 `nh` is preferred over `nixos-rebuild` because it shows a readable diff of
 added/removed packages, size comparison, and cleaner error output.
 
+## Flake Layout
+
+`flake.nix` declares inputs and wires outputs; build logic lives in plain
+functions under `nix/`, each taking an explicit attrset:
+
+| Module           | Arguments                | Provides                                                |
+| ---------------- | ------------------------ | ------------------------------------------------------- |
+| `nix/nim.nix`    | `pkgs lib nimDir`        | `nimShared`, `nimToolchain`, `mkNimTest`, `nimTests`    |
+| `nix/ax.nix`     | `pkgs lib nimDir nim`    | command tree, eval-time guards, `axDriver`, `axPackage` |
+| `nix/checks.nix` | `pkgs lib nimDir nim ax` | the `checks.${system}` attrset                          |
+| `nix/mkhost.nix` | `inputs self system`     | `mkHost { hostPath; role?; homeConfig? }`               |
+
+The host registry (`nixosConfigurations`) and its `# prepare:hosts` marker
+stay in `flake.nix` so `Prepare-NewHost` keeps a single edit target.
+
 ## When to Use Each Workflow
 
 | Scenario                   | Workflow                                                    |

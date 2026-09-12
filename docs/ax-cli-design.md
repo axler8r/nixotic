@@ -182,7 +182,7 @@ and binary name. There is no name table: lowercase path segments made the
 mapping reversible, which is why the old `nimFunctionBinaries` attrset and
 its drift guard could be deleted.
 
-Eval-time asserts in `flake.nix` fail before anything builds on: a path
+Eval-time asserts in `nix/ax.nix` fail before anything builds on: a path
 outside the 2–3 word grammar, a segment the mapping cannot reverse, a leaf
 outside the lexicon, or a group directory missing its `groups.json` entry.
 Tests derive their subject from their own path
