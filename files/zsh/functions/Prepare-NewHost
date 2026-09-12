@@ -33,8 +33,9 @@ a WIP branch. Does not push — push is always done manually.
 
 Options:
     -h, --help                 Show this help message
-    --role workstation|server  Host role (default: workstation)
-    --profile fixed|portable   Host class (default: fixed)
+    --role workstation|server  Host role, declared in flake.nix via mkHost (default: workstation)
+    --profile fixed|portable   Host class; portable adds hibernate swap and
+                               profiles/hardware/laptop.nix (default: fixed)
     --no-commit                Scaffold files but skip the WIP branch and commit
 
 Examples:
@@ -158,20 +159,11 @@ __ax_info "Scaffolding hosts/${_NEWHOST}/ as a ${_ROLE}..."
 
 mkdir -p "hosts/${_NEWHOST}"
 
-_ROLE_MODULE="workstation"
-_SSH_BLOCK=""
-if [[ "${_ROLE}" == "server" ]]; then
-    _ROLE_MODULE="base"
-    _SSH_BLOCK='
-  # Headless host — reachable over SSH from first boot, key-only.
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false;
-      PermitRootLogin = "no";
-    };
-  };
-'
+# Role comes from mkHost in flake.nix; only orthogonal profiles are imported here.
+_HARDWARE_IMPORT=""
+if [[ "${_PROFILE}" == "portable" ]]; then
+    _HARDWARE_IMPORT='
+    ../../profiles/hardware/laptop.nix'
 fi
 
 _HOST_ID="$(LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c 8 || true)"
@@ -188,8 +180,7 @@ cat > "hosts/${_NEWHOST}/configuration.nix" <<NIXEOF
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
-    ../common/zfs-root.nix
-    ../common/${_ROLE_MODULE}.nix
+    ../../profiles/storage/zfs-root.nix${_HARDWARE_IMPORT}
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -197,17 +188,17 @@ cat > "hosts/${_NEWHOST}/configuration.nix" <<NIXEOF
 
   networking.hostName = "${_NEWHOST}";
   networking.hostId = "${_HOST_ID}";  # random, permanent — ZFS needs stability
-${_SSH_BLOCK}
+
   system.stateVersion = "25.11";  # NixOS release being installed; never change after install
 }
 NIXEOF
 
 if [[ "${_PROFILE}" == "portable" ]]; then
     cat > "hosts/${_NEWHOST}/disk.nix" <<'NIXEOF'
-# Thin wrapper — the layout lives in hosts/common/zfs-root-disk.nix.
+# Thin wrapper — the layout lives in profiles/storage/zfs-root-disk.nix.
 # Set `device` to the target disk (see: ssh root@<ip> lsblk) and
 # `swapSizeGiB` to at least the machine's RAM (hibernation image).
-import ../common/zfs-root-disk.nix {
+import ../../profiles/storage/zfs-root-disk.nix {
   device      = "/dev/nvme0n1";
   swap        = "hibernate";
   swapSizeGiB = 64;
@@ -215,9 +206,9 @@ import ../common/zfs-root-disk.nix {
 NIXEOF
 else
     cat > "hosts/${_NEWHOST}/disk.nix" <<'NIXEOF'
-# Thin wrapper — the layout lives in hosts/common/zfs-root-disk.nix.
+# Thin wrapper — the layout lives in profiles/storage/zfs-root-disk.nix.
 # Set `device` to the target disk (see: ssh root@<ip> lsblk).
-import ../common/zfs-root-disk.nix {
+import ../../profiles/storage/zfs-root-disk.nix {
   device = "/dev/nvme0n1";
   swap   = "zram";
 }
@@ -300,8 +291,8 @@ cat <<EOF
 
 hostId set to: ${_HOST_ID} (random, permanent — ZFS needs stability, not machine-id derivation)
 
-The scaffold is thin: the role module (hosts/common/${_ROLE_MODULE}.nix) owns
-everything shareable. Review and edit hosts/${_NEWHOST}/configuration.nix:
+The scaffold is thin: mkHost injects the role module (profiles/roles/${_ROLE}.nix),
+which owns everything shareable. Review and edit hosts/${_NEWHOST}/configuration.nix:
   boot.loader.*               adjust if not EFI / systemd-boot
   time zone, locale, layout   override here if this host differs from base
   system.stateVersion         set to the NixOS release being installed
