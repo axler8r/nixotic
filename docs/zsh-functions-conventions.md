@@ -1,7 +1,7 @@
 # ZSH Functions Conventions
 
-Governs the PascalCase zsh scripts in `files/zsh/functions/` — the surviving
-zsh population, which is frozen: new commands are Nim, live under
+Governs the PascalCase zsh scripts in `files/zsh/functions/` — the surviving zsh
+population, which is frozen: new commands are Nim, live under
 `files/nim/commands/`, and are governed by `docs/ax-cli-design.md` and
 `docs/nim-functions-conventions.md`, not by this doc. `New-Function`, the zsh
 scaffolder, is retired accordingly (`ax self new-command` scaffolds Nim
@@ -9,27 +9,27 @@ commands).
 
 ## Function Names
 
-Functions use **PascalCase Verb-Noun** naming (PowerShell-style). Verbs in
-use by the surviving population:
+Functions use **PascalCase Verb-Noun** naming (PowerShell-style). Verbs in use
+by the surviving population:
 
-| Verb         | Purpose                                         | Example                           |
-| ------------ | ----------------------------------------------- | --------------------------------- |
-| `Get-`       | Retrieve/display information                    | `Get-SystemInformation`           |
-| `Set-`       | Configure/modify state                          | `Set-TrailingNewline`             |
-| `New-`       | Create a new resource                           | `New-ZfsLayout`                   |
-| `Remove-`    | Delete a resource                               | `Remove-ZfsSnapshot`              |
-| `Start-`     | Begin a process/container                       | `Start-DockerJupyterNotebook`     |
-| `Update-`    | Refresh/upgrade                                 | `Update-GitWIPBranchHistory`      |
-| `Read-`      | Stream/follow content                           | `Read-Log`, `Read-DockerLog`      |
-| `Write-`     | Output/save content                             | `Write-Image`                     |
-| `Test-`      | Check/validate                                  | `Test-SslHandshake`               |
-| `Mount-`     | Attach/activate                                 | `Mount-Nfs`                       |
-| `ConvertTo-` | Transform format                                | `ConvertTo-H264Video`             |
-| `Show-`      | Display interactively                           | `Show-GitHubLicense`              |
-| `Open-`      | Launch a resource in its associated application | `Open-File`                       |
-| `Reset-`     | Restore defaults                                | `Reset-GnomeSettings`             |
-| `Clear-`     | Remove cached data                              | `Clear-DnsCache`                  |
-| `Prepare-`   | Provisioning helper                             | `Prepare-NewHost`                 |
+| Verb         | Purpose                                         | Example                       |
+| ------------ | ----------------------------------------------- | ----------------------------- |
+| `Get-`       | Retrieve/display information                    | `Get-SystemInformation`       |
+| `Set-`       | Configure/modify state                          | `Set-TrailingNewline`         |
+| `New-`       | Create a new resource                           | `New-ZfsLayout`               |
+| `Remove-`    | Delete a resource                               | `Remove-ZfsSnapshot`          |
+| `Start-`     | Begin a process/container                       | `Start-DockerJupyterNotebook` |
+| `Update-`    | Refresh/upgrade                                 | `Update-GitWIPBranchHistory`  |
+| `Read-`      | Stream/follow content                           | `Read-Log`, `Read-DockerLog`  |
+| `Write-`     | Output/save content                             | `Write-Image`                 |
+| `Test-`      | Check/validate                                  | `Test-SslHandshake`           |
+| `Mount-`     | Attach/activate                                 | `Mount-Nfs`                   |
+| `ConvertTo-` | Transform format                                | `ConvertTo-H264Video`         |
+| `Show-`      | Display interactively                           | `Show-GitHubLicense`          |
+| `Open-`      | Launch a resource in its associated application | `Open-File`                   |
+| `Reset-`     | Restore defaults                                | `Reset-GnomeSettings`         |
+| `Clear-`     | Remove cached data                              | `Clear-DnsCache`              |
+| `Prepare-`   | Provisioning helper                             | `Prepare-NewHost`             |
 
 ## Output Contract
 

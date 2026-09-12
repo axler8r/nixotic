@@ -49,8 +49,8 @@ functions under `nix/`, each taking an explicit attrset:
 | `nix/checks.nix` | `pkgs lib nimDir nim ax` | the `checks.${system}` attrset                          |
 | `nix/mkhost.nix` | `inputs self system`     | `mkHost { hostPath; role?; homeConfig? }`               |
 
-The host registry (`nixosConfigurations`) and its `# prepare:hosts` marker
-stay in `flake.nix` so `Prepare-NewHost` keeps a single edit target.
+The host registry (`nixosConfigurations`) and its `# prepare:hosts` marker stay
+in `flake.nix` so `Prepare-NewHost` keeps a single edit target.
 
 ## When to Use Each Workflow
 
