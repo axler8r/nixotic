@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Format staged markdown files before they are committed.
+set -euo pipefail
+
+mapfile -t md_files < <(git diff --cached --name-only --diff-filter=ACM -- '*.md')
+[[ ${#md_files[@]} -eq 0 ]] && exit 0
+
+run_tool() {
+  local bin="$1"
+  shift
+  if command -v "$bin" >/dev/null 2>&1; then
+    "$bin" "$@"
+  else
+    nix run "nixpkgs#${bin}" -- "$@"
+  fi
+}
+
+run_tool prettier --write --parser=markdown --prose-wrap=preserve --print-width=80 "${md_files[@]}"
+run_tool markdownlint-cli2 --fix "${md_files[@]}" || true
+
+git add -- "${md_files[@]}"

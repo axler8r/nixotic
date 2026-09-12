@@ -83,6 +83,15 @@ ax git wip drop <wip-branch>
 Cleanup stays explicit. The branch name is required, and only merged `wip/*`
 branches can be deleted.
 
+## Hooks
+
+`core.hooksPath` points at `~/.githooks`, populated by Home Manager from
+`files/git/hooks/`. The `pre-commit` hook formats staged `.md` files with
+`prettier` then `markdownlint-cli2 --fix` and re-stages them; tools not on
+`$PATH` are run via `nix run nixpkgs#<tool>`. Hooks take effect after
+`nh os switch`; until then the `ax-format-markdown` skill runs the same chain
+by hand.
+
 ## Guidelines
 
 | Practice                                   | Reason                                                 |

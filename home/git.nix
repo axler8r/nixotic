@@ -26,6 +26,7 @@
         editor = "nvim";
         eol = "lf";
         excludesfile = "${config.home.homeDirectory}/.gitignore";
+        hooksPath = "${config.home.homeDirectory}/.githooks";
         pager = "bat";
       };
 
@@ -56,4 +57,9 @@
   home.file.".gitignore".source = ../files/git/gitignore;
   home.file.".gitcommit".source = ../files/git/gitcommit;
   home.file.".tigrc".source = ../files/git/tigrc;
+
+  home.file.".githooks/pre-commit" = {
+    source = ../files/git/hooks/pre-commit;
+    executable = true;
+  };
 }
