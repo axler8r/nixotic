@@ -1,5 +1,5 @@
 # role selects the whole experience: "workstation" = Stylix +
-# home/desktop.nix, "server" = no Stylix + home/headless.nix.
+# home/workstation.nix, "server" = no Stylix + home/server.nix.
 # homeConfig overrides the home profile only (e.g. WSL).
 { inputs, self, system }:
 let
@@ -10,8 +10,8 @@ let
   isWorkstation = role == "workstation";
   home =
     if homeConfig != null then homeConfig
-    else if isWorkstation then ../home/desktop.nix
-    else ../home/headless.nix;
+    else if isWorkstation then ../home/workstation.nix
+    else ../home/server.nix;
 in
 nixpkgs.lib.nixosSystem {
   inherit system;

@@ -1,6 +1,6 @@
 # Parameterised ZFS-on-root disko layout shared by all new hosts.
 #
-#   import ../common/zfs-root-disk.nix {
+#   import ../../profiles/storage/zfs-root-disk.nix {
 #     device      = "/dev/nvme0n1";
 #     swap        = "zram";       # "zram" (fixed) | "hibernate" (portable)
 #     swapSizeGiB = null;         # required when swap = "hibernate"
