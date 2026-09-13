@@ -31,11 +31,5 @@
     };
   };
 
-  xdg.configFile = {
-    "nushell/aliases.nu".source = ../files/nushell/aliases.nu;
-    "nushell/scripts" = {
-      source = ../files/nushell/scripts;
-      recursive = true;
-    };
-  };
+  xdg.configFile."nushell/aliases.nu".source = ../files/nushell/aliases.nu;
 }

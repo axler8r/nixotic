@@ -29,13 +29,7 @@ export def now [] {
   date now | format date '%Y-%m-%d %H:%M:%S'
 }
 
-# Enhanced ls variants
-export def ll [] { ls -l }
-export def la [] { ls -a }
-export def lla [] { ls -la }
-
 # Git helpers
-export def git-status [] { git status }
 export def git-log-pretty [] {
   git log --oneline --graph --all --decorate
 }

@@ -31,60 +31,6 @@ let solarized_theme_base = {
   shape_garbage: { fg: $solarized.red attr: b }
 }
 
-let solarized_dark_values = {
-  separator: $solarized.lightest_accent
-  bool: $solarized.blue
-  int: $solarized.blue
-  filesize: $solarized.blue
-  duration: $solarized.blue
-  date: $solarized.blue
-  range: $solarized.blue
-  float: $solarized.blue
-  string: $solarized.blue
-  nothing: $solarized.blue
-  binary: $solarized.blue
-  cellpath: $solarized.blue
-  record: $solarized.blue
-  list: $solarized.blue
-  block: $solarized.blue
-  hints: $solarized.lightest_accent
-  shape_literal: $solarized.blue
-  shape_nothing: $solarized.blue
-  shape_string: $solarized.blue
-  shape_table: { fg: $solarized.blue attr: b }
-  shape_variable: $solarized.blue
-  shape_vardecl: $solarized.blue
-}
-
-let solarized_dark_shapes = {
-  shape_and: $solarized.lightest_accent
-  shape_binary: $solarized.lightest_accent
-  shape_block: { fg: $solarized.blue attr: b }
-  shape_closure: { fg: $solarized.green attr: b }
-  shape_custom: $solarized.green
-  shape_datetime: $solarized.blue
-  shape_directory: $solarized.blue
-  shape_external: $solarized.green
-  shape_externalarg: $solarized.blue
-  shape_filepath: $solarized.blue
-  shape_flag: { fg: $solarized.blue attr: b }
-  shape_float: $solarized.blue
-  shape_globpattern: $solarized.blue
-  shape_int: $solarized.blue
-  shape_internalcall: $solarized.green
-  shape_list: { fg: $solarized.blue attr: b }
-  shape_match_pattern: $solarized.blue
-  shape_matching_brackets: { fg: $solarized.lightest_accent attr: u }
-  shape_operator: $solarized.lightest_accent
-  shape_or: $solarized.lightest_accent
-  shape_pipe: $solarized.lightest_accent
-  shape_range: $solarized.lightest_accent
-  shape_record: { fg: $solarized.blue attr: b }
-  shape_redirection: $solarized.lightest_accent
-  shape_signature: { fg: $solarized.green attr: b }
-  shape_string_interpolation: $solarized.blue
-}
-
 let solarized_light_values = {
   separator:   $solarized.light_accent
   bool:        $solarized.cyan
@@ -145,13 +91,6 @@ let menu_style = {
   selected_text: green_reverse
   description_text: yellow
 }
-
-# Solarized Dark theme
-let solarized_dark = (
-  $solarized_theme_base
-  | merge $solarized_dark_values
-  | merge $solarized_dark_shapes
-)
 
 # Solarized Light theme
 let solarized_light = (
@@ -238,13 +177,6 @@ $env.config = {
       }
     }
     {
-      name: history_menu
-      modifier: control
-      keycode: char_r
-      mode: [emacs, vi_insert, vi_normal]
-      event: { send: menu name: history_menu }
-    }
-    {
       name: unix_line_discard
       modifier: control
       keycode: char_u
@@ -253,13 +185,7 @@ $env.config = {
     }
   ]
   
-  # Shell integration hooks
   hooks: {
-    pre_prompt: [{ null }]
-    pre_execution: [{ null }]
-    env_change: {
-      PWD: [{|before, after| null }]
-    }
     display_output: "if (term size).columns >= 100 { table -e } else { table }"
   }
   
@@ -274,16 +200,6 @@ $env.config = {
         columns: 4
         col_width: 20
         col_padding: 2
-      }
-      style: $menu_style
-    }
-    {
-      name: history_menu
-      only_buffer_difference: true
-      marker: "? "
-      type: {
-        layout: list
-        page_size: 10
       }
       style: $menu_style
     }
