@@ -21,7 +21,7 @@ flowchart LR
 For routine configuration changes:
 
 ```bash
-# 1. Validate flake structure — catches schema errors before any build starts
+# 1. Evaluate Nix options and assertions; this does not run check derivations
 nix flake check --no-build
 
 # 2. Dry build with package diff — shows what will be built/removed without applying
@@ -61,29 +61,79 @@ in `flake.nix` so `Prepare-NewHost` keeps a single edit target.
 | Escaping-sensitive changes | Standard + [inspect derivation](#debugging-escaping-issues) |
 | Large refactors            | Standard + careful inspection                               |
 
+## Native Configuration Checks
+
+For changes to the extracted tmux, dircolors, Starship, or Neovim configuration:
+
+```bash
+nix build --no-link .#checks.x86_64-linux.home-config
+```
+
+This focused derivation uses tools from the pinned nixpkgs input. It checks:
+
+- Neovim's two native Lua files with the LuaJIT parser, without executing them.
+- The dircolors fragment read by its Home Manager module with `dircolors`.
+- The tmux fragment read by its Home Manager module with `source-file -n`, using
+  a private socket and temporary server that is cleaned up on exit.
+- Both native and Nix-generated Starship TOML with `starship print-config`,
+  rejecting diagnostic output rather than silently accepting fallback defaults.
+
+These are syntax and configuration-loading checks, not comprehensive runtime
+tests. They do not execute Neovim plugins, run tmux bindings, or validate every
+Starship format string and module option. Test those behaviors separately when
+changing them. `nix flake check --no-build` evaluates the check derivations but
+does not run their parsers; the command above builds just the relevant check.
+
+For additional one-off tools on NixOS, use `nix run`, `nix shell`, or the project's
+`nix develop` environment. Do not assume language tools are installed globally.
+
+### Extraction Regression Checks
+
+When moving configuration between Nix and native files, compare evaluated values
+before and after the edit. Compare text fragments byte-for-byte, including the
+final newline, and compare parsed TOML or JSON as structured values. Preserve
+plugin order and initialization priority, not just individual settings.
+
+For example, inspect the effective tmux fragment without switching generations:
+
+```bash
+home_config=.#nixosConfigurations.ambul8r.config.home-manager.users.axl
+nix eval --raw "$home_config.programs.tmux.extraConfig"
+```
+
+Add new source files to Git before flake evaluation; untracked files are not
+included in a Git-backed flake source. Full application configuration may also
+include module defaults and generated plugin setup, so inspect the final file
+when testing composition or ordering.
+
+See [packages.md](packages.md#configuration-ownership) for the native-file/Nix
+ownership policy.
+
 ## Debugging Escaping Issues
 
-When migrating dotfiles to pure Nix, escaping bugs are common and invisible
-until the generated file is read directly. Two extra steps help:
+When embedding native text in Nix, escaping bugs can remain invisible until the
+evaluated text or generated file is inspected. Prefer native files when Nix
+interpolation is unnecessary. Plain `$variable` does not need escaping in Nix;
+literal `${variable}` does. Two extra steps help:
 
 ### Parse the module
 
-Before `flake check`, you can parse a single module in isolation to catch syntax
-errors, undefined variables, and type mismatches without evaluating the whole
-flake:
+Before `flake check`, parse a single module to catch Nix syntax errors without
+evaluating the whole flake:
 
 ```bash
-nix eval --impure --expr '
-  (import <nixpkgs> {}).lib.trivial.id
-  (import ./home/<module>.nix { config = {}; pkgs = import <nixpkgs> {}; })
-'
+nix-instantiate --parse home/neovim.nix > /dev/null
 ```
+
+Parsing alone does not check undefined variables, option types, or the syntax
+of a language inside a string. Evaluation and native checks cover those distinct
+layers.
 
 ### Realise and inspect the derivation
 
 After `nh os build --dry`, take the `.drv` path from the output and realise it
-to read the actual generated file. This is the only way to verify that escape
-sequences and string interpolations produced the expected bytes:
+to read the actual generated file. This checks the final bytes after module
+composition and serialization, beyond what inspecting an individual option shows:
 
 ```bash
 # Build a specific derivation from dry build output
@@ -95,10 +145,11 @@ cat /nix/store/<hash>-<name>
 
 ## Quick Reference
 
-| Step    | Command                          | Catches                                          |
-| ------- | -------------------------------- | ------------------------------------------------ |
-| Check   | `nix flake check --no-build`     | Schema violations, missing inputs, option errors |
-| Plan    | `nh os build --dry`              | Missing dependencies; shows derivations to build |
-| Apply   | `nh os switch`                   | Runtime failures (manual/apply gate)             |
-| Parse   | `nix eval --impure --expr '...'` | Syntax errors, undefined vars (debugging only)   |
-| Inspect | `nix-store --realise` + `cat`    | Incorrect escaping, malformed output             |
+| Step    | Command                                                 | Catches                                          |
+| ------- | ------------------------------------------------------- | ------------------------------------------------ |
+| Check   | `nix flake check --no-build`                            | Schema violations, missing inputs, option errors |
+| Plan    | `nh os build --dry`                                     | Missing dependencies; shows derivations to build |
+| Apply   | `nh os switch`                                          | Runtime failures (manual/apply gate)             |
+| Native  | `nix build --no-link .#checks.x86_64-linux.home-config` | Native syntax and configuration loading          |
+| Parse   | `nix-instantiate --parse home/neovim.nix`               | Nix syntax only                                  |
+| Inspect | `nix-store --realise` + `cat`                           | Incorrect escaping, malformed output             |

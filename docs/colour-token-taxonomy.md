@@ -287,32 +287,34 @@ Stylix manages desktop chrome only: GNOME shell, GTK, fonts, cursor, wallpaper.
 Terminal and code-adjacent tools use manual Solarized themes so that shell
 colours and editor syntax colours remain independent.
 
-| Tool      | Config path                           | Theme mechanism                                                                                                             |
-| --------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Kitty     | `home/kitty.nix`                      | Manual ANSI palette — complete, no changes needed                                                                           |
-| Zsh       | `home/zsh.nix`                        | `ZSH_HIGHLIGHT_STYLES` map — needs string/interpolation fix                                                                 |
-| Nushell   | `files/nushell/config.nu`             | `solarized_light_*` records — needs literal/variable split                                                                  |
-| Helix     | `home/helix.nix`                      | `nixotic_solarized_light.toml` — needs markup/data/UI gaps                                                                  |
-| bat       | `home/bat.nix`                        | `NixoticSolarizedLight` `.tmTheme` — needs markup/data gaps                                                                 |
-| Neovim    | `home/neovim.nix`                     | `vim-solarized8` + `nvim_set_hl` overrides — needs gaps                                                                     |
-| VSCode    | `extensions/nixotic-solarized-light/` | Standalone theme extension — install via symlink or VS Code command palette (`Developer: Install Extension from Location…`) |
-| tmux      | `home/tmux.nix`                       | `extraConfig` `set -g *-style` — palette names need cleanup                                                                 |
-| yazi      | `home/yazi.nix`                       | `programs.yazi.theme` attrset — complete                                                                                    |
-| dircolors | `home/dircolors.nix`                  | `extraConfig` 256-colour codes — needs palette audit                                                                        |
-| eza       | `home/eza.nix`                        | `EZA_COLORS` env var — needs palette audit                                                                                  |
-| starship  | `home/starship.nix`                   | Custom `solarized-light` palette — complete                                                                                 |
-| fzf       | `home/zsh.nix` (`programs.fzf`)       | `FZF_DEFAULT_OPTS --color` — needs full build-out                                                                           |
-| tig       | `files/git/tigrc`                     | `color` directives — sparse, needs expansion                                                                                |
-| btop      | `home/btop.nix`                       | Theme file — needs build-out                                                                                                |
-| atuin     | `home/atuin.nix`                      | Inherits terminal ANSI palette — no action needed                                                                           |
+| Tool      | Config path                                         | Theme mechanism                                                                                                             |
+| --------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Kitty     | `home/kitty.nix`                                    | Manual ANSI palette — complete, no changes needed                                                                           |
+| Zsh       | `home/zsh.nix`                                      | `ZSH_HIGHLIGHT_STYLES` map — needs string/interpolation fix                                                                 |
+| Nushell   | `files/nushell/config.nu`                           | `solarized_light_*` records — needs literal/variable split                                                                  |
+| Helix     | `home/helix.nix`                                    | `nixotic_solarized_light.toml` — needs markup/data/UI gaps                                                                  |
+| bat       | `home/bat.nix`                                      | `NixoticSolarizedLight` `.tmTheme` — needs markup/data gaps                                                                 |
+| Neovim    | `files/neovim/init.lua`, `files/neovim/plugins.lua` | `vim-solarized8` + `nvim_set_hl` overrides — needs gaps                                                                     |
+| VSCode    | `extensions/nixotic-solarized-light/`               | Standalone theme extension — install via symlink or VS Code command palette (`Developer: Install Extension from Location…`) |
+| tmux      | `files/tmux/tmux.conf`                              | Native `set -g *-style` fragment read by Home Manager — palette names need cleanup                                          |
+| yazi      | `home/yazi.nix`                                     | `programs.yazi.theme` attrset — complete                                                                                    |
+| dircolors | `files/dircolors/dir_colors`                        | Native 256-colour database read by Home Manager — needs palette audit                                                       |
+| eza       | `home/eza.nix`                                      | `EZA_COLORS` env var — needs palette audit                                                                                  |
+| starship  | `files/starship/starship.toml`                      | Custom `solarized-light` palette imported into Home Manager — complete                                                      |
+| fzf       | `home/zsh.nix` (`programs.fzf`)                     | `FZF_DEFAULT_OPTS --color` — needs full build-out                                                                           |
+| tig       | `files/git/tigrc`                                   | `color` directives — sparse, needs expansion                                                                                |
+| btop      | `home/btop.nix`                                     | Theme file — needs build-out                                                                                                |
+| atuin     | `home/atuin.nix`                                    | Inherits terminal ANSI palette — no action needed                                                                           |
 
 ---
 
-## Appendix A — Neovim (`home/neovim.nix`)
+## Appendix A — Neovim (`files/neovim/init.lua`)
 
 Neovim uses two layers: legacy Vim highlight groups (for plugins and fallback)
 and treesitter `@` capture groups (for parsed buffers). Both must be set. The
-`role_hl` table in `initLua` is the implementation target.
+`role_hl` table in `files/neovim/init.lua` is the implementation target. Lualine
+configuration lives in `files/neovim/plugins.lua`; package selection and loading
+order remain in `home/neovim.nix`.
 
 ### A.1 Legacy Vim Groups
 
@@ -808,12 +810,12 @@ let solarized_light_shapes = {
 
 ---
 
-## Appendix G — tmux (`home/tmux.nix`)
+## Appendix G — tmux (`files/tmux/tmux.conf`)
 
 Replace the inline hex strings with named-comment annotations so the intent is
 auditable. The colours themselves are correct; the comments were wrong.
 
-```nix
+```tmux
 # ── Status Bar — Solarized Light ──
 # Palette reference: docs/theme.md
 # status.bg:        bg=Light BG Contrast (#eee8d5), fg=Dark Accent (#657b83)
@@ -877,11 +879,12 @@ programs.fzf = {
 
 ---
 
-## Appendix I — dircolors (`home/dircolors.nix`)
+## Appendix I — dircolors (`files/dircolors/dir_colors`)
 
 The current config uses 256-colour ANSI codes. The table below maps each
 category to the correct named palette colour and its nearest 256-colour index.
-Update the `extraConfig` to use these consistently.
+Update the native database to use these consistently; `home/dircolors.nix`
+reads it into `extraConfig`.
 
 | Token Slug      | Colour Name             | Hex      | 256-colour index | Current code  | Correct code    |
 | --------------- | ----------------------- | -------- | ---------------- | ------------- | --------------- |

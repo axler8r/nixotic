@@ -36,6 +36,16 @@ nh os switch
 See [docs/validation.md](docs/validation.md) for the validation pipeline
 to run before applying changes.
 
+## Configuration Sources
+
+Home Manager owns packages, integration, and deployment. Structured settings
+remain in `home/`; substantial native configuration lives in `files/` and is
+referenced or imported by the corresponding module.
+
+See [docs/packages.md](docs/packages.md#configuration-ownership) for ownership
+rules and [docs/validation.md](docs/validation.md#native-configuration-checks)
+for the focused native configuration check.
+
 ## License
 
 [MIT](LICENSE)

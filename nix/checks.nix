@@ -1,5 +1,4 @@
-# Flake checks: one derivation per Nim test file plus the ax integration
-# and smoke suites.
+# Flake checks: native configuration syntax, Nim tests, and ax integration.
 { pkgs, lib, nimDir, nim, ax }:
 let
   inherit (nim) nimShared nimToolchain nimTests;
@@ -9,6 +8,42 @@ in
 # check` reports the failing suite by name and reruns only what changed.
 (lib.listToAttrs (map (d: lib.nameValuePair d.pname d) (nimTests ++ axTests)))
 // {
+  home-config =
+    let
+      tmux = (import ../home/tmux.nix { config = {}; inherit pkgs; }).programs.tmux;
+      dircolors = (import ../home/dircolors.nix { config = {}; inherit pkgs; }).programs.dircolors;
+      starship = (import ../home/starship.nix { config = {}; inherit pkgs; }).programs.starship;
+      tmuxConfig = pkgs.writeText "tmux.conf" tmux.extraConfig;
+      dircolorsConfig = pkgs.writeText "dir_colors" dircolors.extraConfig;
+      starshipConfig = (pkgs.formats.toml {}).generate "starship.toml" starship.settings;
+    in
+    pkgs.runCommand "nixotic-home-config"
+      { nativeBuildInputs = [ pkgs.luajit pkgs.tmux pkgs.starship pkgs.coreutils ]; }
+      ''
+        export HOME="$TMPDIR/home"
+        export XDG_CONFIG_HOME="$HOME/.config"
+        export XDG_CACHE_HOME="$HOME/.cache"
+        export TERM=xterm-256color
+        mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
+
+        luajit -e 'assert(loadfile("${../files/neovim/init.lua}")); assert(loadfile("${../files/neovim/plugins.lua}"))'
+        dircolors -b ${dircolorsConfig} > /dev/null
+
+        tmux -S "$TMPDIR/tmux.sock" -f /dev/null new-session -d -s config-check
+        trap 'tmux -S "$TMPDIR/tmux.sock" kill-server 2>/dev/null || true' EXIT
+        tmux -S "$TMPDIR/tmux.sock" source-file -n ${tmuxConfig}
+
+        for config in ${../files/starship/starship.toml} ${starshipConfig}; do
+          STARSHIP_CONFIG="$config" STARSHIP_LOG=warn starship print-config > /dev/null 2> starship.log
+          if test -s starship.log; then
+            cat starship.log >&2
+            exit 1
+          fi
+        done
+
+        touch "$out"
+      '';
+
   ax-integration = pkgs.stdenv.mkDerivation {
     pname = "nixotic-ax-integration";
     version = axVersion;
