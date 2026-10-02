@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   programs.neovim = {
@@ -70,13 +70,14 @@
       conform-nvim
 
       # Linting
-      nvim-lint
+      {
+        plugin = nvim-lint;
+        type = "lua";
+        config = builtins.readFile ../files/neovim/plugins.lua;
+      }
     ];
 
-    initLua = lib.mkMerge [
-      (builtins.readFile ../files/neovim/init.lua)
-      (lib.mkAfter (builtins.readFile ../files/neovim/plugins.lua))
-    ];
+    initLua = builtins.readFile ../files/neovim/init.lua;
 
     # CLI tools for neovim plugins
     extraPackages = with pkgs; [
