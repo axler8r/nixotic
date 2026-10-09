@@ -105,6 +105,28 @@ Commands whose output is a scalar or progress text ignore `AX_OUTPUT`
 (`ax zfs snapshot list` maps `-o plain` to `zfs list -H` and keeps zfs's own
 formatting).
 
+### Piped lists
+
+A command whose variadic positional is a list of items (paths, image names)
+also accepts that list **one item per line on stdin**, so the idiomatic
+`producer | ax ...` form works without `xargs`:
+
+```
+ls -d ~/Projects/*/ | ax git repo sync
+ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | ax docker image update
+```
+
+Precedence is fixed: explicit positionals win; stdin is read only when none
+were given and only when it is not a terminal (an interactive stdin is never
+read, so `ax git repo sync` at a prompt does not block). An empty piped stdin
+counts as "nothing given" and falls through to the command's documented
+no-argument default — `git repo sync` scans the current directory,
+`docker image update` pulls every installed image, `git repo optimize` reports
+a usage error. Blank lines are dropped; interior whitespace is data.
+
+Commands with this behaviour: `git repo sync`, `git repo optimize`,
+`docker image update`.
+
 ### Exit codes
 
 | Code | Meaning                                                                                                                      |

@@ -1,4 +1,5 @@
 import std/[os, strutils]
+import "../../../lib/input"
 import "../../../lib/output"
 import "../../../lib/process"
 import "../../../lib/spec"
@@ -9,10 +10,10 @@ let cmdSpec* = CommandSpec(
   path: @["git", "repo", "optimize"],
   kind: ckVerb,
   summary: "fetch, fsck, and gc git repositories in parallel",
-  usage: "ax git repo optimize [--log <path>] <dir>...",
+  usage: "ax git repo optimize [--log <path>] [dir...]",
   args: @[
-    ArgSpec(name: "dir", required: true, variadic: true,
-            description: "directories to optimise")
+    ArgSpec(name: "dir", required: false, variadic: true,
+            description: "directories to optimise (default: one per line on stdin)")
   ],
   flags: @[
     FlagSpec(long: "log", takesValue: true,
@@ -22,7 +23,22 @@ let cmdSpec* = CommandSpec(
   dryRun: false
 )
 
-const usage = "Usage: ax git repo optimize [--log <path>] <dir>... - Optimize git repositories"
+const usage = """Usage: ax git repo optimize [--log <path>] [dir...]
+
+Fetch, fsck, and gc git repositories in parallel. Directories come from the
+arguments, or one per line on stdin when none are given.
+
+Options:
+    -h, --help    Show this help message
+    --log <path>  Write a GNU parallel job log to this path
+
+Arguments:
+    dir           Directories to optimise
+
+Examples:
+    ax git repo optimize ~/Projects/foo ~/Projects/bar
+    ax git repo optimize --log /tmp/gc.log ~/Projects/*/
+    ls -d ~/Projects/*/ | ax git repo optimize"""
 
 const gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
   "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
@@ -40,7 +56,8 @@ proc run*(
   args: seq[string],
   outp: File = stdout,
   errp: File = stderr,
-  runner: Runner = defaultRunner
+  runner: Runner = defaultRunner,
+  inp: File = stdin
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
@@ -85,9 +102,9 @@ proc run*(
         dirs.add(arg)
     inc i
 
-  let firstDir = if dirs.len > 0: dirs[0] else: ""
-  if not requireArg(firstDir, "directory", errp):
-    outp.writeLine("Usage: ax git repo optimize [--log <path>] <dir>...")
+  dirs = resolveItems(dirs, inp)
+  if dirs.len == 0:
+    error("Missing required argument: dir (pass directories or pipe them on stdin)", errp)
     return 64
 
   let gitDirs = filterGitDirs(dirs)

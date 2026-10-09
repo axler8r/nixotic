@@ -2,6 +2,12 @@ import std/[unittest, os, strutils]
 import "../update"
 import "../../../../lib/testing"
 
+proc openInput(dir, content: string): File =
+  ## A non-tty stdin stand-in; empty content must select the listing default.
+  let path = dir / "stdin"
+  writeFile(path, content)
+  open(path, fmRead)
+
 suite "ax docker image update filterImages":
   test "drops a line with a vsc prefix":
     check filterImages(@["vsc-foo:latest", "nginx:latest"]) == @["nginx:latest"]
@@ -54,11 +60,46 @@ suite "ax docker image update run":
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
     defer: f.close()
+    let empty = openInput(dir, "")
+    defer: empty.close()
     let rec = newRecordingRunner()
     withPath(dir):
-      check run(@["--"], f, f, rec.runner) == 0
+      check run(@["--"], f, f, rec.runner, empty) == 0
     require rec.calls.len == 1
     check rec.calls[0].args == @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
+
+  test "contract: images piped on stdin are pulled when argv has none":
+    let dir = getTempDir() / "contract_update_docker_image_stdin"
+    removeDir(dir)
+    createDir(dir)
+    defer: removeDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    let inp = openInput(dir, "nginx:latest\n\nredis:7\n")
+    defer: inp.close()
+    let rec = newRecordingRunner()
+    withPath(dir):
+      check run(@[], f, f, rec.runner, inp) == 0
+    require rec.calls.len == 2
+    check rec.calls[0].args == @["pull", "--", "nginx:latest"]
+    check rec.calls[1].args == @["pull", "--", "redis:7"]
+
+  test "contract: argv images take precedence over stdin":
+    let dir = getTempDir() / "contract_update_docker_image_argv_wins"
+    removeDir(dir)
+    createDir(dir)
+    defer: removeDir(dir)
+    writeFakeExe(dir, "docker", "")
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    let inp = openInput(dir, "piped:1\n")
+    defer: inp.close()
+    let rec = newRecordingRunner()
+    withPath(dir):
+      check run(@["given:1"], f, f, rec.runner, inp) == 0
+    require rec.calls.len == 1
+    check rec.calls[0].args == @["pull", "--", "given:1"]
 
   test "prints usage and returns 0 for --help":
     let tmp = getTempDir() / "test_update_docker_image_help.txt"
@@ -122,9 +163,11 @@ suite "ax docker image update run":
     writeFakeExe(dir, "docker", fakeRecorder(log))
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
+    let empty = openInput(dir, "")
     var code: int
     withPath(dir):
-      code = run(@[], f, f)
+      code = run(@[], f, f, inp = empty)
+    empty.close()
     f.close()
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)

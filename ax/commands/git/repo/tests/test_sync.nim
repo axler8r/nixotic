@@ -63,9 +63,14 @@ suite "ax git repo sync run":
     setCurrentDir(dir)
     let tmp = getTempDir() / "test_ugr_no_git_dirs_out.txt"
     let f = open(tmp, fmWrite)
+    # An empty non-tty stdin must fall through to the cwd scan.
+    let emptyPath = depsDir / "empty"
+    writeFile(emptyPath, "")
+    let empty = open(emptyPath, fmRead)
     var code: int
     withPath(depsDir):
-      code = run(@["--"], f, f)
+      code = run(@["--"], f, f, inp = empty)
+    empty.close()
     f.close()
     setCurrentDir(oldDir)
     let content = readFile(tmp)
@@ -75,6 +80,55 @@ suite "ax git repo sync run":
     check code == 0
     check content.contains("Info: No git repositories found.")
     check not content.contains("Warning:")
+
+  test "contract: paths piped on stdin are used when argv has none":
+    let dir = mkTmpDir("contract_ugr_stdin")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let repoA = dir / "repoA"
+    let repoB = dir / "repoB"
+    createDir(repoA / ".git")
+    createDir(repoB / ".git")
+    let inPath = dir / "stdin"
+    writeFile(inPath, repoA & "/\n\n" & repoB & "\n")
+    let inp = open(inPath, fmRead)
+    defer: inp.close()
+    let rec = newRecordingRunner()
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    var code: int
+    withPath(dir):
+      code = run(@[], f, f, rec.runner, inp)
+    check code == 0
+    require rec.calls.len == 1
+    check rec.calls[0].args == @[
+      "echo {} && git -C {} pull && git -C {} submodule update",
+      ":::", repoA, repoB
+    ]
+
+  test "contract: argv paths take precedence over stdin":
+    let dir = mkTmpDir("contract_ugr_argv_wins")
+    defer: removeDir(dir)
+    writeFakeExe(dir, "git", "")
+    writeFakeExe(dir, "parallel", "")
+    let given = dir / "given"
+    let piped = dir / "piped"
+    createDir(given / ".git")
+    createDir(piped / ".git")
+    let inPath = dir / "stdin"
+    writeFile(inPath, piped & "\n")
+    let inp = open(inPath, fmRead)
+    defer: inp.close()
+    let rec = newRecordingRunner()
+    let f = open("/dev/null", fmWrite)
+    defer: f.close()
+    var code: int
+    withPath(dir):
+      code = run(@[given], f, f, rec.runner, inp)
+    check code == 0
+    require rec.calls.len == 1
+    check rec.calls[0].args[^2 .. ^1] == @[":::", given]
 
   test "characterization: parallel receives the pull+submodule-update command per repo":
     let dir = getTempDir() / "char_update_git_repository"

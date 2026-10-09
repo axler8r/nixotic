@@ -1,4 +1,5 @@
 import std/[os, strutils]
+import "../../../lib/input"
 import "../../../lib/output"
 import "../../../lib/process"
 import "../../../lib/spec"
@@ -12,7 +13,7 @@ let cmdSpec* = CommandSpec(
   usage: "ax docker image update [image...]",
   args: @[
     ArgSpec(name: "image", required: false, variadic: true,
-            description: "image names (repo:tag); default: all installed images")
+            description: "image names (repo:tag); default: one per line on stdin, else all installed images")
   ],
   deps: @["docker"],
   dryRun: false
@@ -36,12 +37,14 @@ proc run*(
   args: seq[string],
   outp: File = stdout,
   errp: File = stderr,
-  runner: Runner = defaultRunner
+  runner: Runner = defaultRunner,
+  inp: File = stdin
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax docker image update [image...]
 
-Pull Docker images to their latest versions. With no arguments, updates all
+Pull Docker images to their latest versions. Images come from the arguments,
+or one per line on stdin when none are given; with neither, updates all
 installed images (excluding devcontainer, vsc, and local axler8r images).
 
 Options:
@@ -53,7 +56,7 @@ Arguments:
 Examples:
     ax docker image update
     ax docker image update nginx:latest postgres:16
-    ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | xargs ax docker image update"""
+    ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | ax docker image update"""
     return 0
 
   if not validateArgs(cmdSpec, args, errp): return 64
@@ -68,6 +71,7 @@ Examples:
     else:
       images.add(arg)
 
+  images = resolveItems(images, inp)
   if images.len == 0:
     let listing = runner.capture(
       "docker",

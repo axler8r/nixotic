@@ -1,4 +1,5 @@
 import std/os
+import "../../../lib/input"
 import "../../../lib/output"
 import "../../../lib/process"
 import "../../../lib/spec"
@@ -12,7 +13,7 @@ let cmdSpec* = CommandSpec(
   usage: "ax git repo sync [path...]",
   args: @[
     ArgSpec(name: "path", required: false, variadic: true,
-            description: "git repository paths (default: scan the current directory)")
+            description: "git repository paths (default: one per line on stdin, else scan the current directory)")
   ],
   deps: @["git", "parallel"],
   dryRun: false
@@ -20,8 +21,9 @@ let cmdSpec* = CommandSpec(
 
 const usage = """Usage: ax git repo sync [path...]
 
-Pull and update git repositories. With no arguments, scans the current
-directory for git repositories.
+Pull and update git repositories. Paths come from the arguments, or one per
+line on stdin when none are given; with neither, scans the current directory
+for git repositories.
 
 Options:
     -h, --help    Show this help message
@@ -32,7 +34,8 @@ Arguments:
 Examples:
     ax git repo sync
     ax git repo sync ~/Projects/foo ~/Projects/bar
-    ax git repo sync ~/Projects/*/"""
+    ax git repo sync ~/Projects/*/
+    ls -d ~/Projects/*/ | ax git repo sync"""
 
 proc stripTrailingSlash*(path: string): string =
   ## Mirrors zsh's `${_arg%/}` — removes at most one trailing `/`.
@@ -66,7 +69,8 @@ proc run*(
   args: seq[string],
   outp: File = stdout,
   errp: File = stderr,
-  runner: Runner = defaultRunner
+  runner: Runner = defaultRunner,
+  inp: File = stdin
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
@@ -85,6 +89,7 @@ proc run*(
     else:
       positional.add(arg)
 
+  positional = resolveItems(positional, inp)
   if positional.len > 0:
     dirs = resolveGivenDirs(positional, errp)
   else:
