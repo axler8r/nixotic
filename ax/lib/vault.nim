@@ -13,9 +13,9 @@ type
   MapperProbe* = proc (mapperName: string): bool
 
   VaultRef* = object
-    vaultFile*: string   ## absolute path to the vault's backing file
-    vaultName*: string   ## bare name, e.g. "mydata"
-    mapperName*: string  ## dm-crypt mapper name; always equals vaultName
+    vaultFile*: string  ## absolute path to the vault's backing file
+    vaultName*: string  ## bare name, e.g. "mydata"
+    mapperName*: string ## dm-crypt mapper name; always equals vaultName
 
 proc resolveVault*(input: string): VaultRef =
   ## A `/`-containing input is treated as a path (`~` expanded); its vault

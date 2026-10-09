@@ -16,8 +16,8 @@ type
     description*: string
 
   FlagSpec* = object
-    long*: string        ## without the leading "--"
-    short*: string       ## without the leading "-"; "" for none
+    long*: string  ## without the leading "--"
+    short*: string ## without the leading "-"; "" for none
     takesValue*: bool
     description*: string
 
@@ -27,14 +27,14 @@ type
 
   CommandSpec* = object
     specVersion*: int
-    path*: seq[string]   ## e.g. @["vault", "mount"]
+    path*: seq[string] ## e.g. @["vault", "mount"]
     kind*: CommandKind
-    summary*: string     ## one line, lowercase first word, no trailing period
-    usage*: string       ## e.g. "ax vault mount <name> [mountpoint]"
+    summary*: string   ## one line, lowercase first word, no trailing period
+    usage*: string     ## e.g. "ax vault mount <name> [mountpoint]"
     args*: seq[ArgSpec]
     flags*: seq[FlagSpec]
-    deps*: seq[string]   ## the external commands checkDeps guards
-    dryRun*: bool        ## true when the command implements -n itself
+    deps*: seq[string] ## the external commands checkDeps guards
+    dryRun*: bool      ## true when the command implements -n itself
 
 const specVersionCurrent* = 1
 

@@ -89,7 +89,9 @@ suite "ax docker volume list run":
     createDir(dir)
     writeFakeExe(dir, "docker", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(exitCode = 0, output = "local|vol-b\nlocal|vol-a\n")
+    let rec = newRecordingRunner(
+      exitCode = 0, output = "local|vol-b\nlocal|vol-a\n"
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

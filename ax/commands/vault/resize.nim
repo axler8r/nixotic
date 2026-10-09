@@ -148,7 +148,8 @@ Examples:
   if not backingFileIdle(runner, v.vaultFile, errp): return 1
   if targetBytes > currentBytes:
     outp.writeLine("Growing vault file: " & v.vaultFile & " to " & parsed.size)
-    if runner.runInherited("fallocate", @["--length", parsed.size, v.vaultFile]) != 0:
+    if runner.runInherited("fallocate", @["--length", parsed.size,
+        v.vaultFile]) != 0:
       return 1
 
   if runner.runInherited("sudo",
@@ -167,7 +168,8 @@ Examples:
       return 1
 
     outp.writeLine("Growing ext4 filesystem...")
-    if runner.runInherited("sudo", @["resize2fs", "/dev/mapper" / v.mapperName]) != 0:
+    if runner.runInherited("sudo", @["resize2fs", "/dev/mapper" /
+        v.mapperName]) != 0:
       return 1
     result = 0
   finally:

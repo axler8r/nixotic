@@ -167,7 +167,8 @@ suite "output.table":
   test "writes the runner's captured stdout to outp":
     let outTmp = getTempDir() / "test_output_table_stdout.txt"
     let outf = open(outTmp, fmWrite)
-    let rec = newRecordingRunner(exitCode = 0, output = "Name  Size\nfoo.txt  1.2 KB\n")
+    let rec = newRecordingRunner(exitCode = 0,
+        output = "Name  Size\nfoo.txt  1.2 KB\n")
     discard table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner,
                   outp = outf)
     outf.close()

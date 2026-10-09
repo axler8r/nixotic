@@ -37,7 +37,9 @@ proc formatPackageLines*(prefix: string, names: openArray[string]): seq[string] 
   for n in names:
     result.add("            " & prefix & n)
 
-proc flakeNixContent*(name: string, packageLines: seq[string], envAttrs = ""): string =
+proc flakeNixContent*(
+  name: string, packageLines: seq[string], envAttrs = ""
+): string =
   ## Builds the flake.nix content shared verbatim (aside from the package
   ## list and envAttrs) across the dev-environment scaffolder family.
   ## `envAttrs`, when non-empty, is a block of already-newline-prefixed,

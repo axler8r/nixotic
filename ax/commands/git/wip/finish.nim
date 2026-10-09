@@ -50,8 +50,11 @@ Notes:
   code = requireWipBranch(wipBranch, runner, errp)
   if code != 0: return code
 
-  if runner.runQuiet("git", @["merge-base", "--is-ancestor", "stable", wipBranch]) != 0:
-    error("stable cannot be fast-forwarded to " & wipBranch & ". Rebase onto stable first.", errp)
+  if runner.runQuiet(
+    "git", @["merge-base", "--is-ancestor", "stable", wipBranch]
+  ) != 0:
+    error("stable cannot be fast-forwarded to " & wipBranch &
+        ". Rebase onto stable first.", errp)
     return 1
 
   if runner.runQuiet("git", @["checkout", "stable"]) != 0:

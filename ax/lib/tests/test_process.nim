@@ -16,7 +16,7 @@ proc zombieChildren(): seq[string] =
     try:
       status = readFile(path / "status")
     except CatchableError:
-      continue  # exited between the walk and the read
+      continue # exited between the walk and the read
     var name, state, parent = ""
     for line in status.splitLines():
       let f = line.splitWhitespace()
@@ -176,7 +176,8 @@ exit 0
     removeDir(dir)
     createDir(dir)
     let log = dir / "env.log"
-    writeFakeExe(dir, "envdump", "echo \"INHERITED=$INHERITED\" > " & log.quoteShell)
+    writeFakeExe(dir, "envdump", "echo \"INHERITED=$INHERITED\" > " &
+        log.quoteShell)
     putEnv("INHERITED", "from-parent")
     var code: int
     withPath(dir):

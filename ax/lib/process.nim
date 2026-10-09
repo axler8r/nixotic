@@ -89,9 +89,13 @@ proc realCapture(cmd: string, args: seq[string],
   try:
     # Establish ownership BEFORE either thread starts: starting the second
     # thread can fail while the first still borrows our stack storage.
-    createThread(outThread, drainProc, (p.outputStream, addr outBuf, addr outFailure))
+    createThread(
+      outThread, drainProc, (p.outputStream, addr outBuf, addr outFailure)
+    )
     outStarted = true
-    createThread(errThread, drainProc, (p.errorStream, addr errBuf, addr errFailure))
+    createThread(
+      errThread, drainProc, (p.errorStream, addr errBuf, addr errFailure)
+    )
     errStarted = true
     try:
       if input.len > 0:

@@ -31,7 +31,8 @@ suite "devenv.flakeNixContent":
     check content.contains(expectedTail)
 
   test "exact full content for a two-package, no-env-attrs case":
-    let content = flakeNixContent("demo", @["            pkgs.jq", "            pkgs.fd"])
+    let content = flakeNixContent("demo", @["            pkgs.jq",
+        "            pkgs.fd"])
     let expected = """{
   description = "demo development environment";
 

@@ -69,7 +69,9 @@ Requirements:
 
   let branch = generateWipBranchName(
     proc(name: string): bool =
-      runner.runQuiet("git", @["show-ref", "--verify", "--quiet", "refs/heads/" & name]) == 0
+    runner.runQuiet(
+      "git", @["show-ref", "--verify", "--quiet", "refs/heads/" & name]
+    ) == 0
   )
   if branch.len == 0:
     error("Could not generate a unique WIP branch name.", errp)

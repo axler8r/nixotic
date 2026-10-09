@@ -31,7 +31,9 @@ suite "ax docker volume prune run":
     let f = open("/dev/null", fmWrite)
     defer: f.close()
     for listing in ["", "partial-volume\n"]:
-      let rec = newRecordingRunner(exitCode = 1, output = listing, error = "daemon unavailable")
+      let rec = newRecordingRunner(
+        exitCode = 1, output = listing, error = "daemon unavailable"
+      )
       withPath(dir):
         check run(@[], f, f, rec.runner) == 1
       check rec.calls.len == 1

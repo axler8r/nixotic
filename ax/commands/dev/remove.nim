@@ -108,7 +108,10 @@ Examples:
     error("Cannot plan removal: " & getCurrentExceptionMsg(), errp)
     return 1
 
-  if not confirm("Remove dev environment in " & lastPathPart(getCurrentDir()) & "?", inp, outp):
+  if not confirm(
+    "Remove dev environment in " & lastPathPart(getCurrentDir()) & "?",
+    inp, outp
+  ):
     return 0
 
   try:
@@ -120,7 +123,9 @@ Examples:
       else:
         removeFile(item.path)
       if item.path in ["flake.nix", ".envrc", ".direnv"]:
-        outp.writeLine("Removed " & item.path & (if item.directory: "/" else: ""))
+        outp.writeLine(
+          "Removed " & item.path & (if item.directory: "/" else: "")
+        )
   except IOError, OSError:
     error("Removal failed: " & getCurrentExceptionMsg(), errp)
     return 1

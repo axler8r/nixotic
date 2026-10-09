@@ -158,7 +158,9 @@ Examples:
   if files.len == 0:
     warn("No text files found in '" & dir & "'", errp)
     if ctx.output != omJson: return 0
-    return render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
+    return render(
+      @["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp
+    )
 
   var extWords = initTable[string, int]()
   var extFiles = initTable[string, int]()
@@ -186,7 +188,9 @@ Examples:
   if totalWords == 0:
     warn("No words found in '" & dir & "'", errp)
     if ctx.output != omJson: return 0
-    return render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
+    return render(
+      @["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp
+    )
 
   var extList: seq[string] = @[]
   for ext in extWords.keys:

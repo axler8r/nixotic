@@ -53,7 +53,9 @@ suite "ax attr set run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "setfattr"
-    check rec.calls[0].args == @["--name", "user.colour", "--value", "red", "--", tmpFile]
+    check rec.calls[0].args == @[
+      "--name", "user.colour", "--value", "red", "--", tmpFile
+    ]
 
   test "real defaultRunner xattr set/read/remove roundtrip":
     let dir = createTempDir("ax-xattr-", "")
@@ -68,8 +70,10 @@ suite "ax attr set run":
     check fetched.output == value
     check defaultRunner.runInherited("setfattr",
       @["--remove", "user.review.roundtrip", "--", path]) == 0
-    check defaultRunner.capture("getfattr",
-      @["--only-values", "--name", "user.review.roundtrip", "--", path]).exitCode != 0
+    check defaultRunner.capture(
+      "getfattr",
+      @["--only-values", "--name", "user.review.roundtrip", "--", path]
+    ).exitCode != 0
 
   test "strict arguments reject before any attribute write":
     let f = open("/dev/null", fmWrite)

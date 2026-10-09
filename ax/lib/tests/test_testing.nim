@@ -84,7 +84,8 @@ suite "recording runner":
     check rec.calls[1].cmd == "b"
 
   test "queued replies are consumed in order across every runner shape":
-    let rec = newRecordingRunner(exitCode = 9, output = "fallback", error = "default",
+    let rec = newRecordingRunner(exitCode = 9, output = "fallback",
+      error = "default",
       replies = @[
         CommandResult(exitCode: 1, output: "first", error: "first error"),
         CommandResult(exitCode: 2), CommandResult(exitCode: 3)])

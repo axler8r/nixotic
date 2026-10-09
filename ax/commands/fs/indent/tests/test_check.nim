@@ -168,7 +168,9 @@ suite "ax fs indent check run":
     let scanDir = dir / "scan"
     createDir(scanDir)
     writeFile(scanDir / "mixed.py", "\tfoo\n bar\n")
-    writeFakeExe(dir, "fd", "printf '%s\\0' " & (scanDir / "mixed.py").quoteShell)
+    writeFakeExe(
+      dir, "fd", "printf '%s\\0' " & (scanDir / "mixed.py").quoteShell
+    )
     writeFakeExe(dir, "file", "echo text/plain")
     let stdinLog = dir / "column_stdin.log"
     writeFakeExe(dir, "column", "cat > " & stdinLog.quoteShell)

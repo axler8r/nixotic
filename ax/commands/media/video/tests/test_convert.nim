@@ -107,7 +107,14 @@ suite "ax media video convert run":
   test "nonexistent input file is an error, checked before any ffmpeg invocation":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_input.txt"
     let f = open(tmp, fmWrite)
-    let code = run(@["/nonexistent/path/xyz.mp4", "/tmp/out.mp4", "--orientation", "horizontal"], f, f)
+    let code = run(
+      @[
+        "/nonexistent/path/xyz.mp4",
+        "/tmp/out.mp4",
+        "--orientation",
+        "horizontal"
+      ], f, f
+    )
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)

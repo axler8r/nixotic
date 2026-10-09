@@ -56,7 +56,9 @@ Examples:
 
   if not checkDeps(["curl", "jq"], errp): return 2
 
-  let curlResult = runner.capture("curl", @["-fsS", "https://api.github.com/licenses"])
+  let curlResult = runner.capture(
+    "curl", @["-fsS", "https://api.github.com/licenses"]
+  )
   if curlResult.exitCode != 0:
     error("Cannot fetch GitHub licenses: " & curlResult.error.strip(), errp)
     return 1

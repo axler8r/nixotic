@@ -95,7 +95,10 @@ Examples:
     var rows: seq[seq[string]] = @[]
     for line in listing.output.splitLines():
       if line.len > 0: rows.add(line.split('\t', maxsplit = 3))
-    return render(@["Name", "Used", "Referenced", "Creation"], rows, ctx, runner, outp, errp)
+    return render(
+      @["Name", "Used", "Referenced", "Creation"],
+      rows, ctx, runner, outp, errp
+    )
   result = runner.runInherited("zfs", @["list"] & zfsArgs)
 
 when isMainModule:

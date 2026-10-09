@@ -136,7 +136,9 @@ suite "ax fs histogram run":
     let bigPath = scanDir / "bigger.txt"
     writeFile(smallPath, "x")
     writeFile(bigPath, "x".repeat(2000))
-    let rec = newRecordingRunner(exitCode = 0, output = smallPath & "\0" & bigPath & "\0")
+    let rec = newRecordingRunner(
+      exitCode = 0, output = smallPath & "\0" & bigPath & "\0"
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

@@ -119,7 +119,9 @@ case "$1" in
   --to=iec) echo 5G ;;
 esac
 """)
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"]:
+    for exe in [
+      "fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"
+    ]:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -140,7 +142,8 @@ esac
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "stat", "echo 100000000")
     writeFakeExe(dir, "numfmt", "exit 1")
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"]:
+    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid",
+        "sudo", "losetup"]:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)

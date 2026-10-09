@@ -23,7 +23,9 @@ proc gitRemoteFetchUrl*(dir: string, runner: Runner): string =
   ## remote -v` lists; "" if the directory has no remotes at all.
   let res = runner.capture("git", @["-C", dir, "remote", "-v"])
   if res.exitCode != 0:
-    raise newException(IOError, "Cannot list remotes for '" & dir & "': " & res.error.strip())
+    raise newException(
+      IOError, "Cannot list remotes for '" & dir & "': " & res.error.strip()
+    )
   let listing = res.output
   var firstUrl = ""
   for line in listing.splitLines():
@@ -35,7 +37,9 @@ proc gitRemoteFetchUrl*(dir: string, runner: Runner): string =
     if parts[0] == "origin": return parts[1]
   firstUrl
 
-proc collectRepoRows*(baseDir: string, runner: Runner): seq[tuple[url, path: string]] =
+proc collectRepoRows*(
+  baseDir: string, runner: Runner
+): seq[tuple[url, path: string]] =
   result = @[]
   var dirs: seq[string] = @[]
   for kind, path in walkDir(baseDir, checkDir = true):

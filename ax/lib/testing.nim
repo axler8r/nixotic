@@ -89,13 +89,19 @@ proc newRecordingRunner*(exitCode = 0, output = "",
   rec.runner = Runner(
     runInheritedImpl: proc (cmd: string, args: seq[string],
                             env: StringTableRef): int =
-      rec.calls.add(CallRecord(kind: "inherited", cmd: cmd,
-                               args: args, input: "", env: snapshotEnv(env)))
-      nextReply().exitCode,
+    rec.calls.add(
+      CallRecord(
+        kind: "inherited", cmd: cmd, args: args, input: "", env: snapshotEnv(env)
+      )
+    )
+    nextReply().exitCode,
     captureImpl: proc (cmd: string, args: seq[string],
                        input: string): CommandResult =
-      rec.calls.add(CallRecord(kind: "capture", cmd: cmd,
-                               args: args, input: input, env: snapshotEnv()))
-      nextReply()
+    rec.calls.add(
+      CallRecord(
+        kind: "capture", cmd: cmd, args: args, input: input, env: snapshotEnv()
+      )
+    )
+    nextReply()
   )
   rec

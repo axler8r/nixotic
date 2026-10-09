@@ -26,7 +26,8 @@ suite "ax docker image update filterImages":
     check filterImages(input) == input
 
   test "drops empty lines":
-    check filterImages(@["nginx:latest", "", "postgres:16"]) == @["nginx:latest", "postgres:16"]
+    check filterImages(@["nginx:latest", "", "postgres:16"]) ==
+      @["nginx:latest", "postgres:16"]
 
   test "prefix rules are anchored, not substring matches":
     # "notvsc:latest" contains "vsc" but does not start with it, so it must

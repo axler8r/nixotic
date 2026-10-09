@@ -22,7 +22,9 @@ proc key(cmd: string, args: seq[string]): string =
   args[0]
 
 proc newHarness(): Harness =
-  let h = Harness(currentSize: "100000000", targetSize: "5000000000", fsType: "ext4")
+  let h = Harness(
+    currentSize: "100000000", targetSize: "5000000000", fsType: "ext4"
+  )
   proc reply(kind, cmd: string, args: seq[string]): CommandResult =
     h.calls.add CallRecord(kind: kind, cmd: cmd, args: args)
     let step = key(cmd, args)
@@ -41,10 +43,14 @@ proc newHarness(): Harness =
     of "losetup": result.output = h.loopOutput
     else: discard
   h.runner = Runner(
-    runInheritedImpl: proc(cmd: string, args: seq[string], env: StringTableRef): int =
-      reply("inherited", cmd, args).exitCode,
-    captureImpl: proc(cmd: string, args: seq[string], input: string): CommandResult =
-      reply("capture", cmd, args))
+    runInheritedImpl: proc(
+      cmd: string, args: seq[string], env: StringTableRef
+    ): int =
+    reply("inherited", cmd, args).exitCode,
+    captureImpl: proc(cmd: string, args: seq[string],
+        input: string): CommandResult =
+    reply("capture", cmd, args)
+  )
   h
 
 proc steps(h: Harness): seq[string] =
@@ -59,7 +65,8 @@ suite "vault cleanup safety with injected runners":
     removeDir(dir)
     createDir(dir)
     for dep in createVault.cmdSpec.deps & mountVault.cmdSpec.deps &
-               unmountVault.cmdSpec.deps & removeVault.cmdSpec.deps & resizeVault.cmdSpec.deps:
+               unmountVault.cmdSpec.deps & removeVault.cmdSpec.deps &
+                   resizeVault.cmdSpec.deps:
       writeFakeExe(dir, dep, "exit 99") # presence only; callbacks execute nothing
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "backing file")
@@ -93,7 +100,8 @@ suite "vault cleanup safety with injected runners":
     check h.calls.len == 0
 
   test "parsers honor attached values and the option terminator accepted by validation":
-    let created = createVault.parseArgs(@["--size=2G", "--location=/tmp/vaults", "--", "--size"])
+    let created = createVault.parseArgs(@["--size=2G", "--location=/tmp/vaults",
+        "--", "--size"])
     check created.size == "2G"
     check created.location == "/tmp/vaults"
     check created.vaultName == "--size"
@@ -169,7 +177,8 @@ suite "vault cleanup safety with injected runners":
   test "mount exception after open attempts close":
     # Bypass the capture exception to throw only during the mount action.
     let capture = h.runner.captureImpl
-    h.runner.captureImpl = proc(cmd: string, args: seq[string], input: string): CommandResult =
+    h.runner.captureImpl = proc(cmd: string, args: seq[string],
+        input: string): CommandResult =
       if cmd == "mount": return CommandResult()
       capture(cmd, args, input)
     h.throwAt = "mount"
@@ -232,7 +241,8 @@ suite "vault cleanup safety with injected runners":
     withPath(dir):
       check removeVault.run(@[vaultFile, "--force"], f, f, h.runner,
                             mapperProbe = present) == 1
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, present) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          present) == 1
     check h.calls.len == 0
 
   test "loop associated under another mapper name prevents removal and growth":
@@ -240,7 +250,8 @@ suite "vault cleanup safety with injected runners":
     withPath(dir):
       check removeVault.run(@[vaultFile, "--force"], f, f, h.runner,
                             mapperProbe = absent) == 1
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check "rm" notin h.steps
     check "fallocate" notin h.steps
     check "cryptsetup open" notin h.steps
@@ -251,7 +262,8 @@ suite "vault cleanup safety with injected runners":
     withPath(dir):
       check removeVault.run(@[vaultFile, "--force"], f, f, h.runner,
                             mapperProbe = absent) == 1
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check "rm" notin h.steps
     check "fallocate" notin h.steps
     check "cryptsetup open" notin h.steps
@@ -261,34 +273,39 @@ suite "vault cleanup safety with injected runners":
     withPath(dir):
       check removeVault.run(@[vaultFile, "--force"], f, f, h.runner,
                             mapperProbe = absent) == 1
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check "rm" notin h.steps
     check "fallocate" notin h.steps
 
   test "second loop inspection failure prevents allocation after preflight cleanup":
     let capture = h.runner.captureImpl
     var loopProbes = 0
-    h.runner.captureImpl = proc(cmd: string, args: seq[string], input: string): CommandResult =
+    h.runner.captureImpl = proc(cmd: string, args: seq[string],
+        input: string): CommandResult =
       if key(cmd, args) == "losetup":
         inc loopProbes
         if loopProbes == 2: return CommandResult(exitCode: 1)
       capture(cmd, args, input)
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check h.closeCount == 1
     check "fallocate" notin h.steps
 
   test "resize unsupported filesystem closes without allocating":
     h.fsType = "btrfs"
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check h.closeCount == 1
     check "fallocate" notin h.steps
 
   test "failed blkid capture closes without allocating":
     h.failAt = "blkid"
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check h.closeCount == 1
     check "fallocate" notin h.steps
 
@@ -303,7 +320,8 @@ suite "vault cleanup safety with injected runners":
   test "preflight close failure forbids allocation and reopening":
     h.failClose = 1
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check h.closeCount == 1
     check "fallocate" notin h.steps
     check h.steps.count("cryptsetup open") == 1
@@ -311,7 +329,8 @@ suite "vault cleanup safety with injected runners":
   test "resize final close failure is propagated":
     h.failClose = 2
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 1
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 1
     check h.closeCount == 2
     f.flushFile()
     check not readFile(dir / "output.txt").contains("Vault resized successfully")
@@ -322,21 +341,24 @@ suite "vault cleanup safety with injected runners":
       failing.throwAt = step
       withPath(dir):
         expect IOError:
-          discard resizeVault.run(@[vaultFile, "--size", "5G"], f, f, failing.runner, absent)
+          discard resizeVault.run(@[vaultFile, "--size", "5G"], f, f,
+              failing.runner, absent)
       check failing.closeCount == 2
       check failing.steps[^1] == "cryptsetup close"
 
   test "equal target resumes filesystem growth without allocating again":
     h.targetSize = h.currentSize
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", h.targetSize], f, f, h.runner, absent) == 0
+      check resizeVault.run(@[vaultFile, "--size", h.targetSize], f, f,
+          h.runner, absent) == 0
     check "fallocate" notin h.steps
     check "resize2fs" in h.steps
     check h.closeCount == 2
 
   test "growth validates and closes before allocating, then reopens":
     withPath(dir):
-      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner, absent) == 0
+      check resizeVault.run(@[vaultFile, "--size", "5G"], f, f, h.runner,
+          absent) == 0
     check h.steps == @["stat", "numfmt", "losetup", "cryptsetup open", "blkid",
         "cryptsetup close", "losetup", "fallocate", "cryptsetup open",
         "cryptsetup resize", "e2fsck", "resize2fs", "cryptsetup close"]

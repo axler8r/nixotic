@@ -54,7 +54,9 @@ Requirements:
   code = requireNotBranch(branch, runner, errp)
   if code != 0: return code
 
-  if runner.runQuiet("git", @["merge-base", "--is-ancestor", branch, "stable"]) != 0:
+  if runner.runQuiet(
+    "git", @["merge-base", "--is-ancestor", branch, "stable"]
+  ) != 0:
     error("Branch is not fully merged into stable: " & branch, errp)
     return 1
 

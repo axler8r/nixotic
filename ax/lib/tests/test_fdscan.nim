@@ -15,14 +15,16 @@ suite "fdscan.buildFdArgs":
 
 suite "fdscan.findFiles":
   test "splits NUL records without splitting newlines in filenames":
-    let rec = newRecordingRunner(exitCode = 0, output = "./a\nname.py\0./b.py\0")
+    let rec = newRecordingRunner(exitCode = 0,
+        output = "./a\nname.py\0./b.py\0")
     let files = findFiles(rec.runner, "/some/dir", @[], false)
     check files == @["./a\nname.py", "./b.py"]
     check rec.calls[0].cmd == "fd"
     check rec.calls[0].args == @["--type", "f", "--print0", "--", ".", "/some/dir"]
 
   test "failed discovery raises even with partial paths":
-    let rec = newRecordingRunner(exitCode = 1, output = "./partial\0", error = "denied")
+    let rec = newRecordingRunner(exitCode = 1, output = "./partial\0",
+        error = "denied")
     expect IOError:
       discard findFiles(rec.runner, "/some/dir", @[], false)
 

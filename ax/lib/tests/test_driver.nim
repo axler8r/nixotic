@@ -405,7 +405,8 @@ suite "driver strict registry inputs":
   test "registry requires an array of valid nonoverlapping specs":
     let tmp = getTempDir() / "test_driver_registry_shape.json"
     let s = CommandSpec(specVersion: specVersionCurrent,
-      path: @["vault", "mount"], summary: "mount a vault", usage: "ax vault mount")
+      path: @["vault", "mount"], summary: "mount a vault",
+          usage: "ax vault mount")
     for text in ["{}", "null", "[null]", "[{}]"]:
       writeFile(tmp, text)
       expect CatchableError:
@@ -442,7 +443,8 @@ suite "driver strict registry inputs":
     createDir(dir)
     writeFile(dir / "ax-vault-mount", "")
     let s = CommandSpec(specVersion: specVersionCurrent,
-      path: @["vault", "mount"], summary: "mount a vault", usage: "ax vault mount")
+      path: @["vault", "mount"], summary: "mount a vault",
+          usage: "ax vault mount")
     var node = s.toJson()
     node["dryRun"] = %"false"
     let rec = newRecordingRunner(output = $node)
@@ -485,7 +487,8 @@ suite "driver builtin safety and context":
     writeFile(dir / "groups.json", "{}\n")
     let f = open(dir / "out.txt", fmWrite)
     withSavedContext:
-      let fromFlag = extractCommon(@["self", "new-command", "zfs", "remove", "-n"], Ctx())
+      let fromFlag = extractCommon(@["self", "new-command", "zfs", "remove",
+          "-n"], Ctx())
       putEnv(axDryRunEnv, "1")
       for ctx in [fromFlag.ctx, ctxFromEnv()]:
         check selfCmd(@["new-command", "zfs", "remove"], ctx, "", "", "",

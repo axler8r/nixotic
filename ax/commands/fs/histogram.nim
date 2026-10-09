@@ -161,7 +161,9 @@ Examples:
   if totalFiles == 0:
     warn("No files found in '" & dir & "'", errp)
     if ctxFromEnv().output != omJson: return 0
-    return render(@["Range", "Distribution", "Files"], @[], ctxFromEnv(), runner, outp, errp)
+    return render(
+      @["Range", "Distribution", "Files"], @[], ctxFromEnv(), runner, outp, errp
+    )
 
   var maxCount = 0
   for c in binCounts:

@@ -14,13 +14,13 @@ import spec
 
 type Extracted* = object
   ctx*: Ctx
-  words*: seq[string]   ## everything not consumed, in original order
-  resolvable*: int      ## words[0 ..< resolvable] may be path segments; a
-                        ## `--` freezes everything after it as plain args
+  words*: seq[string] ## everything not consumed, in original order
+  resolvable*: int    ## words[0 ..< resolvable] may be path segments; a
+                      ## `--` freezes everything after it as plain args
   help*: bool
   version*: bool
-  badFlag*: string      ## diagnostic for an invalid/missing flag value; ""
-                        ## when extraction succeeded
+  badFlag*: string    ## diagnostic for an invalid/missing flag value; ""
+                      ## when extraction succeeded
 
 proc extractCommon*(args: seq[string], base: Ctx): Extracted =
   ## Pulls the cross-cutting flags (§ docs/ax-cli-design.md) out of argv
@@ -90,16 +90,16 @@ proc extractCommon*(args: seq[string], base: Ctx): Extracted =
 
 type
   ResolveKind* = enum
-    rkFull     ## words resolved to exactly one registry command
-    rkPrefix   ## words are a valid group/subgroup with nothing after it
-    rkNone     ## first unmatched word; deepest/children describe the tree
+    rkFull   ## words resolved to exactly one registry command
+    rkPrefix ## words are a valid group/subgroup with nothing after it
+    rkNone   ## first unmatched word; deepest/children describe the tree
 
   Resolution* = object
     kind*: ResolveKind
-    path*: seq[string]       ## rkFull: the canonical command path
-    rest*: seq[string]       ## rkFull: the words after the path, in order
-    deepest*: seq[string]    ## rkPrefix/rkNone: deepest valid prefix
-    children*: seq[string]   ## rkPrefix/rkNone: next segments under deepest
+    path*: seq[string]     ## rkFull: the canonical command path
+    rest*: seq[string]     ## rkFull: the words after the path, in order
+    deepest*: seq[string]  ## rkPrefix/rkNone: deepest valid prefix
+    children*: seq[string] ## rkPrefix/rkNone: next segments under deepest
 
 proc childrenOf(paths: seq[seq[string]], prefix: seq[string]): seq[string] =
   for p in paths:
@@ -474,7 +474,9 @@ proc newCommand*(words: seq[string], commandsDir: string,
           raise newException(ValueError, "unsafe scaffold directory: " & parent)
         let mode = if nearest: W_OK or X_OK else: X_OK
         if access(parent.cstring, mode) != 0:
-          raise newException(ValueError, "scaffold directory is not accessible: " & parent)
+          raise newException(
+            ValueError, "scaffold directory is not accessible: " & parent
+          )
         nearest = false
       let next = parent.parentDir
       if next == parent: break

@@ -118,7 +118,9 @@ Requirements:
     success("No tag needed for type: " & commitType & ".", errp)
     return 0
 
-  let tagList = runner.capture("git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"])
+  let tagList = runner.capture(
+    "git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"]
+  )
   if tagList.exitCode != 0:
     error("Cannot list previous tags: " & tagList.error.strip(), errp)
     return 1

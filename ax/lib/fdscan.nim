@@ -40,7 +40,9 @@ proc isTextMimeType*(mime: string): bool =
 proc mimeType*(runner: Runner, path: string): string =
   let res = runner.capture("file", @["--brief", "--mime-type", "--", path])
   if res.exitCode != 0:
-    raise newException(IOError, "Cannot classify '" & path & "': " & res.error.strip())
+    raise newException(
+      IOError, "Cannot classify '" & path & "': " & res.error.strip()
+    )
   result = res.output.strip()
   if result.len == 0 or result.startsWith("cannot open") or result.startsWith("ERROR:"):
     raise newException(IOError, "Cannot classify '" & path & "': " & result)

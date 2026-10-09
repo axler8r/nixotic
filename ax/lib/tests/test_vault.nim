@@ -57,7 +57,8 @@ suite "vault.backingFileIdle":
       f.close()
       removeFile(getTempDir() / "test_vault_idle.txt")
     for reply in [CommandResult(), CommandResult(output: "/dev/loop7\n"),
-                  CommandResult(exitCode: 1), CommandResult(exitCode: 1, output: "/dev/loop7")]:
+                  CommandResult(exitCode: 1), CommandResult(exitCode: 1,
+                      output: "/dev/loop7")]:
       let rec = newRecordingRunner(replies = @[reply])
       check backingFileIdle(rec.runner, "/tmp/vault with spaces", f) ==
           (reply.exitCode == 0 and reply.output.len == 0)

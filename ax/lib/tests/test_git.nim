@@ -110,7 +110,8 @@ suite "git.gitCurrentBranch":
 suite "git.requireCleanGitWorktree":
   test "failed status with empty stdout is not a clean worktree":
     let rec = newRecordingRunner()
-    rec.runner.captureImpl = proc(cmd: string, args: seq[string], input: string): CommandResult =
+    rec.runner.captureImpl = proc(cmd: string, args: seq[string],
+        input: string): CommandResult =
       rec.calls.add(CallRecord(kind: "capture", cmd: cmd, args: args, input: input))
       if args[0] == "status":
         CommandResult(exitCode: 128, error: "index unreadable")

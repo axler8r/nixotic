@@ -18,7 +18,9 @@ proc requireGitRepo*(runner: Runner = defaultRunner, errp: File = stderr): int =
     return 1
   0
 
-proc gitCurrentBranch*(runner: Runner = defaultRunner, errp: File = stderr): string =
+proc gitCurrentBranch*(
+  runner: Runner = defaultRunner, errp: File = stderr
+): string =
   ## The current branch name, or "" (with an error already printed) on a
   ## detached HEAD. Callers must check for an empty result themselves,
   ## same as the zsh original's `|| return 1` after each call site.
@@ -28,7 +30,9 @@ proc gitCurrentBranch*(runner: Runner = defaultRunner, errp: File = stderr): str
     return ""
   res.output.strip()
 
-proc requireCleanGitWorktree*(runner: Runner = defaultRunner, errp: File = stderr): int =
+proc requireCleanGitWorktree*(
+  runner: Runner = defaultRunner, errp: File = stderr
+): int =
   let repoCode = requireGitRepo(runner, errp)
   if repoCode != 0: return repoCode
   let res = runner.capture("git", @["status", "--porcelain"])
@@ -42,14 +46,19 @@ proc requireCleanGitWorktree*(runner: Runner = defaultRunner, errp: File = stder
     return 1
   0
 
-proc requireBranchExists*(branch: string, runner: Runner = defaultRunner, errp: File = stderr): int =
+proc requireBranchExists*(
+  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+): int =
   if not requireArg(branch, "branch name", errp): return 1
-  if runner.runQuiet("git", @["show-ref", "--verify", "--quiet", "refs/heads/" & branch]) != 0:
+  if runner.runQuiet("git", @["show-ref", "--verify", "--quiet", "refs/heads/" &
+      branch]) != 0:
     error("Branch does not exist: " & branch, errp)
     return 1
   0
 
-proc requireNotBranch*(branch: string, runner: Runner = defaultRunner, errp: File = stderr): int =
+proc requireNotBranch*(
+  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+): int =
   if not requireArg(branch, "branch name", errp): return 1
   let current = gitCurrentBranch(runner, errp)
   if current.len == 0: return 1
@@ -58,7 +67,9 @@ proc requireNotBranch*(branch: string, runner: Runner = defaultRunner, errp: Fil
     return 1
   0
 
-proc requireWipBranch*(branch: string, runner: Runner = defaultRunner, errp: File = stderr): int =
+proc requireWipBranch*(
+  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+): int =
   ## Mirrors __ax_require_wip_branch: an empty branch defaults to the
   ## current branch. The zsh original delegates to a general
   ## __ax_require_branch_pattern helper; that helper has no other caller

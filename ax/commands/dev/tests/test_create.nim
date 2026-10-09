@@ -125,7 +125,8 @@ suite "ax dev create run":
     check codeEmpty == 64
     check content.contains("Usage: ax dev create tool")
 
-  proc scaffoldWith(caseName: string, args: seq[string]): tuple[code: int, flake: string] =
+  proc scaffoldWith(caseName: string, args: seq[string]): tuple[code: int,
+      flake: string] =
     ## Runs `ax dev create` inside a fresh fixture directory and hands back
     ## the exit code plus the flake.nix it wrote ("" when none appeared).
     let dir = getTempDir() / caseName
