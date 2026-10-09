@@ -10,7 +10,7 @@ This project manages desired state configuration for my computers using:
   directory per machine); shared modules live in `profiles/` split by concern:
   `roles/`, `hardware/`, `platform/`, `storage/`.
 - **Desktop**: GNOME and only GNOME.
-- **CLI**: primary command surface is Nim via `ax` (`files/nim/`); ZSH
+- **CLI**: primary command surface is Nim via `ax` (`ax/`); ZSH
   functions in `files/zsh/functions/` are legacy/compatibility only
   (repo-relative — edited here; `~/.zsh/functions/` is the generated copy).
 - **Theming**: Stylix manages desktop chrome only. CLI and editor theming use
@@ -61,7 +61,7 @@ Repo-local `.scratchpad/copilot` is shared, gitignored scratch space:
 
 ## Code Standards
 
-- New CLI commands and features are implemented in Nim under `files/nim/`
+- New CLI commands and features are implemented in Nim under `ax/`
   (`commands/`, `lib/`) first; see `docs/nim-functions-conventions.md` and
   `docs/ax-cli-design.md` as the source of truth for naming and structure.
 - `files/zsh/functions/` is in maintenance mode: limit changes to wrappers,
@@ -131,7 +131,7 @@ You can:
 - Prefer extending `ax` in Nim over adding new ZSH functions.
 - When touching existing ZSH behavior, consider moving the logic into Nim and
   leaving a thin ZSH wrapper if shell integration is still required.
-- New command groups/verbs should map through `files/nim/commands/groups.json`
+- New command groups/verbs should map through `ax/commands/groups.json`
   and the existing command tree conventions.
 - Maintain ZSH backward compatibility only when explicitly required.
 

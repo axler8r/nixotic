@@ -2,7 +2,7 @@
 
 Governs the PascalCase zsh scripts in `files/zsh/functions/` — the surviving zsh
 population, which is frozen: new commands are Nim, live under
-`files/nim/commands/`, and are governed by `docs/ax-cli-design.md` and
+`ax/commands/`, and are governed by `docs/ax-cli-design.md` and
 `docs/nim-functions-conventions.md`, not by this doc. `New-Function`, the zsh
 scaffolder, is retired accordingly (`ax self new-command` scaffolds Nim
 commands).

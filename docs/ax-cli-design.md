@@ -32,7 +32,7 @@ ax [global flags] <group> [<subgroup>] <command> [args]
 
 ## Verb lexicon
 
-The runtime and eval-time source of truth is `files/nim/lexicon.json`; this
+The runtime and eval-time source of truth is `ax/lexicon.json`; this
 table documents it. Aliases are accepted by the driver in the command position
 and resolved before dispatch; the registry stores canonical names only.
 
@@ -162,7 +162,7 @@ small derivation plus the trivial final join.
 ## Source layout — the directory tree IS the command tree
 
 ```
-files/nim/
+ax/
   nim.cfg                      # --styleCheck:error
   lexicon.json                 # verb lexicon + report-noun exceptions
   ax.nim                       # driver (thin main)

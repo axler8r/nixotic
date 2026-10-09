@@ -67,6 +67,6 @@ Commits and tagging conventions (see [docs/git.md](../../../docs/git.md) and
 
 - Do not push the tag. Tag creation only; the user pushes by hand.
 - Do not confuse this skill with `ax git tag create`
-  ([files/nim/commands/git/tag/create.nim](../../../files/nim/commands/git/tag/create.nim)),
+  ([ax/commands/git/tag/create.nim](../../../ax/commands/git/tag/create.nim)),
   which auto-derives a tag from HEAD's Conventional Commit type. This skill
   is for interactive, user-directed tagging of an arbitrary recent commit.

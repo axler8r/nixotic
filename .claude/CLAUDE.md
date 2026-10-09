@@ -7,7 +7,8 @@ This project manages desired state configuration for my computers using:
 - **NixOS flake** with Home Manager as a module.
 - **Hosts**: two roles — workstation (GNOME) and server (CLI only). `ambul8r` (workstation: laptop, NVIDIA), `illumin8r` (server: WSL dev container host), `cre8r` (server: provisioning helper VM). Role is declared once in `flake.nix` via `mkHost { role }`; `hosts/<name>/` is flat, and shared modules live in `profiles/{roles,hardware,platform,storage}/`.
 - **Desktop**: GNOME and only GNOME.
-- **Shell**: ZSH with custom functions in `files/zsh/functions/` (repo-relative — edited here; `~/.zsh/functions/` is the generated copy).
+- **CLI**: primary command surface is Nim via `ax` (`ax/`); see `docs/ax-cli-design.md`.
+- **Shell**: ZSH with legacy functions in `files/zsh/functions/` (repo-relative — edited here; `~/.zsh/functions/` is the generated copy).
 - **Theming**: Stylix manages desktop chrome only. CLI and editor theming use manual Solarized Light themes defined in `docs/colour-token-taxonomy.md`.
 
 ## On Startup

@@ -40,7 +40,9 @@ to run before applying changes.
 
 Home Manager owns packages, integration, and deployment. Structured settings
 remain in `home/`; substantial native configuration lives in `files/` and is
-referenced or imported by the corresponding module.
+referenced or imported by the corresponding module. The `ax` CLI, the Nim
+toolbelt this flake builds and installs, lives in `ax/`; see
+[docs/ax-cli-design.md](docs/ax-cli-design.md).
 
 See [docs/packages.md](docs/packages.md#configuration-ownership) for ownership
 rules and [docs/validation.md](docs/validation.md#native-configuration-checks)

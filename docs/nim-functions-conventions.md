@@ -1,6 +1,6 @@
 # Nim Command Conventions
 
-Implementation patterns for the compiled toolbelt under `files/nim/`. The CLI's
+Implementation patterns for the compiled toolbelt under `ax/`. The CLI's
 design — grammar, verb lexicon, cross-cutting flags, exit codes, registry
 mechanics, and how to add a command — lives in `docs/ax-cli-design.md`; this doc
 covers how a command's Nim is written and tested. The surviving zsh functions
@@ -232,7 +232,7 @@ The vault `tests/test_safety.nim` matrix deliberately imports all five vault
 commands; its explicit family fileset is the exception to the one-subject rule.
 `tests/integration.sh` exercises real executable dispatch, context, exit codes,
 exception handling, and builtin help/dry-run non-mutation through the
-`ax-integration` check. Local invocation runs from `files/nim` with Bash.
+`ax-integration` check. Local invocation runs from `ax/` with Bash.
 
 Each check is fileset-scoped: a command test sees `nim.cfg` + `lib/` +
 `lexicon.json` + the one command module it exercises, derived from the test's
@@ -252,8 +252,8 @@ drift.
 
 ## Compile flags
 
-`files/nim/nim.cfg` sets `--styleCheck:error`; every derivation roots its source
-at `files/nim` so it always applies. The package build passes `-d:release`, the
+`ax/nim.cfg` sets `--styleCheck:error`; every derivation roots its source at
+`ax/` so it always applies. The package build passes `-d:release`, the
 test build deliberately does not, to retain stack and line traces. In Nim 2.2,
 release mode retains ordinary assertions; `doAssert` remains enabled even under
 `--assertions:off`. `-d:danger`, not release, disables runtime checks. Resist
