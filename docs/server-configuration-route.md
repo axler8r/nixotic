@@ -66,8 +66,8 @@ The generated flake entry for a server is explicit:
 };
 ```
 
-That `role = "server"` is what selects the server system role module, the
-server Home Manager profile, and prevents Stylix from being added by `mkHost`.
+That `role = "server"` is what selects the server system role module, the server
+Home Manager profile, and prevents Stylix from being added by `mkHost`.
 
 ## Flake Route
 
@@ -302,8 +302,8 @@ flowchart TD
 
 ## Home Manager Route
 
-All future server hosts use the server Home Manager profile unless a host
-passes a custom `homeConfig` in `flake.nix`.
+All future server hosts use the server Home Manager profile unless a host passes
+a custom `homeConfig` in `flake.nix`.
 
 ```mermaid
 flowchart TD

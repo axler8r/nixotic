@@ -36,7 +36,8 @@ flowchart TD
 
 ### 1. `environment.systemPackages`
 
-**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix` (one host)  
+**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix`
+(one host)  
 **Use for:** System-wide tools, root access, all users
 
 Examples:
@@ -47,7 +48,8 @@ Examples:
 
 ### 2. `users.users.<name>.packages`
 
-**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix` (one host)  
+**Location:** `profiles/roles/*.nix` (shared) or `hosts/*/configuration.nix`
+(one host)  
 **Use for:** User-specific packages needing system integration
 
 This tier exists for packages that need genuine system-level integration —
@@ -101,8 +103,8 @@ does not have to be embedded in Nix to remain declarative or reproducible:
 tracked native files referenced by Home Manager are included in the Nix store
 and participate in generations and rollback.
 
-Use Nix for structured options, dependencies, and host-specific composition.
-Use native files for substantial scripts, application languages, and static
+Use Nix for structured options, dependencies, and host-specific composition. Use
+native files for substantial scripts, application languages, and static
 configuration that gains nothing from Nix evaluation.
 
 - Keep package selection, plugins, and integration in `home/*.nix` so Nix
@@ -111,8 +113,8 @@ configuration that gains nothing from Nix evaluation.
   merging, option types, `mkDefault`, and `mkForce`.
 - Keep substantial Lua, shell code, and native command fragments in
   `files/<tool>/` for native highlighting, diagnostics, formatting, and parsing.
-- Import string-heavy TOML or JSON into `settings` for native editing with
-  Home Manager composition.
+- Import string-heavy TOML or JSON into `settings` for native editing with Home
+  Manager composition.
 
 Keep filenames under `files/` visible, without a leading dot. Home Manager maps
 them to the application's expected hidden or XDG path. Edit repository sources,
@@ -144,8 +146,8 @@ programs.starship.settings =
 ```
 
 `builtins.fromJSON` provides the equivalent for JSON, not JSONC. Parsed imports
-preserve values, not comments or formatting in generated output. `readFile`
-does not interpret `${...}` in the file as Nix interpolation. Keep genuinely
+preserve values, not comments or formatting in generated output. `readFile` does
+not interpret `${...}` in the file as Nix interpolation. Keep genuinely
 Nix-dependent values in a small Nix definition rather than turning the entire
 native file into a template.
 
@@ -160,21 +162,23 @@ both a native fragment and a structured option.
   `files/tmux/tmux.conf` and are appended through `extraConfig`.
 - dircolors integration remains in Nix; the static database lives in
   `files/dircolors/dir_colors`.
-- Starship integration remains in Nix; `files/starship/starship.toml` is imported
-  into `settings`.
+- Starship integration remains in Nix; `files/starship/starship.toml` is
+  imported into `settings`.
 - Neovim packages remain in Nix; `files/neovim/init.lua` holds editor settings
   and highlight overrides, and `files/neovim/plugins.lua` holds plugin setup.
   The native plugin file is attached to the final configured plugin, keeping
   setup in Home Manager's generated plugin configuration. This preserves its
   order relative to setup injected by other modules. Keep custom setup in that
-  file so its order is explicit; do not move it to a separate `initLua` override.
+  file so its order is explicit; do not move it to a separate `initLua`
+  override.
 - Nushell, Zsh, and Julia retain their existing native-file approach.
 
 Native files make language tooling available; they do not install or configure
 that tooling automatically. Nix language servers understand Nix options, but a
 free-form `settings` attribute is not necessarily a complete application schema.
 Embedded-language highlighting does not guarantee native diagnostics or linting.
-See [validation.md](validation.md#native-configuration-checks) for repeatable checks.
+See [validation.md](validation.md#native-configuration-checks) for repeatable
+checks.
 
 ## Checking for Home Manager Modules
 

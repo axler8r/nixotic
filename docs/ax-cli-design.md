@@ -32,9 +32,9 @@ ax [global flags] <group> [<subgroup>] <command> [args]
 
 ## Verb lexicon
 
-The runtime and eval-time source of truth is `ax/lexicon.json`; this
-table documents it. Aliases are accepted by the driver in the command position
-and resolved before dispatch; the registry stores canonical names only.
+The runtime and eval-time source of truth is `ax/lexicon.json`; this table
+documents it. Aliases are accepted by the driver in the command position and
+resolved before dispatch; the registry stores canonical names only.
 
 | Verb                        | Meaning                                            | Alias    |
 | --------------------------- | -------------------------------------------------- | -------- |
@@ -107,8 +107,8 @@ formatting).
 
 ### Piped lists
 
-A command whose variadic positional is a list of items (paths, image names)
-also accepts that list **one item per line on stdin**, so the idiomatic
+A command whose variadic positional is a list of items (paths, image names) also
+accepts that list **one item per line on stdin**, so the idiomatic
 `producer | ax ...` form works without `xargs`:
 
 ```
@@ -116,13 +116,13 @@ ls -d ~/Projects/*/ | ax git repo sync
 ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | ax docker image update
 ```
 
-Precedence is fixed: explicit positionals win; stdin is read only when none
-were given and only when it is not a terminal (an interactive stdin is never
-read, so `ax git repo sync` at a prompt does not block). An empty piped stdin
-counts as "nothing given" and falls through to the command's documented
-no-argument default — `git repo sync` scans the current directory,
-`docker image update` pulls every installed image, `git repo optimize` reports
-a usage error. Blank lines are dropped; interior whitespace is data.
+Precedence is fixed: explicit positionals win; stdin is read only when none were
+given and only when it is not a terminal (an interactive stdin is never read, so
+`ax git repo sync` at a prompt does not block). An empty piped stdin counts as
+"nothing given" and falls through to the command's documented no-argument
+default — `git repo sync` scans the current directory, `docker image update`
+pulls every installed image, `git repo optimize` reports a usage error. Blank
+lines are dropped; interior whitespace is data.
 
 Commands with this behaviour: `git repo sync`, `git repo optimize`,
 `docker image update`.

@@ -883,8 +883,8 @@ programs.fzf = {
 
 The current config uses 256-colour ANSI codes. The table below maps each
 category to the correct named palette colour and its nearest 256-colour index.
-Update the native database to use these consistently; `home/dircolors.nix`
-reads it into `extraConfig`.
+Update the native database to use these consistently; `home/dircolors.nix` reads
+it into `extraConfig`.
 
 | Token Slug      | Colour Name             | Hex      | 256-colour index | Current code  | Correct code    |
 | --------------- | ----------------------- | -------- | ---------------- | ------------- | --------------- |

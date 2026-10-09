@@ -84,8 +84,9 @@ Starship format string and module option. Test those behaviors separately when
 changing them. `nix flake check --no-build` evaluates the check derivations but
 does not run their parsers; the command above builds just the relevant check.
 
-For additional one-off tools on NixOS, use `nix run`, `nix shell`, or the project's
-`nix develop` environment. Do not assume language tools are installed globally.
+For additional one-off tools on NixOS, use `nix run`, `nix shell`, or the
+project's `nix develop` environment. Do not assume language tools are installed
+globally.
 
 ### Extraction Regression Checks
 
@@ -125,15 +126,16 @@ evaluating the whole flake:
 nix-instantiate --parse home/neovim.nix > /dev/null
 ```
 
-Parsing alone does not check undefined variables, option types, or the syntax
-of a language inside a string. Evaluation and native checks cover those distinct
+Parsing alone does not check undefined variables, option types, or the syntax of
+a language inside a string. Evaluation and native checks cover those distinct
 layers.
 
 ### Realise and inspect the derivation
 
 After `nh os build --dry`, take the `.drv` path from the output and realise it
 to read the actual generated file. This checks the final bytes after module
-composition and serialization, beyond what inspecting an individual option shows:
+composition and serialization, beyond what inspecting an individual option
+shows:
 
 ```bash
 # Build a specific derivation from dry build output

@@ -137,7 +137,8 @@ For a fixed workstation, `Prepare-NewHost` generates this import shape:
 }
 ```
 
-A portable workstation additionally imports `../../profiles/hardware/laptop.nix`.
+A portable workstation additionally imports
+`../../profiles/hardware/laptop.nix`.
 
 Current-state note: `ambul8r` is a legacy workstation and does not currently
 import `../../profiles/storage/zfs-root.nix`; it keeps its existing ZFS/runtime

@@ -1,10 +1,10 @@
 # Nim Command Conventions
 
-Implementation patterns for the compiled toolbelt under `ax/`. The CLI's
-design — grammar, verb lexicon, cross-cutting flags, exit codes, registry
-mechanics, and how to add a command — lives in `docs/ax-cli-design.md`; this doc
-covers how a command's Nim is written and tested. The surviving zsh functions
-are governed by `docs/zsh-functions-conventions.md`.
+Implementation patterns for the compiled toolbelt under `ax/`. The CLI's design
+— grammar, verb lexicon, cross-cutting flags, exit codes, registry mechanics,
+and how to add a command — lives in `docs/ax-cli-design.md`; this doc covers how
+a command's Nim is written and tested. The surviving zsh functions are governed
+by `docs/zsh-functions-conventions.md`.
 
 ## Command structure
 
@@ -73,8 +73,8 @@ when isMainModule:
   resolves the list with `resolveItems(positional, inp)` from `lib/input.nim`:
   positionals win, otherwise one item per line from a non-tty stdin, otherwise
   empty so the command's no-argument default applies. Tests must pass an
-  explicit empty `inp` when exercising that default — under `nix build` stdin
-  is not a tty, so leaving it defaulted would read the sandbox's stdin.
+  explicit empty `inp` when exercising that default — under `nix build` stdin is
+  not a tty, so leaving it defaulted would read the sandbox's stdin.
 - A list/report command reads its output mode with `ctxFromEnv()`
   (`lib/context.nim`) and renders through `output.render()` — never by
   formatting JSON or tables by hand.
@@ -259,8 +259,8 @@ drift.
 ## Compile flags
 
 `ax/nim.cfg` sets `--styleCheck:error`; every derivation roots its source at
-`ax/` so it always applies. The package build passes `-d:release`, the
-test build deliberately does not, to retain stack and line traces. In Nim 2.2,
+`ax/` so it always applies. The package build passes `-d:release`, the test
+build deliberately does not, to retain stack and line traces. In Nim 2.2,
 release mode retains ordinary assertions; `doAssert` remains enabled even under
 `--assertions:off`. `-d:danger`, not release, disables runtime checks. Resist
 blanket `--warningAsError`: compiling a command module as a test's import
