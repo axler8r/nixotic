@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from files/nim. Only newly-created temporary paths are modified.
+# Run from ax/. Only newly-created temporary paths are modified.
 set -euo pipefail
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
@@ -40,13 +40,13 @@ expect_exit 64 "$ax" -n test get
 expect_exit 0 env AX_DRY_RUN=1 "$ax" test get --help
 expect_exit 0 env AX_DRY_RUN=1 "$root/libexec/ax/ax-test-get" --help
 
-mkdir -p "$root/work/files/nim/commands"
-printf '{}\n' > "$root/work/files/nim/commands/groups.json"
+mkdir -p "$root/work/ax/commands"
+printf '{}\n' > "$root/work/ax/commands/groups.json"
 pushd "$root/work" > /dev/null
 expect_exit 0 "$ax" self new-command example create --help
 expect_exit 64 "$ax" -n self new-command example create
 expect_exit 64 env AX_DRY_RUN=1 "$ax" self new-command example create
-[[ ! -e files/nim/commands/example ]]
+[[ ! -e ax/commands/example ]]
 expect_exit 0 "$ax" --quiet self doctor
 [[ ! -s "$root/err" && ! -s "$root/out" ]]
 popd > /dev/null

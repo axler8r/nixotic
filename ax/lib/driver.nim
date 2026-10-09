@@ -442,7 +442,7 @@ proc newCommand*(words: seq[string], commandsDir: string,
   let leaf = words[^1]
   if not isAllowedLeaf(leaf):
     error("leaf '" & leaf & "' is not a lexicon verb or report-noun " &
-          "(see files/nim/lexicon.json)", errp)
+          "(see ax/lexicon.json)", errp)
     return 64
   if not dirExists(commandsDir):
     error("no commands/ tree at " & commandsDir &
@@ -594,7 +594,7 @@ proc selfCmd*(words: seq[string], ctx: Ctx, libexecDir, registryFile,
     selfDoctor(loadRegistry(registryFile), runner, outp, errp)
   of "new-command":
     let dir = if commandsDir.len > 0: commandsDir
-              else: getCurrentDir() / "files" / "nim" / "commands"
+              else: getCurrentDir() / "ax" / "commands"
     newCommand(words[1 .. ^1], dir, outp, errp, dryRun = ctx.dryRun)
   else:
     64

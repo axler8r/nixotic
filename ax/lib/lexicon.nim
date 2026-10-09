@@ -1,4 +1,4 @@
-## The verb lexicon, embedded at compile time from files/nim/lexicon.json.
+## The verb lexicon, embedded at compile time from ax/lexicon.json.
 ## The same file is read by flake.nix at eval time (leaf validation before
 ## anything builds) and quoted in docs/ax-cli-design.md; this module gives
 ## the driver and `ax self build-registry` the runtime view: canonical

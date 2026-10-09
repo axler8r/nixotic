@@ -30,7 +30,7 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = pkgs.lib;
-      nimDir = ./files/nim;
+      nimDir = ./ax;
 
       # Build logic lives under nix/; this file only wires the outputs.
       nim = import ./nix/nim.nix { inherit pkgs lib nimDir; };
