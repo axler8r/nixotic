@@ -22,3 +22,6 @@ color "^Author: "     color33   default
 color "^Date: "       color245  default
 
 set line-graphics = utf-8
+set main-view-committer-display = no
+set main-view-date = relative
+set main-view-id = yes
