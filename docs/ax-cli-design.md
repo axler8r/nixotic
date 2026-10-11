@@ -124,6 +124,13 @@ default — `git repo sync` scans the current directory, `docker image update`
 pulls every installed image, `git repo optimize` reports a usage error. Blank
 lines are dropped; interior whitespace is data.
 
+The reader also understands `ls`-shaped input, so an aliased `ls` (`eza`,
+`--color=always`) feeds the pipe without `-d` or `--color=never`: ANSI escape
+sequences are stripped from every line, and a multi-directory listing block
+(`name:` header, entries, blank line) collapses to `name` — its entries are not
+items. `ls */ | ax git repo sync` and `ls -d */ | ax git repo sync` therefore
+yield the same directories.
+
 Commands with this behaviour: `git repo sync`, `git repo optimize`,
 `docker image update`.
 

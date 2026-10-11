@@ -72,7 +72,9 @@ when isMainModule:
 - A command whose variadic positional is a list of items takes `inp` too and
   resolves the list with `resolveItems(positional, inp)` from `lib/input.nim`:
   positionals win, otherwise one item per line from a non-tty stdin, otherwise
-  empty so the command's no-argument default applies. Tests must pass an
+  empty so the command's no-argument default applies. `readPipedItems` strips
+  ANSI escapes and collapses `name:` listing blocks to `name`, so a colourised
+  or non-`-d` `ls` still yields paths. Tests must pass an
   explicit empty `inp` when exercising that default — under `nix build` stdin is
   not a tty, so leaving it defaulted would read the sandbox's stdin.
 - A list/report command reads its output mode with `ctxFromEnv()`
