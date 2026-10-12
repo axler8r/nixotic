@@ -33,6 +33,7 @@
     # AI coding assistants
     claude-code
     codex
+    docker-sbx # `sbx`: Docker sandboxes for agents
     github-copilot-cli
 
     # Editors & text processing

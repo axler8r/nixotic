@@ -14,6 +14,7 @@
   home.packages = with pkgs; [
     claude-code
     curl
+    docker-sbx # `sbx`: Docker sandboxes for agents
     github-copilot-cli
   ];
 
