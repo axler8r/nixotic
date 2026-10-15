@@ -29,6 +29,7 @@
     gnomeExtensions.caffeine
     gnomeExtensions.dash-to-dock
     gnomeExtensions.date-menu-formatter
+    gnomeExtensions.draw-on-gnome
     gnomeExtensions.just-perfection
     gnomeExtensions.tiling-assistant
     gnomeExtensions.vitals
@@ -114,6 +115,7 @@
           "caffeine@patapon.info"
           "dash-to-dock@micxgx.gmail.com"
           "date-menu-formatter@marcinjakubowski.github.com"
+          "draw-on-gnome@daveprowse.github.io"
           "just-perfection-desktop@just-perfection"
           "tiling-assistant@ubuntu.com"
           "Vitals@CoreCoding.com"
