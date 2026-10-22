@@ -63,8 +63,8 @@ alias tree=' tree --dirsfirst '
 [[ -x $(command -v nvidia-settings) ]] && alias lscuda=' nvidia-settings -q CUDACores -t '
 
 
-alias -s {asc,cs,dart,erl,ex{s},fs,htm{l},java,json,py,rebar,rs,scala,txt,xml}=nvim
-alias -s {pdf,ps}=evince
+alias -s {{ba,c,z}sh,cs{proj},erl,ex{s},htm{l},java,json{c,l},{j,t}s,lock,md{x},nix,py,rs,scala,sh,txt,typ,xml,yam{l}}=hx
+alias -s {epub,pdf,ps}=papers
 
 
 alias -g B="| bat --paging=auto - "
