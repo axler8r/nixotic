@@ -44,10 +44,6 @@
     name = "Calendar";
     noDisplay = true;
   };
-  xdg.desktopEntries."org.gnome.Maps" = {
-    name = "Maps";
-    noDisplay = true;
-  };
 
   # XDG user directories
   xdg.userDirs = {
