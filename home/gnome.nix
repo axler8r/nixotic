@@ -9,6 +9,7 @@
     eyedropper
     file-roller
     firefox
+    github-copilot
     gnome-terminal
     ungoogled-chromium
     gnome-podcasts
