@@ -44,6 +44,10 @@
     name = "Calendar";
     noDisplay = true;
   };
+  xdg.desktopEntries.nixos-manual = {
+    name = "NixOS Manual";
+    noDisplay = true;
+  };
 
   # XDG user directories
   xdg.userDirs = {
