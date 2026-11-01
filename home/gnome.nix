@@ -99,6 +99,7 @@
         favorite-apps = [
           "org.gnome.Nautilus.desktop"
           "brave-browser.desktop"
+          "proton-mail.desktop"
           "md.obsidian.Obsidian.desktop"
           "org.gnome.Meld.desktop"
           "code.desktop"
