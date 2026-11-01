@@ -198,6 +198,7 @@
           "org.gnome.Extensions.desktop"
           "org.gnome.FileRoller.desktop"
           "org.gnome.font-viewer.desktop"
+          "org.gnome.Maps.desktop"
           "org.gnome.Papers.desktop"
           "org.gnome.seahorse.Application.desktop"
           "org.gnome.Settings.desktop"
