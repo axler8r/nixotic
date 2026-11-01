@@ -32,6 +32,7 @@
     gnomeExtensions.draw-on-gnome
     gnomeExtensions.just-perfection
     gnomeExtensions.tiling-assistant
+    gnomeExtensions.tiling-shell
     gnomeExtensions.vitals
   ];
 
@@ -119,6 +120,7 @@
           "draw-on-gnome@daveprowse.github.io"
           "just-perfection-desktop@just-perfection"
           "tiling-assistant@ubuntu.com"
+          "tilingshell@ferrarodomenico.com"
           "Vitals@CoreCoding.com"
         ];
       };
