@@ -50,7 +50,7 @@
     modesetting.enable = true;
     nvidiaSettings = true; # NVIDIA Settings app
     open = false; # Use proprietary driver
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    package = config.boot.kernelPackages.nvidiaPackages.legacy_580; # GTX 1050 Mobile (Pascal) unsupported after 580
     powerManagement.enable = true; # Better battery life
     powerManagement.finegrained = true; # Turn off GPU when not in use
     prime = {
