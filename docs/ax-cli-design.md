@@ -15,7 +15,7 @@ by this doc.
 
 ## Grammar
 
-```
+```text
 ax [global flags] <group> [<subgroup>] <command> [args]
 ```
 
@@ -97,7 +97,7 @@ report command renders tabular data through `lib/output.nim`'s `render()`:
 `json` an array of objects keyed by the lowercased header cells — every such
 command is a first-class `jq` source:
 
-```
+```bash
 ax docker image list -o json | jq '.[].repository'
 ```
 
@@ -111,7 +111,7 @@ A command whose variadic positional is a list of items (paths, image names) also
 accepts that list **one item per line on stdin**, so the idiomatic
 `producer | ax ...` form works without `xargs`:
 
-```
+```bash
 ls -d ~/Projects/*/ | ax git repo sync
 ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | ax docker image update
 ```
@@ -190,7 +190,7 @@ small derivation plus the trivial final join.
 
 ## Source layout — the directory tree IS the command tree
 
-```
+```text
 ax/
   nim.cfg                      # --styleCheck:error
   lexicon.json                 # verb lexicon + report-noun exceptions
@@ -227,7 +227,7 @@ to test lifecycle interactions.
 
 ## Adding a command
 
-```
+```bash
 ax self new-command zfs snapshot remove
 ```
 

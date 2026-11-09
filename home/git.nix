@@ -16,11 +16,11 @@
       branch.autosetuprebase = "never";
 
       commit = {
-        gpgSign = false;  # Set to true if you want to sign all commits
+        gpgSign = false; # Set to true if you want to sign all commits
         template = "${config.home.homeDirectory}/.gitcommit";
       };
 
-      tag.gpgSign = true;  # Sign tags with GPG key
+      tag.gpgSign = true; # Sign tags with GPG key
 
       core = {
         editor = "nvim";

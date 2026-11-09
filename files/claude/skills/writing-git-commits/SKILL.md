@@ -21,15 +21,15 @@ skill covers the body only.
 
 One or more subheadings per commit, blank line between subheadings.
 
-| Subheading | Use for |
-|---|---|
-| `add:` | new behaviour, capabilities, or files introduced |
-| `modify:` | changes to existing behaviour |
-| `retire:` | behaviour or files removed |
-| `deprecate:` | marked for future removal |
-| `defect:` | bug fixes |
-| `style:` | formatting, naming, cosmetic changes |
-| `refactor:` | restructuring without behaviour change |
+| Subheading   | Use for                                          |
+| ------------ | ------------------------------------------------ |
+| `add:`       | new behaviour, capabilities, or files introduced |
+| `modify:`    | changes to existing behaviour                    |
+| `retire:`    | behaviour or files removed                       |
+| `deprecate:` | marked for future removal                        |
+| `defect:`    | bug fixes                                        |
+| `style:`     | formatting, naming, cosmetic changes             |
+| `refactor:`  | restructuring without behaviour change           |
 
 ## Nesting Rule
 
@@ -49,7 +49,8 @@ One or more subheadings per commit, blank line between subheadings.
 
 Before — fact and rationale packed onto one line, unreadable once a subject
 has more than one fact:
-```
+
+```text
 modify:
   - mkHost imports disko.nixosModules.disko
   — nixos-anywhere reads config.disko.devices from the flake
@@ -58,7 +59,8 @@ modify:
 ```
 
 After — subject and fact separated, rationale nested under its fact:
-```
+
+```text
 modify:
   - mkHost
     - imports disko.nixosModules.disko
@@ -69,7 +71,8 @@ modify:
 
 A single-fact item with no rationale needed stays flat — don't nest it for
 consistency:
-```
+
+```text
 retire:
   - New-Vault --filesystem option
 ```
@@ -77,17 +80,18 @@ retire:
 A bug fix's "what was broken" is usually restating the fact, not a separate
 reason — don't manufacture a `why:` out of it. State the fix as the fact and
 stop:
-```
+
+```text
 defect:
   - Mount-Vault errors cleanly instead of looping when --size is passed without a value
 ```
 
 ## Common Mistakes
 
-| Mistake | Fix |
-|---|---|
-| Fact and rationale on one line with an em dash | Move the rationale to a nested `why:` bullet |
-| One line per fact when the facts share a subject | Make the subject its own bullet, nest the facts under it |
-| Nesting a single-fact item for visual consistency | Leave it flat — nesting exists for facts, not decoration |
-| A `why:` bullet that restates the fact instead of the reason | State the fact once, then the reason it was needed |
+| Mistake                                                              | Fix                                                                                             |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Fact and rationale on one line with an em dash                       | Move the rationale to a nested `why:` bullet                                                    |
+| One line per fact when the facts share a subject                     | Make the subject its own bullet, nest the facts under it                                        |
+| Nesting a single-fact item for visual consistency                    | Leave it flat — nesting exists for facts, not decoration                                        |
+| A `why:` bullet that restates the fact instead of the reason         | State the fact once, then the reason it was needed                                              |
 | A `defect:` bullet gets a `why:` describing the old broken behaviour | The old behaviour is what the fact already fixes, not a separate reason — leave the bullet flat |

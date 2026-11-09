@@ -2,17 +2,28 @@
 # role module (profiles/roles/<role>.nix, which imports base.nix), the home
 # profile (home/<role>.nix), and Stylix for workstations.
 # homeConfig overrides the home profile only (e.g. WSL).
-{ inputs, self, system }:
+{
+  inputs,
+  self,
+  system,
+}:
 let
-  inherit (inputs) nixpkgs home-manager stylix disko;
+  inherit (inputs)
+    nixpkgs
+    home-manager
+    stylix
+    disko
+    ;
 in
-{ hostPath, role ? "workstation", homeConfig ? null }:
+{
+  hostPath,
+  role ? "workstation",
+  homeConfig ? null,
+}:
 assert role == "workstation" || role == "server";
 let
   isWorkstation = role == "workstation";
-  home =
-    if homeConfig != null then homeConfig
-    else ../home + "/${role}.nix";
+  home = if homeConfig != null then homeConfig else ../home + "/${role}.nix";
 in
 nixpkgs.lib.nixosSystem {
   inherit system;
@@ -29,7 +40,8 @@ nixpkgs.lib.nixosSystem {
       home-manager.extraSpecialArgs = { inherit self; };
       home-manager.users.axl = import home;
     }
-  ] ++ nixpkgs.lib.optionals isWorkstation [
+  ]
+  ++ nixpkgs.lib.optionals isWorkstation [
     stylix.nixosModules.stylix
     ../stylix.nix
   ];

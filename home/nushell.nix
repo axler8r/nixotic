@@ -13,19 +13,19 @@
       "..." = "cd ../..";
       "...." = "cd ../../..";
       "....." = "cd ../../../..";
-      
+
       "df" = "df -h";
       "ll" = "ls -l";
       "la" = "ls -a";
       "lla" = "ls -la";
-      
+
       "g" = "git";
       "gs" = "git status";
       "ga" = "git add";
       "gc" = "git commit";
       "gp" = "git push";
       "gl" = "git pull";
-      
+
       "vim" = "nvim";
       "vi" = "nvim";
     };

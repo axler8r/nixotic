@@ -109,11 +109,15 @@
       editor = {
         auto-pairs = true;
         auto-save = true;
-        bufferline = "multiple";  # Show tabs when multiple buffers open
+        bufferline = "multiple"; # Show tabs when multiple buffers open
         color-modes = true;
         cursorline = true;
         line-number = "relative";
-        rulers = [70 80 110];
+        rulers = [
+          70
+          80
+          110
+        ];
         scrolloff = 13;
 
         cursor-shape = {
@@ -123,7 +127,13 @@
         };
 
         # Git diff in gutter (like gitsigns)
-        gutters = ["diagnostics" "spacer" "line-numbers" "spacer" "diff"];
+        gutters = [
+          "diagnostics"
+          "spacer"
+          "line-numbers"
+          "spacer"
+          "diff"
+        ];
 
         # Whitespace rendering (helps spot trailing spaces)
         whitespace = {
@@ -139,9 +149,19 @@
 
         # Statusline (like lualine)
         statusline = {
-          left = ["mode" "spinner" "file-name" "file-modification-indicator"];
-          center = ["diagnostics"];
-          right = ["selections" "position" "file-encoding" "file-type"];
+          left = [
+            "mode"
+            "spinner"
+            "file-name"
+            "file-modification-indicator"
+          ];
+          center = [ "diagnostics" ];
+          right = [
+            "selections"
+            "position"
+            "file-encoding"
+            "file-type"
+          ];
           separator = "│";
           mode = {
             normal = "NORMAL";
@@ -175,8 +195,12 @@
         "A-," = ":buffer-previous";
 
         # Git-related (] then g, [ then g)
-        "]" = { "g" = "goto_next_change"; };
-        "[" = { "g" = "goto_prev_change"; };
+        "]" = {
+          "g" = "goto_next_change";
+        };
+        "[" = {
+          "g" = "goto_prev_change";
+        };
 
         # Toggle spell check (like <leader>sp in neovim)
         space.t.s = ":toggle-option soft-wrap.enable";
@@ -190,32 +214,62 @@
 
       keys.insert = {
         # Quick escape
-        "j" = { "k" = "normal_mode"; };
+        "j" = {
+          "k" = "normal_mode";
+        };
       };
     };
 
     languages = {
       language = [
-        { name = "c-sharp"; auto-format = true; }
-        { name = "elixir"; auto-format = true; }
-        { name = "java"; auto-format = true; }
-        { name = "julia"; auto-format = true; }
-        { name = "markdown"; auto-format = true; soft-wrap.enable = true; }
-        { name = "nix"; auto-format = true; }
-        { name = "python"; auto-format = true; }
-        { name = "rust"; auto-format = true; }
-        { name = "toml"; auto-format = true; }
+        {
+          name = "c-sharp";
+          auto-format = true;
+        }
+        {
+          name = "elixir";
+          auto-format = true;
+        }
+        {
+          name = "java";
+          auto-format = true;
+        }
+        {
+          name = "julia";
+          auto-format = true;
+        }
+        {
+          name = "markdown";
+          auto-format = true;
+          soft-wrap.enable = true;
+        }
+        {
+          name = "nix";
+          auto-format = true;
+        }
+        {
+          name = "python";
+          auto-format = true;
+        }
+        {
+          name = "rust";
+          auto-format = true;
+        }
+        {
+          name = "toml";
+          auto-format = true;
+        }
       ];
     };
 
     # LSP servers for Helix
     extraPackages = with pkgs; [
-      csharp-ls            # C# / .NET
-      elixir-ls            # Elixir
-      jdt-language-server  # Java
-      nil                  # Nix
-      pyright              # Python
-      rust-analyzer        # Rust
+      csharp-ls # C# / .NET
+      elixir-ls # Elixir
+      jdt-language-server # Java
+      nil # Nix
+      pyright # Python
+      rust-analyzer # Rust
     ];
   };
 }

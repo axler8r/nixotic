@@ -14,8 +14,8 @@
     mouse = false;
 
     plugins = with pkgs.tmuxPlugins; [
-      yank          # System clipboard integration
-      tmux-fzf      # FZF integration for sessions/windows/panes
+      yank # System clipboard integration
+      tmux-fzf # FZF integration for sessions/windows/panes
       {
         plugin = resurrect;
         extraConfig = "";

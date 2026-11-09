@@ -1,8 +1,21 @@
 # Flake checks: native configuration syntax, Nim tests, and ax integration.
-{ pkgs, lib, nimDir, nim, ax }:
+{
+  pkgs,
+  lib,
+  nimDir,
+  nim,
+  ax,
+}:
 let
   inherit (nim) nimShared nimToolchain nimTests;
-  inherit (ax) axVersion axDriver axPackage axTests binName checkedCommandSources;
+  inherit (ax)
+    axVersion
+    axDriver
+    axPackage
+    axTests
+    binName
+    checkedCommandSources
+    ;
 in
 # One check per test file, keyed by its module name, so `nix flake
 # check` reports the failing suite by name and reruns only what changed.
@@ -10,15 +23,34 @@ in
 // {
   home-config =
     let
-      tmux = (import ../home/tmux.nix { config = {}; inherit pkgs; }).programs.tmux;
-      dircolors = (import ../home/dircolors.nix { config = {}; inherit pkgs; }).programs.dircolors;
-      starship = (import ../home/starship.nix { config = {}; inherit pkgs; }).programs.starship;
+      tmux =
+        (import ../home/tmux.nix {
+          config = { };
+          inherit pkgs;
+        }).programs.tmux;
+      dircolors =
+        (import ../home/dircolors.nix {
+          config = { };
+          inherit pkgs;
+        }).programs.dircolors;
+      starship =
+        (import ../home/starship.nix {
+          config = { };
+          inherit pkgs;
+        }).programs.starship;
       tmuxConfig = pkgs.writeText "tmux.conf" tmux.extraConfig;
       dircolorsConfig = pkgs.writeText "dir_colors" dircolors.extraConfig;
-      starshipConfig = (pkgs.formats.toml {}).generate "starship.toml" starship.settings;
+      starshipConfig = (pkgs.formats.toml { }).generate "starship.toml" starship.settings;
     in
     pkgs.runCommand "nixotic-home-config"
-      { nativeBuildInputs = [ pkgs.luajit pkgs.tmux pkgs.starship pkgs.coreutils ]; }
+      {
+        nativeBuildInputs = [
+          pkgs.luajit
+          pkgs.tmux
+          pkgs.starship
+          pkgs.coreutils
+        ];
+      }
       ''
         export HOME="$TMPDIR/home"
         export XDG_CONFIG_HOME="$HOME/.config"
@@ -62,7 +94,12 @@ in
   };
   ax-smoke =
     pkgs.runCommand "nixotic-ax-smoke"
-      { nativeBuildInputs = [ pkgs.jq pkgs.zsh ]; }
+      {
+        nativeBuildInputs = [
+          pkgs.jq
+          pkgs.zsh
+        ];
+      }
       ''
         ax=${axPackage}
 

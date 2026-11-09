@@ -1,7 +1,5 @@
 # Global Development Preferences
 
-# Preferences
-
 Prefer Development Container development over local development.
 
 ## Development Container Environment

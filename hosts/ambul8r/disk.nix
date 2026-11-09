@@ -27,7 +27,10 @@ in
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot";
-                mountOptions = [ "fmask=0077" "dmask=0077" ];
+                mountOptions = [
+                  "fmask=0077"
+                  "dmask=0077"
+                ];
               };
             };
             root = {
@@ -132,7 +135,8 @@ in
             type = "zfs_fs";
             options.mountpoint = "/home/axl/Vaults";
           };
-        } // lib.optionalAttrs enableNixOnZfs {
+        }
+        // lib.optionalAttrs enableNixOnZfs {
           "HOSTDATA/nix" = {
             type = "zfs_fs";
             options = {

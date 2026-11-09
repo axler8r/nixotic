@@ -3,7 +3,7 @@
 {
   programs.eza = {
     enable = true;
-    enableZshIntegration = false;  # We define our own aliases
+    enableZshIntegration = false; # We define our own aliases
     git = true;
     icons = "auto";
     colors = "always";

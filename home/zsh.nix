@@ -1,4 +1,10 @@
-{ config, pkgs, lib, self, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  self,
+  ...
+}:
 
 let
   solarized = {
@@ -53,7 +59,10 @@ in
     };
     syntaxHighlighting = {
       enable = true;
-      highlighters = [ "main" "brackets" ];
+      highlighters = [
+        "main"
+        "brackets"
+      ];
     };
 
     plugins = [
@@ -140,8 +149,8 @@ in
 
   programs.fzf = {
     enable = true;
-    enableZshIntegration = false;  # Disabled: conflicts with fzf-tab
-    historyWidget.nushell.command = "";  # Atuin owns Ctrl-R in nushell
+    enableZshIntegration = false; # Disabled: conflicts with fzf-tab
+    historyWidget.nushell.command = ""; # Atuin owns Ctrl-R in nushell
     defaultOptions = [
       # Solarized Light — docs/colour-token-taxonomy.md (Appendix H)
       "--color=bg+:#eee8d5"
@@ -182,7 +191,7 @@ in
   home.file.".zshalias".source = ../files/zsh/zshalias;
 
   xdg.dataFile."zsh/site-functions/_uv".text = builtins.readFile (
-    pkgs.runCommand "uv-completion" {} ''
+    pkgs.runCommand "uv-completion" { } ''
       ${pkgs.uv}/bin/uv generate-shell-completion zsh > $out
     ''
   );

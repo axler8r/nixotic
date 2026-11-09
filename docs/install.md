@@ -373,7 +373,7 @@ Two profiles share the same base:
 
 **`fixed` — desktop / server / VM**
 
-```
+```text
 ┌──────────────┬───────────────────┐
 │ ESP  1G vfat │ ZFS pool  100%    │
 │ /boot        │ rpool             │
@@ -384,7 +384,7 @@ Swap is provided by zram (no partition). Hibernation is not supported.
 
 **`portable` — laptop**
 
-```
+```text
 ┌──────────────┬───────────────────┬───────────────────┐
 │ ESP  1G vfat │ swap ≥ RAM        │ ZFS pool  100%    │
 │ /boot        │ resume device     │ rpool             │
@@ -414,7 +414,7 @@ New hosts use `rpool` (ZFS-on-root convention). `ambul8r` uses `dpool` and keeps
 its current pool structure until a future reinstall. `cre8r` currently uses an
 ext4 root layout.
 
-```
+```text
 rpool                          mountpoint=none
 ├── ROOT                       mountpoint=none      boot-environment container
 │   └── nixos                  /                    persistent root

@@ -6,7 +6,10 @@
 { ... }:
 
 {
-  boot.supportedFilesystems = [ "zfs" "nfs" ];
+  boot.supportedFilesystems = [
+    "zfs"
+    "nfs"
+  ];
   boot.zfs.forceImportRoot = false;
 
   services.zfs = {

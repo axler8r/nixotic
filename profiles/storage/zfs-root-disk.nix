@@ -9,9 +9,10 @@
 # No filesystem encryption: every dataset is plain ZFS, so the host boots
 # fully unattended and home just mounts. Per-secret encryption is on demand
 # with ax vault create (LUKS vault files under ~/Vaults), not at this layer.
-{ device
-, swap ? "zram"
-, swapSizeGiB ? null
+{
+  device,
+  swap ? "zram",
+  swapSizeGiB ? null,
 }:
 
 assert swap == "zram" || swap == "hibernate";
@@ -34,37 +35,39 @@ in
       type = "disk";
       content = {
         type = "gpt";
-        partitions =
-          {
-            ESP = {
-              size = "1G";
-              type = "EF00";
-              content = {
-                type = "filesystem";
-                format = "vfat";
-                mountpoint = "/boot";
-                mountOptions = [ "fmask=0077" "dmask=0077" ];
-              };
-            };
-          }
-          // lib.optionalAttrs hibernate {
-            swap = {
-              size = "${toString swapSizeGiB}G";
-              content = {
-                type = "swap";
-                resumeDevice = true;
-              };
-            };
-          }
-          // {
-            zfs = {
-              size = "100%";
-              content = {
-                type = "zfs";
-                pool = "rpool";
-              };
+        partitions = {
+          ESP = {
+            size = "1G";
+            type = "EF00";
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot";
+              mountOptions = [
+                "fmask=0077"
+                "dmask=0077"
+              ];
             };
           };
+        }
+        // lib.optionalAttrs hibernate {
+          swap = {
+            size = "${toString swapSizeGiB}G";
+            content = {
+              type = "swap";
+              resumeDevice = true;
+            };
+          };
+        }
+        // {
+          zfs = {
+            size = "100%";
+            content = {
+              type = "zfs";
+              pool = "rpool";
+            };
+          };
+        };
       };
     };
 
@@ -82,30 +85,54 @@ in
         # config.fileSystems.<top-level mountpoint> entry only when the
         # top-level `mountpoint` is set, and `options.mountpoint = "legacy"`
         # hands the mount to NixOS/systemd (not ZFS auto-mount).
-        "ROOT" = { type = "zfs_fs"; options.mountpoint = "none"; };
+        "ROOT" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
         "ROOT/nixos" = {
           type = "zfs_fs";
           mountpoint = "/";
           options.mountpoint = "legacy";
         };
 
-        "HOSTDATA" = { type = "zfs_fs"; options.mountpoint = "none"; };
+        "HOSTDATA" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
         "HOSTDATA/nix" = {
           type = "zfs_fs";
           mountpoint = "/nix";
-          options = { mountpoint = "legacy"; atime = "off"; };
+          options = {
+            mountpoint = "legacy";
+            atime = "off";
+          };
         };
-        "HOSTDATA/var" = { type = "zfs_fs"; options.mountpoint = "none"; };
-        "HOSTDATA/var/lib" = { type = "zfs_fs"; options.mountpoint = "none"; };
+        "HOSTDATA/var" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
+        "HOSTDATA/var/lib" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
         "HOSTDATA/var/lib/docker" = {
           type = "zfs_fs";
           mountpoint = "/var/lib/docker";
           options.mountpoint = "legacy";
         };
 
-        "USERDATA" = { type = "zfs_fs"; options.mountpoint = "none"; };
-        "USERDATA/home" = { type = "zfs_fs"; options.mountpoint = "none"; };
-        "USERDATA/home/axl" = { type = "zfs_fs"; options.mountpoint = "none"; };
+        "USERDATA" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
+        "USERDATA/home" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
+        "USERDATA/home/axl" = {
+          type = "zfs_fs";
+          options.mountpoint = "none";
+        };
         "USERDATA/home/axl/Documents" = userChild "/home/axl/Documents";
         "USERDATA/home/axl/Downloads" = userChild "/home/axl/Downloads";
         "USERDATA/home/axl/Media" = userChild "/home/axl/Media";

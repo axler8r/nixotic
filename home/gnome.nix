@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # GNOME Shell extensions and utilities
@@ -66,7 +71,7 @@
   };
 
   # Custom folder icons
-  home.activation.setFolderIcons = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.setFolderIcons = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     [[ -d $HOME/.nixotic ]] && ${pkgs.glib}/bin/gio set $HOME/.nixotic metadata::custom-icon-name folder-darkcyan-important
     [[ -d $HOME/Documents/Books ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Books metadata::custom-icon-name folder-pink-books
     [[ -d $HOME/Documents/Obsidian ]] && ${pkgs.glib}/bin/gio set $HOME/Documents/Obsidian metadata::custom-icon-name folder-indigo-obsidian
@@ -79,24 +84,23 @@
     [[ -d $HOME/Vaults ]] && ${pkgs.glib}/bin/gio set $HOME/Vaults metadata::custom-icon-name folder-red-locked
   '';
 
-
   dconf = {
     enable = true;
     settings = {
       # Window manager preferences
       "org/gnome/desktop/wm/preferences" = {
-        button-layout = "close,minimize,maximize:";  # macOS-style left side
+        button-layout = "close,minimize,maximize:"; # macOS-style left side
       };
 
       # Screen blank and lock settings
       "org/gnome/desktop/session" = {
-        idle-delay = 600;  # Blank after 10 minutes (in seconds)
+        idle-delay = 600; # Blank after 10 minutes (in seconds)
       };
       "org/gnome/settings-daemon/plugins/power" = {
-        idle-dim = true;  # Dim screen before blanking
+        idle-dim = true; # Dim screen before blanking
       };
       "org/gnome/desktop/screensaver" = {
-        lock-delay = 300;  # Lock 5 min after blank (15 min total)
+        lock-delay = 300; # Lock 5 min after blank (15 min total)
       };
 
       # Dock favorites (left to right)
@@ -142,7 +146,7 @@
 
       # Vitals - system stats on right side of panel
       "org/gnome/shell/extensions/vitals" = {
-        position-in-panel = 2;  # 0=left, 1=center, 2=right
+        position-in-panel = 2; # 0=left, 1=center, 2=right
         hot-sensors = [
           "_processor_usage_"
           "_memory_usage_"
@@ -261,7 +265,10 @@
       };
       # Keyboard input settings
       "org/gnome/desktop/input-sources" = {
-        xkb-options = [ "compose:ralt" "caps:ctrl_modifier" ];
+        xkb-options = [
+          "compose:ralt"
+          "caps:ctrl_modifier"
+        ];
       };
 
       # Remap IBus unicode hotkey to Ctrl+Alt+U (frees Ctrl+Shift+U for Kitty)

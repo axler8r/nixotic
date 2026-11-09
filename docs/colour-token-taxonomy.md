@@ -945,7 +945,7 @@ EZA_COLORS = [
 
 tig has a limited colour model. Expand `tigrc` with the following:
 
-```
+```text
 # ── Solarized Light — docs/theme.md ──
 color cursor          color15   color5     bold   # base3 fg on magenta bg
 color title-focus     color15   color4     bold   # base3 on blue — active title (status.mode_normal)

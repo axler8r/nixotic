@@ -14,11 +14,16 @@
 
   home.homeDirectory = "/home/axl";
   home.packages = with pkgs; [
-    (aspellWithDicts (dicts: with dicts; [ en af ]))
+    (aspellWithDicts (
+      dicts: with dicts; [
+        en
+        af
+      ]
+    ))
     bat
     leaf-markdown-viewer
     # Only the mandoc renderer — man-db provides man/apropos/whatis
-    (runCommand "mandoc-bin" {} ''
+    (runCommand "mandoc-bin" { } ''
       mkdir -p $out/bin
       cp ${mandoc}/bin/mandoc $out/bin/
     '')

@@ -99,7 +99,7 @@ approach) is retired.
 
 Reusable configuration and helpers live in `lib/`:
 
-```
+```text
 files/zsh/
 ├── lib/
 │   ├── docker.zsh      # Docker argument arrays
