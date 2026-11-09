@@ -22,10 +22,10 @@ For routine configuration changes:
 
 ```bash
 # 1. Evaluate Nix options and assertions; this does not run check derivations
-nix flake check --no-build
+make check      # nix flake check --no-build
 
 # 2. Dry build with package diff — shows what will be built/removed without applying
-nh os build --dry
+make dry-run    # nh os build . -H <this host> --dry; HOST=<name> for another host
 
 # 3. Apply configuration (run manually when you decide to apply)
 nh os switch
@@ -37,17 +37,34 @@ until the operator explicitly approves step 3.
 `nh` is preferred over `nixos-rebuild` because it shows a readable diff of
 added/removed packages, size comparison, and cleaner error output.
 
+## Formatting and Linting
+
+`make help` lists every target. All tools resolve through the flake, so their
+versions come from `flake.lock`; none is installed on the host or in the
+devShell.
+
+| Target        | Runs                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| `make format` | `nix fmt`: `nixfmt` for `*.nix`; `prettier` then `markdownlint-cli2 --fix` for `*.md` |
+| `make lint`   | the `formatting`, `nix-lint` and `markdown-lint` checks                               |
+| `make test`   | every flake check, including the three above                                          |
+
+`make format` never fails on Markdown findings it cannot fix; `make lint`
+reports them. Lint settings live in `statix.toml` and
+`.markdownlint-cli2.jsonc`.
+
 ## Flake Layout
 
 `flake.nix` declares inputs and wires outputs; build logic lives in plain
 functions under `nix/`, each taking an explicit attrset:
 
-| Module           | Arguments                | Provides                                                |
-| ---------------- | ------------------------ | ------------------------------------------------------- |
-| `nix/nim.nix`    | `pkgs lib nimDir`        | `nimShared`, `nimToolchain`, `mkNimTest`, `nimTests`    |
-| `nix/ax.nix`     | `pkgs lib nimDir nim`    | command tree, eval-time guards, `axDriver`, `axPackage` |
-| `nix/checks.nix` | `pkgs lib nimDir nim ax` | the `checks.${system}` attrset                          |
-| `nix/mkhost.nix` | `inputs self system`     | `mkHost { hostPath; role?; homeConfig? }`               |
+| Module              | Arguments                              | Provides                                                |
+| ------------------- | -------------------------------------- | ------------------------------------------------------- |
+| `nix/nim.nix`       | `pkgs lib nimDir`                      | `nimShared`, `nimToolchain`, `mkNimTest`, `nimTests`    |
+| `nix/ax.nix`        | `pkgs lib nimDir nim`                  | command tree, eval-time guards, `axDriver`, `axPackage` |
+| `nix/checks.nix`    | `pkgs lib nimDir nim ax formatter src` | the `checks.${system}` attrset                          |
+| `nix/formatter.nix` | `pkgs`                                 | the `formatter.${system}` treefmt wrapper               |
+| `nix/mkhost.nix`    | `inputs self system`                   | `mkHost { hostPath; role?; homeConfig? }`               |
 
 The host registry (`nixosConfigurations`) and its `# prepare:hosts` marker stay
 in `flake.nix` so `Prepare-NewHost` keeps a single edit target.

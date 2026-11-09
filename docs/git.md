@@ -92,6 +92,13 @@ branches can be deleted.
 `nh os switch`; until then the `ax-format-markdown` skill runs the same chain by
 hand.
 
+In this repository `make format` and `make lint` are authoritative: they use
+the tool versions in `flake.lock`, while the hook uses the system's nixpkgs.
+The hook stays global and keeps serving other repositories.
+
+`.git-blame-ignore-revs` lists formatting-only commits. Enable it locally with
+`git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 ## Guidelines
 
 | Practice                                   | Reason                                                 |

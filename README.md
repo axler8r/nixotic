@@ -33,6 +33,7 @@ See [docs/install.md](docs/install.md) for the full walkthrough.
 nh os switch
 ```
 
+Run `make help` for the format, lint, check, build and update targets.
 See [docs/validation.md](docs/validation.md) for the validation pipeline
 to run before applying changes.
 

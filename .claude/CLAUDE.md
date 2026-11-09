@@ -56,7 +56,10 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 
 ## Build Commands
 
-- `nh os build` — test build without switching.
+- `make help` — list the `make` targets.
+- `make format` — format Nix and Markdown files; safe to run.
+- `make lint`, `make check`, `make test` — lint, evaluate, and run all flake checks; these build, so offer them.
+- `nh os build` (`make build`, `make dry-run`) — test build without switching.
 - `nix flake check` — validate flake.
 - Do not run build commands automatically — offer them and let the user decide. Builds can take a long time.
 - Do not run `nh os switch`; only the user applies changes in a separate terminal.
