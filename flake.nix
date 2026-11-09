@@ -44,6 +44,7 @@
           ;
       };
       mkHost = import ./nix/mkhost.nix { inherit inputs self system; };
+      formatter = import ./nix/formatter.nix { inherit pkgs; };
     in
     {
       nixosConfigurations = {
@@ -79,6 +80,8 @@
       };
 
       packages.${system}.ax = ax.axPackage;
+
+      formatter.${system} = formatter;
 
       checks.${system} = import ./nix/checks.nix {
         inherit
