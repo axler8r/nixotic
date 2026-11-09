@@ -90,7 +90,9 @@
           nimDir
           nim
           ax
+          formatter
           ;
+        src = self;
       };
 
       devShells.${system}.default = pkgs.mkShell {

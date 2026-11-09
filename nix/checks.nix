@@ -1,10 +1,13 @@
-# Flake checks: native configuration syntax, Nim tests, and ax integration.
+# Flake checks: native configuration syntax, Nim tests, ax integration,
+# and repository formatting and linting.
 {
   pkgs,
   lib,
   nimDir,
   nim,
   ax,
+  formatter,
+  src,
 }:
 let
   inherit (nim) nimShared nimToolchain nimTests;
@@ -155,6 +158,32 @@ in
           exit 1
         }
 
+        touch $out
+      '';
+
+  # Fails when `nix fmt` would change any file.
+  formatting = formatter.check src;
+
+  nix-lint =
+    pkgs.runCommand "nixotic-nix-lint"
+      {
+        nativeBuildInputs = [
+          pkgs.statix
+          pkgs.deadnix
+        ];
+      }
+      ''
+        cd ${src}
+        statix check .
+        deadnix --fail --no-lambda-pattern-names .
+        touch $out
+      '';
+
+  markdown-lint =
+    pkgs.runCommand "nixotic-markdown-lint" { nativeBuildInputs = [ pkgs.markdownlint-cli2 ]; }
+      ''
+        cd ${src}
+        markdownlint-cli2 '**/*.md'
         touch $out
       '';
 }
