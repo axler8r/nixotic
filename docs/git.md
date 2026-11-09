@@ -88,13 +88,17 @@ branches can be deleted.
 `core.hooksPath` points at `~/.githooks`, populated by Home Manager from
 `files/git/hooks/`. The `pre-commit` hook formats staged `.md` files with
 `prettier` then `markdownlint-cli2 --fix` and re-stages them; tools not on
-`$PATH` are run via `nix run nixpkgs#<tool>`. Hooks take effect after
+`$PATH` are run via `nix run nixpkgs#<tool>`. In a repository with a `flake.nix`
+that defines a formatter, it also runs `nix fmt` on the staged `.nix` files and
+re-stages them; without a formatter that step is skipped. A failing `nix fmt`
+prints a warning and does not block the commit. Re-staging adds whole files, so
+unstaged changes in a staged file are committed too. Hooks take effect after
 `nh os switch`; until then the `ax-format-markdown` skill runs the same chain by
 hand.
 
 In this repository `make format` and `make lint` are authoritative: they use
-the tool versions in `flake.lock`, while the hook uses the system's nixpkgs.
-The hook stays global and keeps serving other repositories.
+the tool versions in `flake.lock`, while the hook's Markdown tools come from the
+system's nixpkgs. The hook stays global and keeps serving other repositories.
 
 `.git-blame-ignore-revs` lists formatting-only commits. Enable it locally with
 `git config blame.ignoreRevsFile .git-blame-ignore-revs`.

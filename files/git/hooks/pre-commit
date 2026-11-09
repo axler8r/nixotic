@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Format staged markdown files before they are committed.
+# Format staged Markdown and Nix files before they are committed.
+#
+# Markdown: prettier then markdownlint-cli2 --fix, in every repository.
+# Nix: the repository's own flake formatter (nix fmt), only when the
+# repository has a flake.nix that defines one. A failing nix fmt warns and
+# never blocks the commit; the repository's lint checks are the gate.
 set -euo pipefail
 
 mapfile -t md_files < <(git diff --cached --name-only --diff-filter=ACM -- '*.md')
-[[ ${#md_files[@]} -eq 0 ]] && exit 0
+mapfile -t nix_files < <(git diff --cached --name-only --diff-filter=ACM -- '*.nix')
 
 run_tool() {
   local bin="$1"
@@ -15,7 +20,16 @@ run_tool() {
   fi
 }
 
-run_tool prettier --write --parser=markdown --prose-wrap=preserve --print-width=80 "${md_files[@]}"
-run_tool markdownlint-cli2 --fix "${md_files[@]}" || true
+if [[ ${#md_files[@]} -gt 0 ]]; then
+  run_tool prettier --write --parser=markdown --prose-wrap=preserve --print-width=80 "${md_files[@]}"
+  run_tool markdownlint-cli2 --fix "${md_files[@]}" || true
+  git add -- "${md_files[@]}"
+fi
 
-git add -- "${md_files[@]}"
+if [[ ${#nix_files[@]} -gt 0 && -f flake.nix ]] && command -v nix >/dev/null 2>&1; then
+  if fmt_err=$(nix fmt -- "${nix_files[@]}" 2>&1 >/dev/null); then
+    git add -- "${nix_files[@]}"
+  elif ! grep -q "does not provide attribute 'formatter" <<<"$fmt_err"; then
+    printf 'pre-commit: nix fmt failed; committing Nix files as staged\n%s\n' "$fmt_err" >&2
+  fi
+fi
