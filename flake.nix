@@ -97,7 +97,7 @@
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = nim.nimToolchain;
+        packages = nim.nimToolchain ++ [ pkgs.gnumake ];
       };
     };
 }
