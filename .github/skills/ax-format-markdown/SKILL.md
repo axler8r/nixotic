@@ -12,10 +12,11 @@ Formats markdown files with `prettier` then `markdownlint-cli2 --fix`, matching
 the same tool chain the repository's native `pre-commit` Git hook runs (see
 [files/git/hooks/pre-commit](../../../files/git/hooks/pre-commit)).
 
-In this repository, prefer `make format`: it formats every tracked Markdown and
-Nix file with the versions pinned in `flake.lock`, and `make lint` reports what
-it cannot fix. The procedure below formats specific files the way the hook
-does.
+In this repository, prefer `make format`: it formats every Markdown and Nix
+file that git does not ignore, using the versions pinned in `flake.lock`, and
+`make lint` reports what it cannot fix. `make lint` checks only tracked files,
+so `git add` new files first. The procedure below formats specific files the
+way the hook does.
 
 ## When to Use
 

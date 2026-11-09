@@ -1,6 +1,7 @@
 # variables --------------------------------------------------------->8---------
 SHELL     := /usr/bin/env zsh
 HOST      ?= $(shell hostname)
+HOST      := $(HOST)
 SYSTEM    ?= x86_64-linux
 TEST_NAME ?=
 INPUT     ?=
@@ -9,7 +10,7 @@ INPUT     ?=
 # phony ------------------------------------------------------------->8---------
 .PHONY: help \
         format lint check \
-        test test-filter \
+        test test-filter list-checks \
         dry-run build \
         update
 
@@ -48,9 +49,12 @@ test: ## Run every flake check (lint, Nim tests, ax integration)
 	nix flake check
 
 test-filter: ## Run a single check by name (usage: make test-filter TEST_NAME=<check>)
-	@test -n "$(TEST_NAME)" || (echo "TEST_NAME is not set — usage: make test-filter TEST_NAME=<check>" && exit 1)
+	@test -n "$(TEST_NAME)" || (echo "TEST_NAME is not set — usage: make test-filter TEST_NAME=<check> (see make list-checks)" >&2 && exit 1)
 	@echo "Running check: $(TEST_NAME)..."
 	nix build --no-link '.#checks.$(SYSTEM).$(TEST_NAME)'
+
+list-checks: ## List flake check names (for test-filter)
+	@nix eval --raw '.#checks.$(SYSTEM)' --apply 'checks: builtins.concatStringsSep "\n" (builtins.attrNames checks) + "\n"'
 
 
 # lifecycle targets ------------------------------------------------->8---------
