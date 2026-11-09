@@ -28,7 +28,7 @@ help: ## Show this help message
 # quality targets --------------------------------------------------->8---------
 format: ## Format Nix and Markdown files (nix fmt)
 	@echo "Formatting Nix and Markdown files..."
-	nix fmt
+	nix fmt -- --no-cache
 
 lint: ## Run the formatting, nix-lint and markdown-lint checks
 	@echo "Running lint checks..."

@@ -43,12 +43,13 @@ added/removed packages, size comparison, and cleaner error output.
 versions come from `flake.lock`; none is installed on the host or in the
 devShell.
 
-| Target        | Runs                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------- |
-| `make format` | `nix fmt`: `nixfmt` for `*.nix`; `prettier` then `markdownlint-cli2 --fix` for `*.md` |
-| `make lint`   | the `formatting`, `nix-lint` and `markdown-lint` checks                               |
-| `make test`   | every flake check, including the three above                                          |
+| Target        | Runs                                                                                                |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| `make format` | `nix fmt -- --no-cache`: `nixfmt` for `*.nix`; `prettier` then `markdownlint-cli2 --fix` for `*.md` |
+| `make lint`   | the `formatting`, `nix-lint` and `markdown-lint` checks                                             |
+| `make test`   | every flake check, including the three above                                                        |
 
+`make format` skips the treefmt cache so lint configuration changes always apply.
 `make format` never fails on Markdown findings it cannot fix; `make lint`
 reports them. Lint settings live in `statix.toml` and
 `.markdownlint-cli2.jsonc`.
