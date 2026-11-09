@@ -19,6 +19,9 @@
     bat.enable = false;
     yazi.enable = false;
     btop.enable = false;
+
+    # rofi is not used; the target sets the renamed programs.rofi.font
+    rofi.enable = false;
   };
 
   # Stylix sets home.pointerCursor.{name,package,size} implicitly via

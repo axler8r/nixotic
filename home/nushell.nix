@@ -4,6 +4,10 @@
   programs.nushell = {
     enable = true;
 
+    # Load home.sessionVariables when nu starts without them (e.g. not from
+    # zsh); a no-op otherwise. Sourced before env.nu, which still wins.
+    loadSessionVariables = true;
+
     configFile.source = ../files/nushell/config.nu;
 
     envFile.source = ../files/nushell/env.nu;
