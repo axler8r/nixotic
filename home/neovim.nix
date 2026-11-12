@@ -25,6 +25,10 @@
       # Rainbow delimiters
       rainbow-delimiters-nvim
 
+      # Elixir/EEx indent and ftplugin; Neovim ships none. Treesitter
+      # suppresses its regex syntax.
+      vim-elixir
+
       # LSP
       nvim-lspconfig
 
