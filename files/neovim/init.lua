@@ -149,8 +149,8 @@ local role_hl = {
   ['@diff.minus'] = { fg = '#dc322f' },
   ['@diff.delta'] = { fg = '#b58900' },
 
-  -- mini.nvim (Appendix A.3). Unlisted Mini* groups inherit from
-  -- NormalFloat, FloatBorder, CursorLine, Visual and IncSearch above.
+  -- mini.nvim (Appendix A.3). Unlisted Mini* groups keep mini's default
+  -- links to float, diagnostic and search groups.
   MiniStatuslineModeNormal = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
   MiniStatuslineModeInsert = { fg = '#fdf6e3', bg = '#859900', bold = true },
   MiniStatuslineModeVisual = { fg = '#fdf6e3', bg = '#b58900', bold = true },
@@ -170,6 +170,13 @@ local role_hl = {
   MiniTablineModifiedHidden = { fg = '#b58900', bg = '#eee8d5', bold = true },
   MiniTablineFill = { bg = '#eee8d5' },
   MiniTablineTabpagesection = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
+
+  -- Selection rows sit on NormalFloat (eee8d5), so they cannot reuse
+  -- CursorLine or Visual, which share that background.
+  MiniPickMatchCurrent = { fg = '#fdf6e3', bg = '#657b83' },
+  MiniPickPreviewLine = { fg = '#fdf6e3', bg = '#657b83' },
+  MiniFilesCursorLine = { fg = '#fdf6e3', bg = '#657b83' },
+  MiniPickMatchMarked = { fg = '#fdf6e3', bg = '#6c71c4' },
 
   MiniDiffSignAdd = { fg = '#859900' },
   MiniDiffSignChange = { fg = '#b58900' },

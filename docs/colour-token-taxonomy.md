@@ -420,6 +420,8 @@ on every `ColorScheme` event so a colorscheme reload does not clear them.
 | `status.window`            | `MiniTablineVisible`, `MiniTablineHidden`                                                      |
 | `status.window_current`    | `MiniTablineCurrent`                                                                           |
 | `status.filename_modified` | `MiniTablineModifiedCurrent`, `MiniTablineModifiedVisible`, `MiniTablineModifiedHidden`        |
+| `ui.selection`             | `MiniPickMatchCurrent`, `MiniPickPreviewLine`, `MiniFilesCursorLine`                           |
+| `ui.mark`                  | `MiniPickMatchMarked`                                                                          |
 | `diff.added`               | `MiniDiffSignAdd`                                                                              |
 | `diff.changed`             | `MiniDiffSignChange`                                                                           |
 | `diff.deleted`             | `MiniDiffSignDelete`                                                                           |
@@ -433,9 +435,14 @@ Light BG Contrast (`eee8d5`) otherwise.
 Accent (base1) `93a1a1`, Orange to orange `cb4b16`, Purple to violet `6c71c4`,
 Red to red `dc322f`, Yellow to yellow `b58900`.
 
+Picker and explorer selection rows use `ui.selection` and `ui.mark` rather than
+`CursorLine` or `Visual`, because they sit on a `NormalFloat` background that
+shares `eee8d5` with both.
+
 Unlisted `Mini*` groups (`MiniFiles*`, `MiniPick*`, `MiniNotify*`,
-`MiniSnippets*`, `MiniSurround`) keep their default links to `NormalFloat`,
-`FloatBorder`, `CursorLine`, `Visual` and `IncSearch`, which A.1 already sets.
+`MiniSnippets*`, `MiniSurround`) keep mini's default links to float groups
+(`NormalFloat`, `FloatBorder`, `FloatTitle`), `Directory`, `DiagnosticFloating*`,
+`DiagnosticUnderline*` and `IncSearch`.
 
 ---
 

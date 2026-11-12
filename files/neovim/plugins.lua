@@ -26,6 +26,11 @@ vim.keymap.set('n', '<leader>g', builtin.grep_live, { desc = 'Live grep' })
 vim.keymap.set('n', '<leader>b', builtin.buffers, { desc = 'Pick buffers' })
 vim.keymap.set('n', '<leader>h', builtin.help, { desc = 'Pick help tags' })
 vim.keymap.set('n', '<F8>', function()
+  local method = 'textDocument/documentSymbol'
+  if #vim.lsp.get_clients({ bufnr = 0, method = method }) == 0 then
+    vim.notify('No LSP client with document symbols', vim.log.levels.WARN)
+    return
+  end
   MiniExtra.pickers.lsp({ scope = 'document_symbol' })
 end, { desc = 'Pick document symbols' })
 
