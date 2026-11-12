@@ -376,31 +376,31 @@ order remain in `home/neovim.nix`.
 
 ### A.2 Treesitter Capture Groups
 
-| Token Slug            | Treesitter `@` Group(s)                                                         |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `code.keyword`        | `@keyword`, `@keyword.control`, `@keyword.storage`, `@keyword.return`           |
-| `code.variable`       | `@variable`, `@variable.parameter`, `@variable.member`, `@variable.builtin`     |
-| `code.constant`       | `@constant`, `@constant.builtin`                                                |
-| `code.type`           | `@type`, `@type.builtin`, `@constructor`                                        |
-| `code.literal.string` | `@string`                                                                       |
-| `code.literal.number` | `@number`, `@number.float`                                                      |
-| `code.literal.bool`   | `@boolean`                                                                      |
-| `code.function`       | `@function`, `@function.method`, `@function.builtin`, `@function.call`          |
-| `code.import`         | `@keyword.import`, `@module`, `@module.builtin`                                 |
-| `code.macro`          | `@keyword.directive`, `@keyword.directive.define`, `@attribute`                 |
-| `code.interpolation`  | `@string.escape`, `@string.special`                                             |
-| `code.regex`          | `@string.regexp`                                                                |
-| `code.comment`        | `@comment`                                                                      |
-| `code.doc_comment`    | `@comment.documentation`                                                        |
-| `code.operator`       | `@operator`                                                                     |
-| `code.punctuation`    | `@punctuation`, `@punctuation.delimiter`, `@punctuation.bracket`                |
-| `markup.tag`          | `@tag`, `@tag.builtin`                                                          |
-| `markup.attribute`    | `@tag.attribute`                                                                |
-| `markup.value`        | `@tag.attribute` (value sub-part — no distinct capture; inherit from attribute) |
-| `markup.entity`       | `@string.special.symbol` (XML/HTML entity context)                              |
-| `diff.added`          | `@diff.plus`                                                                    |
-| `diff.deleted`        | `@diff.minus`                                                                   |
-| `diff.changed`        | `@diff.delta`                                                                   |
+| Token Slug            | Treesitter `@` Group(s)                                                            |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `code.keyword`        | `@keyword`, `@keyword.control`, `@keyword.storage`, `@keyword.return`              |
+| `code.variable`       | `@variable`, `@variable.parameter`, `@variable.member`, `@variable.builtin`        |
+| `code.constant`       | `@constant`, `@constant.builtin`                                                   |
+| `code.type`           | `@type`, `@type.builtin`, `@constructor`                                           |
+| `code.literal.string` | `@string`                                                                          |
+| `code.literal.number` | `@number`, `@number.float`                                                         |
+| `code.literal.bool`   | `@boolean`                                                                         |
+| `code.function`       | `@function`, `@function.method`, `@function.builtin`, `@function.call`             |
+| `code.import`         | `@keyword.import`, `@module`, `@module.builtin`                                    |
+| `code.macro`          | `@keyword.directive`, `@keyword.directive.define`, `@attribute`, `@function.macro` |
+| `code.interpolation`  | `@string.escape`, `@string.special`                                                |
+| `code.regex`          | `@string.regexp`                                                                   |
+| `code.comment`        | `@comment`                                                                         |
+| `code.doc_comment`    | `@comment.documentation`                                                           |
+| `code.operator`       | `@operator`                                                                        |
+| `code.punctuation`    | `@punctuation`, `@punctuation.delimiter`, `@punctuation.bracket`                   |
+| `markup.tag`          | `@tag`, `@tag.builtin`                                                             |
+| `markup.attribute`    | `@tag.attribute`                                                                   |
+| `markup.value`        | `@tag.attribute` (value sub-part — no distinct capture; inherit from attribute)    |
+| `markup.entity`       | `@string.special.symbol` (XML/HTML entity context)                                 |
+| `diff.added`          | `@diff.plus`                                                                       |
+| `diff.deleted`        | `@diff.minus`                                                                      |
+| `diff.changed`        | `@diff.delta`                                                                      |
 
 ### A.3 mini.nvim
 

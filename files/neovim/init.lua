@@ -136,6 +136,8 @@ local role_hl = {
   ['@keyword.control'] = { fg = '#859900', bold = true },
   ['@keyword.storage'] = { fg = '#859900', bold = true },
   ['@keyword.return'] = { fg = '#859900', bold = true },
+  Label = { fg = '#859900', bold = true },
+  ['@function.macro'] = { fg = '#d33682' },
   ['@variable.parameter'] = { fg = '#268bd2' },
   ['@number.float'] = { fg = '#2aa198' },
   ['@function.call'] = { fg = '#cb4b16', italic = true },

@@ -1,3 +1,10 @@
+-- Treesitter highlighting for every filetype with an installed parser
+-- (withAllGrammars). Filetypes without one keep regex syntax.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = '*',
+  callback = function(args) pcall(vim.treesitter.start, args.buf) end,
+})
+
 -- UI: icons, statusline, tabline. Colours live in role_hl (init.lua).
 require('mini.icons').setup()
 require('mini.git').setup()

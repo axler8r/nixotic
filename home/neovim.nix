@@ -18,17 +18,12 @@
       # surround, align, notify, icons, completion, snippets, keymap
       mini-nvim
 
-      # Treesitter (syntax highlighting) - grammars auto-activate for supported files
+      # Treesitter parsers and queries; highlighting is started per buffer by
+      # the FileType autocmd in files/neovim/plugins.lua
       nvim-treesitter.withAllGrammars
 
       # Rainbow delimiters
       rainbow-delimiters-nvim
-
-      # Language support
-      vim-toml
-      vim-elixir
-      vim-erlang-runtime
-      vim-markdown
 
       # LSP
       nvim-lspconfig
