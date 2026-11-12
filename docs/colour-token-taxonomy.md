@@ -224,6 +224,13 @@ shell's keywords.
 | `ui.gutter`              | Sign / gutter column background   | Light Background Contrast `eee8d5`                                       | —        |
 | `ui.popup.bg`            | Popup / float background          | Light Background Contrast `eee8d5`                                       | —        |
 | `ui.popup.border`        | Popup / float border              | blue `268bd2`                                                            | —        |
+| `ui.border`              | Inactive pane / split border      | Light Background Contrast `eee8d5`                                       | —        |
+| `ui.border_active`       | Active pane / split border        | blue `268bd2`                                                            | —        |
+| `ui.scrollbar`           | Scrollbar                         | fg: Lightest Accent (base1) `93a1a1`, bg: Light BG Contrast `eee8d5`     | —        |
+| `ui.mark`                | Marked position / mark highlight  | bg: Violet `6c71c4`, fg: Light Background (base3) `fdf6e3`               | —        |
+| `ui.pane_label`          | Pane / window identifier label    | Lightest Accent (base1) `93a1a1`                                         | Normal   |
+| `ui.pane_label_active`   | Active pane / window label        | blue `268bd2`                                                            | Normal   |
+| `ui.clock`               | Full-pane clock display           | blue `268bd2`                                                            | Normal   |
 
 ### Statusline
 
@@ -250,9 +257,16 @@ Applies to Neovim (lualine), Helix, tmux, yazi, and starship.
 | `status.mode_command`      | Mode indicator — COMMAND                | Light Background `fdf6e3`        | orange `cb4b16`                    | **Bold** |
 | `status.session`           | tmux session name / multiplexer context | Light Background `fdf6e3`        | blue `268bd2`                      | **Bold** |
 | `status.host`              | Hostname segment                        | Light Background `fdf6e3`        | green `859900`                     | Normal   |
-| `status.time`              | Clock / date segment                    | Dark Accent (base00) `657b83`    | —                                  | Normal   |
+| `status.time`              | Clock segment                           | Dark Accent (base00) `657b83`    | —                                  | Normal   |
+| `status.date`              | Date segment                            | Lightest Accent (base1) `93a1a1` | —                                  | Normal   |
 | `status.inactive`          | Inactive window / pane statusline       | Lightest Accent (base1) `93a1a1` | Light BG Contrast (base2) `eee8d5` | —        |
 | `status.separator`         | Segment separators and dividers         | Lightest Accent (base1) `93a1a1` | —                                  | Normal   |
+| `status.window`            | Window / tab list entry                 | Lightest Accent (base1) `93a1a1` | —                                  | Normal   |
+| `status.window_current`    | Current window / tab                    | Dark Background `002b36`         | Light Background `fdf6e3`          | **Bold** |
+| `status.window_activity`   | Window with unseen activity             | yellow `b58900`                  | —                                  | **Bold** |
+| `status.window_bell`       | Window that rang the bell               | red `dc322f`                     | —                                  | **Bold** |
+| `status.message`           | Status line message                     | Light Background `fdf6e3`        | yellow `b58900`                    | Normal   |
+| `status.message_command`   | Command prompt                          | yellow `b58900`                  | Light Background `fdf6e3`          | Normal   |
 
 ### File Manager / Directory Listings
 
@@ -295,7 +309,7 @@ colours and editor syntax colours remain independent.
 | bat       | `home/bat.nix`                                      | `NixoticSolarizedLight` `.tmTheme` — needs markup/data gaps                                                                 |
 | Neovim    | `files/neovim/init.lua`, `files/neovim/plugins.lua` | `vim-solarized8` + `nvim_set_hl` overrides — needs gaps                                                                     |
 | VSCode    | `extensions/nixotic-solarized-light/`               | Standalone theme extension — install via symlink or VS Code command palette (`Developer: Install Extension from Location…`) |
-| tmux      | `files/tmux/tmux.conf`                              | Native `set -g *-style` fragment read by Home Manager — palette names need cleanup                                          |
+| tmux      | `files/tmux/tmux.conf`                              | Native `set -g *-style` fragment read by Home Manager; Stylix tmux target disabled — complete                               |
 | yazi      | `home/yazi.nix`                                     | `programs.yazi.theme` attrset — complete                                                                                    |
 | dircolors | `files/dircolors/dir_colors`                        | Native 256-colour database read by Home Manager — needs palette audit                                                       |
 | eza       | `home/eza.nix`                                      | `EZA_COLORS` env var — needs palette audit                                                                                  |
@@ -746,36 +760,57 @@ ZSH_HIGHLIGHT_STYLES[rc-quote]                 = 'fg=${solarized.cyan}';
 
 ## Appendix F — tmux (`files/tmux/tmux.conf`)
 
-Replace the inline hex strings with named-comment annotations so the intent is
-auditable. The colours themselves are correct; the comments were wrong.
+`files/tmux/tmux.conf` sets every colour option explicitly and annotates each
+line with its token slug. `stylix.targets.tmux.enable = false` in
+`home/stylix.nix` stops Stylix sourcing its base16 tmux file ahead of it.
 
-```tmux
-# ── Status Bar — Solarized Light ──
-# Palette reference: docs/theme.md
-# status.bg:        bg=Light BG Contrast (#eee8d5), fg=Dark Accent (#657b83)
-# status.session:   bg=blue (#268bd2), fg=Light Background (#fdf6e3)
-# status.mode_*:    see status.mode_* slugs in theme.md
-# status.time:      fg=Dark Accent (#657b83)
-# status.host:      bg=green (#859900), fg=Light Background (#fdf6e3)
+> [!NOTE] Why Every Option Is Set
+>
+> tmux 3.8 added styled UI (tree-mode preview, menus, popups, copy-mode
+> matches, scrollbars) whose defaults use tmux's built-in `theme*` colours.
+> Any colour option left unset falls back to those defaults or, with the
+> Stylix target enabled, to the base16 mapping. When tmux adds a new `*-style`
+> or `*-colour` option, map it here and set it.
 
-set -g status-style                  "bg=#eee8d5,fg=#657b83"
-set -g status-left                   "#[bg=#268bd2,fg=#fdf6e3,bold] #S #[bg=#eee8d5,fg=#268bd2]"
-set -g status-right                  "#[fg=#657b83]%Y-%m-%d %H:%M #[bg=#859900,fg=#fdf6e3] #h "
-set -g window-status-format          "#[fg=#93a1a1] #I:#W "
-set -g window-status-current-format  "#[bg=#fdf6e3,fg=#002b36,bold] #I:#W "
-set -g window-status-separator       ""
-set -g pane-border-style             "fg=#eee8d5"
-set -g pane-active-border-style      "fg=#268bd2"
-set -g message-style                 "bg=#b58900,fg=#fdf6e3"
-set -g message-command-style         "bg=#fdf6e3,fg=#b58900"
-set -g mode-style                    "bg=#eee8d5,fg=#002b36"
-```
+| Token Slug               | tmux Option(s)                                                           |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `status.bg`              | `status-style`                                                           |
+| `status.session`         | `status-left` (inline `#[…]`)                                            |
+| `status.date`            | `status-right` (inline `#[…]`)                                           |
+| `status.time`            | `status-right` (inline `#[…]`)                                           |
+| `status.host`            | `status-right` (inline `#[…]`)                                           |
+| `status.window`          | `window-status-style`                                                    |
+| `status.window_current`  | `window-status-current-style`                                            |
+| `status.window_activity` | `window-status-activity-style`                                           |
+| `status.window_bell`     | `window-status-bell-style`                                               |
+| `status.message`         | `message-style`                                                          |
+| `status.message_command` | `message-command-style`                                                  |
+| `status.separator`       | `tree-mode-border-style`                                                 |
+| `ui.border`              | `pane-border-style`                                                      |
+| `ui.border_active`       | `pane-active-border-style`                                               |
+| `ui.scrollbar`           | `pane-scrollbars-style`                                                  |
+| `ui.pane_label`          | `display-panes-colour`, `tree-mode-preview-style` (inactive branch)      |
+| `ui.pane_label_active`   | `display-panes-active-colour`, `tree-mode-preview-style` (active branch) |
+| `ui.popup.bg`            | `menu-style`, `popup-style`                                              |
+| `ui.popup.border`        | `menu-border-style`, `popup-border-style`, `display-panes-border-style`  |
+| `ui.selection`           | `mode-style`, `menu-selected-style`                                      |
+| `ui.cursorline`          | `copy-mode-current-line-style`, `tree-mode-selection-style`              |
+| `ui.search_current`      | `copy-mode-current-match-style`                                          |
+| `ui.search_other`        | `copy-mode-match-style`, `switch-mode-match-style`                       |
+| `ui.mark`                | `copy-mode-mark-style`                                                   |
+| `ui.line_number`         | `copy-mode-line-number-style`                                            |
+| `ui.line_number_current` | `copy-mode-current-line-number-style`                                    |
+| `ui.clock`               | `clock-mode-colour`                                                      |
+
+Window list colours live in the `window-status-*-style` options, not in
+`#[…]` inside the `*-format` strings, so the activity and bell styles are not
+masked by inline colours. `copy-mode-selection-style` and
+`copy-mode-position-style` are left at their default, `#{E:mode-style}`.
 
 > [!NOTE] Active Window Contrast
 >
-> `window-status-current-format` uses Dark Background (`#002b36`) as text on
-> Light Background (`#fdf6e3`) for maximum contrast on the active window tab.
-> This maps to `status.mode_normal` inverted — intentional.
+> `status.window_current` uses Dark Background (`#002b36`) as text on Light
+> Background (`#fdf6e3`) for maximum contrast on the active window tab.
 
 ---
 

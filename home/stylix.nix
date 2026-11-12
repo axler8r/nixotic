@@ -19,6 +19,7 @@
     bat.enable = false;
     yazi.enable = false;
     btop.enable = false;
+    tmux.enable = false;
 
     # rofi is not used; the target sets the renamed programs.rofi.font
     rofi.enable = false;
