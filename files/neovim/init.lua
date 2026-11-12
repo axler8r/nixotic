@@ -148,11 +148,57 @@ local role_hl = {
   ['@diff.plus'] = { fg = '#859900' },
   ['@diff.minus'] = { fg = '#dc322f' },
   ['@diff.delta'] = { fg = '#b58900' },
+
+  -- mini.nvim (Appendix A.3). Unlisted Mini* groups inherit from
+  -- NormalFloat, FloatBorder, CursorLine, Visual and IncSearch above.
+  MiniStatuslineModeNormal = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
+  MiniStatuslineModeInsert = { fg = '#fdf6e3', bg = '#859900', bold = true },
+  MiniStatuslineModeVisual = { fg = '#fdf6e3', bg = '#b58900', bold = true },
+  MiniStatuslineModeReplace = { fg = '#fdf6e3', bg = '#dc322f', bold = true },
+  MiniStatuslineModeCommand = { fg = '#fdf6e3', bg = '#cb4b16', bold = true },
+  MiniStatuslineModeOther = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
+  MiniStatuslineDevinfo = { fg = '#657b83', bg = '#eee8d5' },
+  MiniStatuslineFilename = { fg = '#657b83', bg = '#eee8d5' },
+  MiniStatuslineFileinfo = { fg = '#657b83', bg = '#eee8d5' },
+  MiniStatuslineInactive = { fg = '#93a1a1', bg = '#eee8d5' },
+
+  MiniTablineCurrent = { fg = '#002b36', bg = '#fdf6e3', bold = true },
+  MiniTablineVisible = { fg = '#93a1a1', bg = '#eee8d5' },
+  MiniTablineHidden = { fg = '#93a1a1', bg = '#eee8d5' },
+  MiniTablineModifiedCurrent = { fg = '#b58900', bg = '#fdf6e3', bold = true },
+  MiniTablineModifiedVisible = { fg = '#b58900', bg = '#eee8d5', bold = true },
+  MiniTablineModifiedHidden = { fg = '#b58900', bg = '#eee8d5', bold = true },
+  MiniTablineFill = { bg = '#eee8d5' },
+  MiniTablineTabpagesection = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
+
+  MiniDiffSignAdd = { fg = '#859900' },
+  MiniDiffSignChange = { fg = '#b58900' },
+  MiniDiffSignDelete = { fg = '#dc322f' },
+
+  MiniIconsAzure = { fg = '#268bd2' },
+  MiniIconsBlue = { fg = '#268bd2' },
+  MiniIconsCyan = { fg = '#2aa198' },
+  MiniIconsGreen = { fg = '#859900' },
+  MiniIconsGrey = { fg = '#93a1a1' },
+  MiniIconsOrange = { fg = '#cb4b16' },
+  MiniIconsPurple = { fg = '#6c71c4' },
+  MiniIconsRed = { fg = '#dc322f' },
+  MiniIconsYellow = { fg = '#b58900' },
 }
 
-for group, opts in pairs(role_hl) do
-  vim.api.nvim_set_hl(0, group, opts)
+local function apply_role_hl()
+  for group, opts in pairs(role_hl) do
+    vim.api.nvim_set_hl(0, group, opts)
+  end
 end
+
+apply_role_hl()
+
+-- Reapply after any colorscheme load, which clears custom highlights.
+vim.api.nvim_create_autocmd('ColorScheme', {
+  pattern = '*',
+  callback = apply_role_hl,
+})
 
 -- Strip trailing whitespace on save
 vim.api.nvim_create_autocmd('BufWritePre', {

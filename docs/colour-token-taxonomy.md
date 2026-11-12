@@ -234,7 +234,7 @@ shell's keywords.
 
 ### Statusline
 
-Applies to Neovim (lualine), Helix, tmux, yazi, and starship.
+Applies to Neovim (mini.statusline, mini.tabline), Helix, tmux, yazi, and starship.
 
 | Token Slug                 | Description                             | FG                               | BG                                 | Style    |
 | -------------------------- | --------------------------------------- | -------------------------------- | ---------------------------------- | -------- |
@@ -307,7 +307,7 @@ colours and editor syntax colours remain independent.
 | Zsh       | `home/zsh.nix`                                      | `ZSH_HIGHLIGHT_STYLES` map — needs string/interpolation fix                                                                 |
 | Helix     | `home/helix.nix`                                    | `nixotic_solarized_light.toml` — needs markup/data/UI gaps                                                                  |
 | bat       | `home/bat.nix`                                      | `NixoticSolarizedLight` `.tmTheme` — needs markup/data gaps                                                                 |
-| Neovim    | `files/neovim/init.lua`, `files/neovim/plugins.lua` | `vim-solarized8` + `nvim_set_hl` overrides — needs gaps                                                                     |
+| Neovim    | `files/neovim/init.lua`, `files/neovim/plugins.lua` | `vim-solarized8` + `nvim_set_hl` overrides (incl. mini.nvim) — needs gaps                                                   |
 | VSCode    | `extensions/nixotic-solarized-light/`               | Standalone theme extension — install via symlink or VS Code command palette (`Developer: Install Extension from Location…`) |
 | tmux      | `files/tmux/tmux.conf`                              | Native `set -g *-style` fragment read by Home Manager; Stylix tmux target disabled — complete                               |
 | yazi      | `home/yazi.nix`                                     | `programs.yazi.theme` attrset — complete                                                                                    |
@@ -325,8 +325,8 @@ colours and editor syntax colours remain independent.
 
 Neovim uses two layers: legacy Vim highlight groups (for plugins and fallback)
 and treesitter `@` capture groups (for parsed buffers). Both must be set. The
-`role_hl` table in `files/neovim/init.lua` is the implementation target. Lualine
-configuration lives in `files/neovim/plugins.lua`; package selection and loading
+`role_hl` table in `files/neovim/init.lua` is the implementation target. mini.nvim
+module setup lives in `files/neovim/plugins.lua`; package selection and loading
 order remain in `home/neovim.nix`.
 
 ### A.1 Legacy Vim Groups
@@ -402,28 +402,40 @@ order remain in `home/neovim.nix`.
 | `diff.deleted`        | `@diff.minus`                                                                   |
 | `diff.changed`        | `@diff.delta`                                                                   |
 
-### A.3 Lualine Statusline
+### A.3 mini.nvim
 
-Lualine uses `solarized_light` as its base theme. Override the mode segments to
-match `status.mode_*` slugs above. In the `lualine.setup` `options` table:
+mini.nvim modules are set up in `files/neovim/plugins.lua`; their highlight
+groups are set in `role_hl` alongside the groups above. `role_hl` is reapplied
+on every `ColorScheme` event so a colorscheme reload does not clear them.
 
-```lua
--- Mode colours override solarized_light defaults
-local sol = {
-  light_bg   = '#fdf6e3',
-  blue       = '#268bd2',
-  green      = '#859900',
-  yellow     = '#b58900',
-  red        = '#dc322f',
-  orange     = '#cb4b16',
-  base2      = '#eee8d5',
-  base00     = '#657b83',
-}
--- Pass as theme override or use custom theme table
-```
+| Token Slug                 | Highlight Group(s)                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `status.mode_normal`       | `MiniStatuslineModeNormal`, `MiniStatuslineModeOther`, `MiniTablineTabpagesection`             |
+| `status.mode_insert`       | `MiniStatuslineModeInsert`                                                                     |
+| `status.mode_visual`       | `MiniStatuslineModeVisual`                                                                     |
+| `status.mode_replace`      | `MiniStatuslineModeReplace`                                                                    |
+| `status.mode_command`      | `MiniStatuslineModeCommand`                                                                    |
+| `status.bg`                | `MiniStatuslineDevinfo`, `MiniStatuslineFilename`, `MiniStatuslineFileinfo`, `MiniTablineFill` |
+| `status.inactive`          | `MiniStatuslineInactive`                                                                       |
+| `status.window`            | `MiniTablineVisible`, `MiniTablineHidden`                                                      |
+| `status.window_current`    | `MiniTablineCurrent`                                                                           |
+| `status.filename_modified` | `MiniTablineModifiedCurrent`, `MiniTablineModifiedVisible`, `MiniTablineModifiedHidden`        |
+| `diff.added`               | `MiniDiffSignAdd`                                                                              |
+| `diff.changed`             | `MiniDiffSignChange`                                                                           |
+| `diff.deleted`             | `MiniDiffSignDelete`                                                                           |
 
-Mode → background colour mapping: Normal=blue, Insert=green, Visual=yellow,
-Replace=red, Command=orange. Foreground is always Light Background (`fdf6e3`).
+Mode foreground is always Light Background (`fdf6e3`). Modified tabline entries
+keep the background of their state: Light Background (`fdf6e3`) when current,
+Light BG Contrast (`eee8d5`) otherwise.
+
+`MiniIcons*` colour groups map directly to the palette: Azure and Blue to blue
+`268bd2`, Cyan to cyan `2aa198`, Green to green `859900`, Grey to Lightest
+Accent (base1) `93a1a1`, Orange to orange `cb4b16`, Purple to violet `6c71c4`,
+Red to red `dc322f`, Yellow to yellow `b58900`.
+
+Unlisted `Mini*` groups (`MiniFiles*`, `MiniPick*`, `MiniNotify*`,
+`MiniSnippets*`, `MiniSurround`) keep their default links to `NormalFloat`,
+`FloatBorder`, `CursorLine`, `Visual` and `IncSearch`, which A.1 already sets.
 
 ---
 
