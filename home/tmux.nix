@@ -7,7 +7,7 @@
     # Core settings via Home Manager options
     prefix = "C-a";
     escapeTime = 1;
-    historyLimit = 4096;
+    historyLimit = 65536; # 2^16
     baseIndex = 1;
     keyMode = "vi";
     terminal = "xterm-256color";
