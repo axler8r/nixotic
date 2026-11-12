@@ -1,81 +1,73 @@
-local sol_lualine = {
-  normal   = { a = { fg = '#fdf6e3', bg = '#268bd2', gui = 'bold' },
-               b = { fg = '#657b83', bg = '#eee8d5' },
-               c = { fg = '#657b83', bg = '#eee8d5' } },
-  insert   = { a = { fg = '#fdf6e3', bg = '#859900', gui = 'bold' } },
-  visual   = { a = { fg = '#fdf6e3', bg = '#b58900', gui = 'bold' } },
-  replace  = { a = { fg = '#fdf6e3', bg = '#dc322f', gui = 'bold' } },
-  command  = { a = { fg = '#fdf6e3', bg = '#cb4b16', gui = 'bold' } },
-  inactive = { a = { fg = '#93a1a1', bg = '#eee8d5' },
-               b = { fg = '#93a1a1', bg = '#eee8d5' },
-               c = { fg = '#93a1a1', bg = '#eee8d5' } },
-}
-require('lualine').setup {
-  options = {
-    theme = sol_lualine,
-    section_separators = { left = "", right = "" },
-    component_separators = { left = "", right = "" },
-  },
-  sections = {
-    lualine_a = { 'mode' },
-    lualine_b = { 'branch', 'diff', 'diagnostics' },
-    lualine_c = { 'filename' },
-    lualine_x = { 'encoding', 'fileformat', 'filetype' },
-    lualine_y = { 'progress' },
-    lualine_z = { 'location' }
-  },
-  tabline = {
-    lualine_a = { 'buffers' },
-    lualine_z = { 'tabs' }
+-- UI: icons, statusline, tabline. Colours live in role_hl (init.lua).
+require('mini.icons').setup()
+require('mini.git').setup()
+require('mini.diff').setup {
+  view = {
+    style = 'sign',
+    signs = { add = '+', change = '~', delete = '_' },
   },
 }
+require('mini.statusline').setup()
+require('mini.tabline').setup()
 
-require('nvim-tree').setup {
-  view = { width = 35 },
-  renderer = { icons = { show = { git = true } } },
-}
-vim.keymap.set('n', '<F7>', ':NvimTreeToggle<CR>', { silent = true })
+-- File explorer
+require('mini.files').setup()
+vim.keymap.set('n', '<F7>', function()
+  if not MiniFiles.close() then MiniFiles.open() end
+end, { desc = 'Toggle file explorer' })
 
-local telescope = require('telescope')
-local builtin = require('telescope.builtin')
-telescope.setup {
-  defaults = {
-    file_ignore_patterns = { "node_modules", ".git/" },
+-- Pickers
+require('mini.pick').setup()
+require('mini.extra').setup()
+local builtin = MiniPick.builtin
+vim.keymap.set('n', '<F12>', builtin.files, { desc = 'Pick files' })
+vim.keymap.set('n', '<leader>f', builtin.files, { desc = 'Pick files' })
+vim.keymap.set('n', '<leader>g', builtin.grep_live, { desc = 'Live grep' })
+vim.keymap.set('n', '<leader>b', builtin.buffers, { desc = 'Pick buffers' })
+vim.keymap.set('n', '<leader>h', builtin.help, { desc = 'Pick help tags' })
+vim.keymap.set('n', '<F8>', function()
+  MiniExtra.pickers.lsp({ scope = 'document_symbol' })
+end, { desc = 'Pick document symbols' })
+
+-- Editing
+require('mini.pairs').setup()
+require('mini.align').setup()
+
+-- Surround with tpope/vim-surround style keys (see :h MiniSurround-vim-surround-config)
+require('mini.surround').setup {
+  mappings = {
+    add = 'ys',
+    delete = 'ds',
+    find = '',
+    find_left = '',
+    highlight = '',
+    replace = 'cs',
+    suffix_last = '',
+    suffix_next = '',
   },
+  search_method = 'cover_or_next',
 }
-vim.keymap.set('n', '<F12>', builtin.find_files, {})
-vim.keymap.set('n', '<leader>f', builtin.find_files, {})
-vim.keymap.set('n', '<leader>g', builtin.live_grep, {})
-vim.keymap.set('n', '<leader>b', builtin.buffers, {})
-vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
+vim.keymap.del('x', 'ys')
+vim.keymap.set('x', 'S', [[:<C-u>lua MiniSurround.add('visual')<CR>]], { silent = true })
+vim.keymap.set('n', 'yss', 'ys_', { remap = true })
 
-require('gitsigns').setup {
-  signs = {
-    add          = { text = '+' },
-    change       = { text = '~' },
-    delete       = { text = '_' },
-    topdelete    = { text = '‾' },
-    changedelete = { text = '±' },
-  },
-}
+-- Notifications (shows LSP progress)
+require('mini.notify').setup()
 
-require('outline').setup()
-vim.keymap.set('n', '<F8>', ':Outline<CR>', { silent = true })
+-- Completion and snippets. noinsert preselects the first item so <CR>
+-- accepts it without an explicit selection.
+vim.o.completeopt = 'menuone,noinsert'
+require('mini.snippets').setup()
+require('mini.completion').setup()
 
-require('nvim-autopairs').setup {}
-vim.keymap.set('x', 'ga', '<Plug>(EasyAlign)', {})
-vim.keymap.set('n', 'ga', '<Plug>(EasyAlign)', {})
-
-local capabilities = require('cmp_nvim_lsp').default_capabilities()
+local map_multistep = require('mini.keymap').map_multistep
+map_multistep('i', '<Tab>', { 'minisnippets_next', 'pmenu_next' })
+map_multistep('i', '<S-Tab>', { 'minisnippets_prev', 'pmenu_prev' })
+map_multistep('i', '<CR>', { 'pmenu_accept', 'minipairs_cr' })
 
 -- Configure LSP servers using vim.lsp.config (nvim 0.11+)
-vim.lsp.config('pyright', { capabilities = capabilities })
-vim.lsp.config('rust_analyzer', { capabilities = capabilities })
-vim.lsp.config('elixirls', { capabilities = capabilities, cmd = { "elixir-ls" } })
-vim.lsp.config('csharp_ls', { capabilities = capabilities })
-vim.lsp.config('jdtls', { capabilities = capabilities })
-vim.lsp.config('julials', { capabilities = capabilities })
-vim.lsp.config('nil_ls', { capabilities = capabilities })
+vim.lsp.config('*', { capabilities = MiniCompletion.get_lsp_capabilities() })
+vim.lsp.config('elixirls', { cmd = { "elixir-ls" } })
 
 -- Enable configured servers
 vim.lsp.enable({ 'pyright', 'rust_analyzer', 'elixirls', 'csharp_ls', 'jdtls', 'julials', 'nil_ls' })
@@ -96,54 +88,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
   end,
 })
-
-require('fidget').setup {}
-require('trouble').setup {}
-vim.keymap.set('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { silent = true })
-vim.keymap.set('n', '<leader>xd', ':Trouble diagnostics toggle filter.buf=0<CR>', { silent = true })
-
-local cmp = require('cmp')
-local luasnip = require('luasnip')
-
-cmp.setup {
-  snippet = {
-    expand = function(args)
-      luasnip.lsp_expand(args.body)
-    end,
-  },
-  mapping = cmp.mapping.preset.insert({
-    ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-    ['<C-f>'] = cmp.mapping.scroll_docs(4),
-    ['<C-Space>'] = cmp.mapping.complete(),
-    ['<C-e>'] = cmp.mapping.abort(),
-    ['<CR>'] = cmp.mapping.confirm({ select = true }),
-    ['<Tab>'] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        cmp.select_next_item()
-      elseif luasnip.expand_or_jumpable() then
-        luasnip.expand_or_jump()
-      else
-        fallback()
-      end
-    end, { 'i', 's' }),
-    ['<S-Tab>'] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        cmp.select_prev_item()
-      elseif luasnip.jumpable(-1) then
-        luasnip.jump(-1)
-      else
-        fallback()
-      end
-    end, { 'i', 's' }),
-  }),
-  sources = cmp.config.sources({
-    { name = 'nvim_lsp' },
-    { name = 'luasnip' },
-  }, {
-    { name = 'buffer' },
-    { name = 'path' },
-  }),
-}
 
 require('conform').setup {
   formatters_by_ft = {

@@ -14,31 +14,12 @@
       # Colorscheme
       vim-solarized8
 
-      # UI
-      lualine-nvim
-      nvim-web-devicons
-
-      nvim-tree-lua
-
-      # Telescope (replaces fzf.vim)
-      plenary-nvim
-      telescope-nvim
-
-      # Git
-      gitsigns-nvim
-      vim-fugitive
+      # mini.nvim: statusline, tabline, files, pick, diff, git, pairs,
+      # surround, align, notify, icons, completion, snippets, keymap
+      mini-nvim
 
       # Treesitter (syntax highlighting) - grammars auto-activate for supported files
       nvim-treesitter.withAllGrammars
-
-      # Symbols outline (replaces tagbar)
-      outline-nvim
-
-      # Editing
-      nvim-autopairs
-      vim-surround
-      tabular
-      vim-easy-align
 
       # Rainbow delimiters
       rainbow-delimiters-nvim
@@ -51,20 +32,6 @@
 
       # LSP
       nvim-lspconfig
-
-      # LSP progress indicator
-      fidget-nvim
-
-      # Better diagnostics
-      trouble-nvim
-
-      # Completion
-      cmp-nvim-lsp
-      cmp-buffer
-      cmp-path
-      luasnip
-      cmp_luasnip
-      nvim-cmp
 
       # Formatting
       conform-nvim
