@@ -125,10 +125,10 @@ changes.
 ### Whole Files, Fragments, and Structured Imports
 
 Use `.source` when Home Manager should deploy the complete file, as in
-`home/nushell.nix`:
+`home/base.nix`:
 
 ```nix
-programs.nushell.configFile.source = ../files/nushell/config.nu;
+xdg.configFile."leaf/config.toml".source = ../files/leaf/config.toml;
 ```
 
 Use `builtins.readFile` when a module should incorporate a native fragment into
@@ -171,7 +171,7 @@ both a native fragment and a structured option.
   order relative to setup injected by other modules. Keep custom setup in that
   file so its order is explicit; do not move it to a separate `initLua`
   override.
-- Nushell, Zsh, and Julia retain their existing native-file approach.
+- Zsh and Julia retain their existing native-file approach.
 
 Native files make language tooling available; they do not install or configure
 that tooling automatically. Nix language servers understand Nix options, but a

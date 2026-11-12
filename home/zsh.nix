@@ -150,9 +150,8 @@ in
   programs.fzf = {
     enable = true;
     enableZshIntegration = false; # Disabled: conflicts with fzf-tab
-    historyWidget.nushell.command = ""; # Atuin owns Ctrl-R in nushell
     defaultOptions = [
-      # Solarized Light — docs/colour-token-taxonomy.md (Appendix H)
+      # Solarized Light — docs/colour-token-taxonomy.md (Appendix G)
       "--color=bg+:#eee8d5"
       "--color=bg:#fdf6e3"
       "--color=border:#268bd2"

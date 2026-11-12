@@ -667,45 +667,6 @@ pre {
   </div>
 </div>
 
-<!-- ── Nushell ── -->
-<div class="block">
-  <div class="block-title">Nushell</div>
-  <pre>
-<span class="cmt"># Solarized Light syntax example — Nushell</span>
-
-<span class="kw">const</span> <span class="var">MAX_JOBS</span> <span class="op">=</span> <span class="lit">8</span>
-
-<span class="cmt"># Build a Nix flake for each host in the list</span>
-<span class="kw">def</span> <span class="fn">build-hosts</span> <span class="pun">[</span>
-  <span class="var">hosts</span><span class="pun">:</span> <span class="typ">list</span><span class="pun">&lt;</span><span class="typ">string</span><span class="pun">&gt;</span>
-  <span class="arg">--dry-run</span>       <span class="cmt"># (-d) Skip actual build</span>
-  <span class="arg">--jobs</span><span class="pun">:</span> <span class="typ">int</span> <span class="op">=</span> <span class="var">MAX_JOBS</span>
-<span class="pun">]</span> <span class="op">-></span> <span class="typ">table</span> <span class="pun">{</span>
-  <span class="var">hosts</span>
-    <span class="op">|</span> <span class="fn">each</span> <span class="pun">{</span><span class="op">|</span><span class="var">host</span><span class="op">|</span>
-        <span class="kw">let</span> <span class="var">flake</span> <span class="op">=</span> <span class="ipl">$".#($host)"</span>
-        <span class="kw">if</span> <span class="var">$dry_run</span> <span class="pun">{</span>
-          <span class="pun">{</span><span class="key">host</span><span class="pun">:</span> <span class="var">$host</span><span class="pun">,</span> <span class="key">status</span><span class="pun">:</span> <span class="lit">"dry-run"</span><span class="pun">}</span>
-        <span class="pun">}</span> <span class="kw">else</span> <span class="pun">{</span>
-          <span class="kw">let</span> <span class="var">result</span> <span class="op">=</span> <span class="fn">nixos-rebuild</span> <span class="arg">--flake</span> <span class="var">$flake</span> <span class="arg">switch</span>
-          <span class="pun">{</span>
-            <span class="key">host</span><span class="pun">:</span>   <span class="var">$host</span><span class="pun">,</span>
-            <span class="key">status</span><span class="pun">:</span> <span class="pun">(</span><span class="kw">if</span> <span class="var">$result</span><span class="pun">.</span><span class="var">exit_code</span> <span class="op">==</span> <span class="lit">0</span> <span class="pun">{</span> <span class="lit">"ok"</span> <span class="pun">}</span> <span class="kw">else</span> <span class="pun">{</span> <span class="lit">"fail"</span> <span class="pun">}),</span>
-            <span class="key">jobs</span><span class="pun">:</span>   <span class="var">$jobs</span>
-          <span class="pun">}</span>
-        <span class="pun">}</span>
-      <span class="pun">}</span>
-<span class="pun">}</span>
-
-<span class="fn">build-hosts</span> <span class="pun">[</span><span class="lit">"ambul8r"</span> <span class="lit">"cre8r"</span><span class="pun">]</span> <span class="arg">--jobs</span> <span class="lit">4</span>
-</pre>
-  <div class="legend">
-    <span class="leg"><span class="leg-dot" style="background:#2aa198"></span>int/float/bool/string literals = cyan (corrected from blue)</span>
-    <span class="leg"><span class="leg-dot" style="background:#6c71c4"></span>$"()" string interpolation (shape_string_interpolation)</span>
-    <span class="leg"><span class="leg-dot" style="background:#268bd2"></span>record key (json.key role)</span>
-  </div>
-</div>
-
 <!-- ── eza ── -->
 <div class="block">
   <div class="block-title">eza — long listing</div>

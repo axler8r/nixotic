@@ -18,7 +18,6 @@
     ./kitty.nix
     ./neovim.nix
     ./nh.nix
-    ./nushell.nix
     ./ripgrep.nix
     ./stylix.nix
     ./vscode.nix
@@ -60,12 +59,6 @@
     tree
     wget
     yq
-
-    # Nushell plugins
-    nushellPlugins.gstat
-    # nushellPlugins.highlight
-    nushellPlugins.polars
-    nushellPlugins.query
 
     # Media
     ffmpeg

@@ -379,11 +379,6 @@ suite "driver self machinery":
     check script.contains("vault) COMPREPLY=($(compgen -W \"mount\"")
     check script.contains("complete -o default -F _ax_complete ax")
 
-  test "completionNu emits one extern per command":
-    let script = completionNu(specs, groups)
-    check script.contains("export extern \"ax vault mount\"")
-    check script.contains("export extern \"ax sys swap\"")
-
 suite "driver strict registry inputs":
   test "scaffolding rejects command prefix overlaps without writes":
     let dir = getTempDir() / "test_driver_scaffold_overlap"

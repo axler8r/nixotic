@@ -1,7 +1,7 @@
 bind generic + !git commit --amend
 bind generic I !git add --interactive %(file)
 
-# ── Solarized Light — docs/colour-token-taxonomy.md (Appendix K) ──
+# ── Solarized Light — docs/colour-token-taxonomy.md (Appendix J) ──
 color cursor          color15   color5     bold
 color title-focus     color15   color4     bold
 color title-blur      color10   color7

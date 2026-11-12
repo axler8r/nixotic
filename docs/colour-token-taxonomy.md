@@ -291,7 +291,6 @@ colours and editor syntax colours remain independent.
 | --------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Kitty     | `home/kitty.nix`                                    | Manual ANSI palette — complete, no changes needed                                                                           |
 | Zsh       | `home/zsh.nix`                                      | `ZSH_HIGHLIGHT_STYLES` map — needs string/interpolation fix                                                                 |
-| Nushell   | `files/nushell/config.nu`                           | `solarized_light_*` records — needs literal/variable split                                                                  |
 | Helix     | `home/helix.nix`                                    | `nixotic_solarized_light.toml` — needs markup/data/UI gaps                                                                  |
 | bat       | `home/bat.nix`                                      | `NixoticSolarizedLight` `.tmTheme` — needs markup/data gaps                                                                 |
 | Neovim    | `files/neovim/init.lua`, `files/neovim/plugins.lua` | `vim-solarized8` + `nvim_set_hl` overrides — needs gaps                                                                     |
@@ -745,72 +744,7 @@ ZSH_HIGHLIGHT_STYLES[rc-quote]                 = 'fg=${solarized.cyan}';
 
 ---
 
-## Appendix F — Nushell (`files/nushell/config.nu`)
-
-Corrections to `solarized_light_values`: split value types into literal (cyan)
-vs structural (blue). `shape_string_interpolation` → violet.
-
-```nushell
-let solarized_light_values = {
-  # Structural / variable-role → blue
-  separator:      $solarized.light_accent
-  bool:           $solarized.cyan        # literal → cyan (was blue)
-  int:            $solarized.cyan        # literal → cyan (was blue)
-  float:          $solarized.cyan        # literal → cyan (was blue)
-  filesize:       $solarized.cyan        # literal → cyan (was blue)
-  duration:       $solarized.cyan        # literal → cyan (was blue)
-  date:           $solarized.cyan        # literal → cyan (was blue)
-  range:          $solarized.blue
-  string:         $solarized.cyan        # literal → cyan (was blue)
-  nothing:        $solarized.cyan        # null-like → cyan (was blue)
-  binary:         $solarized.blue
-  cellpath:       $solarized.blue
-  record:         $solarized.blue
-  list:           $solarized.blue
-  block:          $solarized.blue
-  hints:          $solarized.lightest_accent
-  shape_literal:  $solarized.cyan
-  shape_nothing:  $solarized.cyan
-  shape_string:   $solarized.cyan     # literal → cyan
-  shape_table:    { fg: $solarized.blue attr: b }
-  shape_variable: $solarized.blue
-  shape_vardecl:  $solarized.blue
-}
-
-let solarized_light_shapes = {
-  shape_and:                  $solarized.light_accent
-  shape_binary:               $solarized.light_accent
-  shape_block:                { fg: $solarized.blue attr: b }
-  shape_closure:              { fg: $solarized.green attr: b }
-  shape_custom:               $solarized.green
-  shape_datetime:             $solarized.cyan           # literal → cyan
-  shape_directory:            $solarized.blue
-  shape_external:             { fg: $solarized.green attr: b }  # command → green/bold
-  shape_externalarg:          $solarized.blue
-  shape_filepath:             $solarized.blue
-  shape_flag:                 { fg: $solarized.blue attr: b }
-  shape_float:                $solarized.cyan           # literal → cyan
-  shape_globpattern:          $solarized.blue
-  shape_int:                  $solarized.cyan           # literal → cyan
-  shape_internalcall:         { fg: $solarized.green attr: b }  # command → green/bold
-  shape_list:                 { fg: $solarized.blue attr: b }
-  shape_match_pattern:        $solarized.blue
-  shape_matching_brackets:    { fg: $solarized.lightest_accent attr: u }
-  shape_operator:             $solarized.light_accent
-  shape_or:                   $solarized.light_accent
-  shape_pipe:                 $solarized.light_accent
-  shape_range:                $solarized.light_accent
-  shape_record:               { fg: $solarized.blue attr: b }
-  shape_redirection:          $solarized.light_accent
-  shape_signature:            { fg: $solarized.green attr: b }
-  shape_string_interpolation: $solarized.violet         # interpolation → violet (was blue)
-  shape_keyword:              { fg: $solarized.green attr: b }  # keyword → green/bold
-}
-```
-
----
-
-## Appendix G — tmux (`files/tmux/tmux.conf`)
+## Appendix F — tmux (`files/tmux/tmux.conf`)
 
 Replace the inline hex strings with named-comment annotations so the intent is
 auditable. The colours themselves are correct; the comments were wrong.
@@ -845,7 +779,7 @@ set -g mode-style                    "bg=#eee8d5,fg=#002b36"
 
 ---
 
-## Appendix H — fzf (`home/zsh.nix`)
+## Appendix G — fzf (`home/zsh.nix`)
 
 fzf has no colour config currently. Add to `programs.fzf.defaultOptions` or set
 `FZF_DEFAULT_OPTS` in `sessionVariables`.
@@ -879,7 +813,7 @@ programs.fzf = {
 
 ---
 
-## Appendix I — dircolors (`files/dircolors/dir_colors`)
+## Appendix H — dircolors (`files/dircolors/dir_colors`)
 
 The current config uses 256-colour ANSI codes. The table below maps each
 category to the correct named palette colour and its nearest 256-colour index.
@@ -907,7 +841,7 @@ Changes required: `DIR` from `01;34` → `01;38;5;33`; `LINK` from `01;36` →
 
 ---
 
-## Appendix J — eza (`home/eza.nix`)
+## Appendix I — eza (`home/eza.nix`)
 
 `EZA_COLORS` uses ANSI 256-colour codes. Map to palette:
 
@@ -941,7 +875,7 @@ EZA_COLORS = [
 
 ---
 
-## Appendix K — tig (`files/git/tigrc`)
+## Appendix J — tig (`files/git/tigrc`)
 
 tig has a limited colour model. Expand `tigrc` with the following:
 
@@ -969,7 +903,7 @@ color "^Date: "       color245  default           # base0
 
 ---
 
-## Appendix L — btop (`home/btop.nix`)
+## Appendix K — btop (`home/btop.nix`)
 
 btop ships named themes. The closest available theme is `solarized_light`. Set
 it in `programs.btop.settings`:
@@ -992,7 +926,7 @@ implement as a follow-up.
 
 ---
 
-## Appendix M — Known Gaps and Follow-ups
+## Appendix L — Known Gaps and Follow-ups
 
 | Item                                   | Status         | Notes                                                                                                                                                                                                                                  |
 | -------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
