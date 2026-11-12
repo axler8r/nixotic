@@ -16,6 +16,7 @@
     # colors independent from each other and from the base16 palette
     kitty.enable = false;
     helix.enable = false;
+    neovim.enable = false;
     bat.enable = false;
     yazi.enable = false;
     btop.enable = false;
