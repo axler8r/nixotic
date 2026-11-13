@@ -125,8 +125,9 @@ suite "ax dev create run":
     check codeEmpty == 64
     check content.contains("Usage: ax dev create tool")
 
-  proc scaffoldWith(caseName: string, args: seq[string]): tuple[code: int,
-      flake: string] =
+  proc scaffoldWith(
+      caseName: string, args: seq[string]
+  ): tuple[code: int, flake: string] =
     ## Runs `ax dev create` inside a fresh fixture directory and hands back
     ## the exit code plus the flake.nix it wrote ("" when none appeared).
     let dir = getTempDir() / caseName
@@ -144,7 +145,10 @@ suite "ax dev create run":
     f.close()
     setCurrentDir(savedDir)
     let flake =
-      if fileExists(dir / "flake.nix"): readFile(dir / "flake.nix") else: ""
+      if fileExists(dir / "flake.nix"):
+        readFile(dir / "flake.nix")
+      else:
+        ""
     removeFile(outPath)
     removeDir(dir)
     (code, flake)
@@ -156,8 +160,9 @@ suite "ax dev create run":
     check r.flake.contains("            pkgs.uv")
 
   test "contract: python --target 3.12 becomes pkgs.python312 + uv, plus extras":
-    let r = scaffoldWith("dev_create_python_target",
-                         @["python", "--name", "app", "--target", "3.12", "jq"])
+    let r = scaffoldWith(
+      "dev_create_python_target", @["python", "--name", "app", "--target", "3.12", "jq"]
+    )
     check r.code == 0
     check r.flake.contains("            pkgs.python312")
     check r.flake.contains("            pkgs.uv")
@@ -173,15 +178,17 @@ suite "ax dev create run":
     check r.flake.contains("DOTNET_NOLOGO")
 
   test "contract: dotnet --target 9 ships only that SDK":
-    let r = scaffoldWith("dev_create_dotnet_target",
-                         @["dotnet", "--name", "app", "--target", "9"])
+    let r = scaffoldWith(
+      "dev_create_dotnet_target", @["dotnet", "--name", "app", "--target", "9"]
+    )
     check r.code == 0
     check r.flake.contains("            pkgs.dotnet-sdk_9")
     check not r.flake.contains("            pkgs.dotnet-sdk_8")
 
   test "contract: elixir --target 1.17 uses the beamPackages prefix, extras use pkgs.":
-    let r = scaffoldWith("dev_create_elixir_target",
-                         @["elixir", "--name", "app", "--target", "1.17", "jq"])
+    let r = scaffoldWith(
+      "dev_create_elixir_target", @["elixir", "--name", "app", "--target", "1.17", "jq"]
+    )
     check r.code == 0
     check r.flake.contains("            pkgs.beamPackages.elixir_1_17")
     check r.flake.contains("            pkgs.jq")

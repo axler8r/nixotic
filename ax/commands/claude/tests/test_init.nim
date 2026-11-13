@@ -12,8 +12,8 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath})
+  let p =
+    startProcess(findExe("git"), workingDir = dir, args = @args, options = {poUsePath})
   discard p.waitForExit()
   p.close()
 
@@ -28,11 +28,13 @@ proc withTempHome(homeDir: string, body: proc()) =
 suite "ax claude init run":
   test "a lone terminator reaches the repository check rather than usage failure":
     let dir = mkTmpDir("ax_claude_init_terminator")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     let rec = newRecordingRunner(exitCode = 1)
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     withPath(dir):
       check run(@["--"], f, f, rec.runner) == 1
     require rec.calls.len == 1
@@ -78,8 +80,10 @@ suite "ax claude init run":
     let oldDir = getCurrentDir()
     setCurrentDir(dir)
     var code = 0
-    withTempHome(home, proc() =
-      code = run(@[])
+    withTempHome(
+      home,
+      proc() =
+        code = run(@[]),
     )
     setCurrentDir(oldDir)
     removeDir(dir)
@@ -96,8 +100,10 @@ suite "ax claude init run":
     let oldDir = getCurrentDir()
     setCurrentDir(dir)
     var code = 0
-    withTempHome(home, proc() =
-      code = run(@[])
+    withTempHome(
+      home,
+      proc() =
+        code = run(@[]),
     )
     setCurrentDir(oldDir)
     let axContent = readFile(dir / ".claude/axler8r.md")
@@ -120,8 +126,10 @@ suite "ax claude init run":
     let oldDir = getCurrentDir()
     setCurrentDir(dir)
     var code = 0
-    withTempHome(home, proc() =
-      code = run(@[])
+    withTempHome(
+      home,
+      proc() =
+        code = run(@[]),
     )
     setCurrentDir(oldDir)
     let claudeMd = readFile(dir / ".claude/CLAUDE.md")
@@ -146,8 +154,10 @@ suite "ax claude init run":
       setCurrentDir(dir)
       setFilePermissions(dir, {fpUserRead, fpUserExec})
       let f = open(outPath, fmWrite)
-      withTempHome(home, proc() =
-        code = run(@[], f, f)
+      withTempHome(
+        home,
+        proc() =
+          code = run(@[], f, f),
       )
       f.close()
       content = readFile(outPath)
@@ -181,8 +191,10 @@ suite "ax claude init run":
     let oldDir = getCurrentDir()
     setCurrentDir(dir)
     var code = 0
-    withTempHome(home, proc() =
-      code = run(@[], stdout, stderr, rec.runner)
+    withTempHome(
+      home,
+      proc() =
+        code = run(@[], stdout, stderr, rec.runner),
     )
     setCurrentDir(oldDir)
     removeDir(dir)

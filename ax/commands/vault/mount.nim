@@ -12,13 +12,19 @@ let cmdSpec* = CommandSpec(
   summary: "mount a LUKS vault",
   usage: "ax vault mount <name> [mountpoint]",
   args: @[
-    ArgSpec(name: "name", required: true,
-            description: "vault name (e.g. mydata) or full path to the vault file"),
-    ArgSpec(name: "mountpoint", required: false,
-            description: "mount point (default: ~/Vaults/<name>)")
+    ArgSpec(
+      name: "name",
+      required: true,
+      description: "vault name (e.g. mydata) or full path to the vault file",
+    ),
+    ArgSpec(
+      name: "mountpoint",
+      required: false,
+      description: "mount point (default: ~/Vaults/<name>)",
+    ),
   ],
   deps: @["cryptsetup", "mount", "mkdir"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -39,10 +45,10 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       result.mountPoint = a
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax vault mount <name> [mountpoint]
@@ -64,10 +70,13 @@ Examples:
     ax vault mount ~/Vaults/.mydata.vault      # Explicit path"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   let parsed = parseArgs(args)
-  if not requireArg(parsed.vaultInput, "vault file", errp): return 64
-  if not checkDeps(cmdSpec.deps, errp): return 2
+  if not requireArg(parsed.vaultInput, "vault file", errp):
+    return 64
+  if not checkDeps(cmdSpec.deps, errp):
+    return 2
 
   let v = resolveVault(parsed.vaultInput)
   if not fileExists(v.vaultFile):
@@ -92,8 +101,9 @@ Examples:
     return 1
 
   outp.writeLine("Opening encrypted vault: " & v.vaultFile)
-  if runner.runInherited("sudo",
-      @["cryptsetup", "open", "--type", "luks", v.vaultFile, v.mapperName]) != 0:
+  if runner.runInherited(
+    "sudo", @["cryptsetup", "open", "--type", "luks", v.vaultFile, v.mapperName]
+  ) != 0:
     return 1
 
   var keepMapping = false
@@ -105,8 +115,8 @@ Examples:
         return 1
 
     outp.writeLine("Mounting to: " & mountPoint)
-    if runner.runInherited("sudo",
-        @["mount", "/dev/mapper" / v.mapperName, mountPoint]) != 0:
+    if runner.runInherited("sudo", @["mount", "/dev/mapper" / v.mapperName, mountPoint]) !=
+        0:
       return 1
     # Ownership is filesystem data; mounting must never rewrite it.
     keepMapping = true

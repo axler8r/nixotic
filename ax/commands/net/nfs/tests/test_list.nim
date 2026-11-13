@@ -24,38 +24,32 @@ suite "ax net nfs list parseArgs":
 
 suite "ax net nfs list classifyShowmountError":
   test "connection refused":
-    check classifyShowmountError(
-      "clnt_create: RPC: Connection refused", "host1"
-    ) == "Connection refused. NFS server may not be running on 'host1'."
+    check classifyShowmountError("clnt_create: RPC: Connection refused", "host1") ==
+      "Connection refused. NFS server may not be running on 'host1'."
 
   test "no route to host":
-    check classifyShowmountError(
-      "clnt_create: RPC: No route to host", "host1"
-    ) == "Cannot reach host 'host1'. Check network connectivity."
+    check classifyShowmountError("clnt_create: RPC: No route to host", "host1") ==
+      "Cannot reach host 'host1'. Check network connectivity."
 
   test "host unreachable":
-    check classifyShowmountError(
-      "clnt_create: RPC: Host is unreachable", "host1"
-    ) == "Cannot reach host 'host1'. Check network connectivity."
+    check classifyShowmountError("clnt_create: RPC: Host is unreachable", "host1") ==
+      "Cannot reach host 'host1'. Check network connectivity."
 
   test "unknown hostname":
     check classifyShowmountError("host1: Name or service not known", "host1") ==
       "Cannot resolve hostname 'host1'."
 
   test "permission denied":
-    check classifyShowmountError(
-      "mount clntudp_create: Permission denied", "host1"
-    ) == "Permission denied when querying 'host1'."
+    check classifyShowmountError("mount clntudp_create: Permission denied", "host1") ==
+      "Permission denied when querying 'host1'."
 
   test "timed out":
-    check classifyShowmountError(
-      "clnt_create: RPC: Timed out", "host1"
-    ) == "Connection to 'host1' timed out."
+    check classifyShowmountError("clnt_create: RPC: Timed out", "host1") ==
+      "Connection to 'host1' timed out."
 
   test "falls back to the raw message for anything unrecognized":
-    check classifyShowmountError(
-      "some other failure", "host1"
-    ) == "Failed to query NFS exports: some other failure"
+    check classifyShowmountError("some other failure", "host1") ==
+      "Failed to query NFS exports: some other failure"
 
 suite "ax net nfs list splitFirstWhitespaceRun":
   test "replaces only the first whitespace run with a pipe":
@@ -106,9 +100,8 @@ suite "ax net nfs list run":
     removeDir(dir)
     createDir(dir)
     writeFakeExe(dir, "showmount", "")
-    let rec = newRecordingRunner(
-      exitCode = 1, error = "clnt_create: RPC: Connection refused"
-    )
+    let rec =
+      newRecordingRunner(exitCode = 1, error = "clnt_create: RPC: Connection refused")
     let outPath = dir / "out.txt"
     let errPath = dir / "err.txt"
     let outf = open(outPath, fmWrite)
@@ -121,17 +114,16 @@ suite "ax net nfs list run":
     let errContent = readFile(errPath)
     removeDir(dir)
     check code == 1
-    check errContent.contains("Connection refused. NFS server may not be running on 'host1'.")
+    check errContent.contains(
+      "Connection refused. NFS server may not be running on 'host1'."
+    )
 
   test "an empty export list warns and returns 0":
     let dir = getTempDir() / "run_showmount_empty"
     removeDir(dir)
     createDir(dir)
     writeFakeExe(dir, "showmount", "")
-    let rec = newRecordingRunner(
-      exitCode = 0,
-      output = "Export list for host1:\n"
-    )
+    let rec = newRecordingRunner(exitCode = 0, output = "Export list for host1:\n")
     let outPath = dir / "out.txt"
     let errPath = dir / "err.txt"
     let outf = open(outPath, fmWrite)
@@ -151,8 +143,11 @@ suite "ax net nfs list run":
     removeDir(dir)
     createDir(dir)
     writeFakeExe(dir, "showmount", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "Export list for host1:\n/data       192.168.1.0/24\n/backups    10.0.0.5\n")
+    let rec = newRecordingRunner(
+      exitCode = 0,
+      output =
+        "Export list for host1:\n/data       192.168.1.0/24\n/backups    10.0.0.5\n",
+    )
     let outPath = dir / "out.txt"
     let errPath = dir / "err.txt"
     let outf = open(outPath, fmWrite)
@@ -169,5 +164,6 @@ suite "ax net nfs list run":
     check rec.calls[0].cmd == "showmount"
     check rec.calls[0].args == @["-e", "host1"]
     check rec.calls[1].cmd == "column"
-    check rec.calls[1].input == "Export|Clients\n/data|192.168.1.0/24\n/backups|10.0.0.5\n"
+    check rec.calls[1].input ==
+      "Export|Clients\n/data|192.168.1.0/24\n/backups|10.0.0.5\n"
     check errContent.contains("Found 2 export(s) on 'host1'.")

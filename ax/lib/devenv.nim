@@ -14,14 +14,14 @@ type DevTemplate* = object
   description*: string
 
 const devTemplates* = [
-  DevTemplate(name: "tool",
-              description: "ad-hoc tool shell; packages required"),
-  DevTemplate(name: "python",
-              description: "Python + uv; --target 3.12 selects a version"),
-  DevTemplate(name: "dotnet",
-              description: ".NET SDK; --target 8|9|10, default all three"),
-  DevTemplate(name: "elixir",
-              description: "Elixir; --target 1.17 selects a version")
+  DevTemplate(name: "tool", description: "ad-hoc tool shell; packages required"),
+  DevTemplate(
+    name: "python", description: "Python + uv; --target 3.12 selects a version"
+  ),
+  DevTemplate(
+    name: "dotnet", description: ".NET SDK; --target 8|9|10, default all three"
+  ),
+  DevTemplate(name: "elixir", description: "Elixir; --target 1.17 selects a version"),
 ]
 
 proc isDevTemplate*(name: string): bool =
@@ -37,9 +37,7 @@ proc formatPackageLines*(prefix: string, names: openArray[string]): seq[string] 
   for n in names:
     result.add("            " & prefix & n)
 
-proc flakeNixContent*(
-  name: string, packageLines: seq[string], envAttrs = ""
-): string =
+proc flakeNixContent*(name: string, packageLines: seq[string], envAttrs = ""): string =
   ## Builds the flake.nix content shared verbatim (aside from the package
   ## list and envAttrs) across the dev-environment scaffolder family.
   ## `envAttrs`, when non-empty, is a block of already-newline-prefixed,
@@ -47,8 +45,12 @@ proc flakeNixContent*(
   ## closing "];" -- only New-DotNetDevEnvironment uses this
   ## (DOTNET_CLI_TELEMETRY_OPTOUT/DOTNET_NOLOGO).
   # Escape backslashes first so the escapes introduced below stay literal.
-  let escapedName = name.replace("\\", "\\\\").replace("\"", "\\\"")
-    .replace("${", "\\${").replace("\n", "\\n").replace("\r", "\\r")
+  let escapedName = name
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+    .replace("${", "\\${")
+    .replace("\n", "\\n")
+    .replace("\r", "\\r")
     .replace("\t", "\\t")
   var lines: seq[string] = @[]
   lines.add("{")
@@ -61,7 +63,9 @@ proc flakeNixContent*(
   lines.add("")
   lines.add("  outputs = inputs@{ flake-parts, ... }:")
   lines.add("    flake-parts.lib.mkFlake { inherit inputs; } {")
-  lines.add("      systems = [ \"x86_64-linux\" \"aarch64-linux\" \"x86_64-darwin\" \"aarch64-darwin\" ];")
+  lines.add(
+    "      systems = [ \"x86_64-linux\" \"aarch64-linux\" \"x86_64-darwin\" \"aarch64-darwin\" ];"
+  )
   lines.add("")
   lines.add("      perSystem = { pkgs, ... }: {")
   lines.add("        devShells.default = pkgs.mkShell {")
@@ -76,7 +80,7 @@ proc flakeNixContent*(
   lines.add("}")
   lines.join("\n") & "\n"
 
-type DevFileWriter* = proc (file: File, content: string) {.closure.}
+type DevFileWriter* = proc(file: File, content: string) {.closure.}
   ## Injectable file write for deterministic short-write/disk-full tests.
 
 proc writeDevFile(file: File, content: string) =
@@ -84,11 +88,11 @@ proc writeDevFile(file: File, content: string) =
   file.flushFile()
 
 proc scaffoldDevEnvironment*(
-  flakeContent: string,
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  writer: DevFileWriter = writeDevFile
+    flakeContent: string,
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    writer: DevFileWriter = writeDevFile,
 ): int =
   ## Preflight every destination, create new files exclusively, and stage
   ## the optional ignore update for atomic replacement. On write failure
@@ -100,7 +104,8 @@ proc scaffoldDevEnvironment*(
     for path in ["flake.nix", ".envrc", ".gitignore"]:
       var st: Stat
       if lstat(path.cstring, st) != 0:
-        if errno == ENOENT: continue
+        if errno == ENOENT:
+          continue
         raiseOSError(osLastError(), path)
       if path != ".gitignore":
         error(path & " already exists", errp)
@@ -124,7 +129,8 @@ proc scaffoldDevEnvironment*(
   proc createFile(path, content: string) =
     # O_EXCL also refuses dangling symlinks introduced after preflight.
     let fd = posix.open(path.cstring, O_WRONLY or O_CREAT or O_EXCL, Mode(0o666))
-    if fd < 0: raiseOSError(osLastError(), path)
+    if fd < 0:
+      raiseOSError(osLastError(), path)
     created.add(path)
     var file: File
     if not open(file, FileHandle(fd), fmWrite):
@@ -168,7 +174,9 @@ proc scaffoldDevEnvironment*(
     outp.writeLine("Added .direnv to .gitignore")
   let allowCode = runner.runInherited("direnv", @["allow"])
   if allowCode != 0:
-    error("direnv allow failed; environment files were created but not authorised", errp)
+    error(
+      "direnv allow failed; environment files were created but not authorised", errp
+    )
     return allowCode
   outp.writeLine("Environment authorised; direnv will load it on the next shell hook")
   0

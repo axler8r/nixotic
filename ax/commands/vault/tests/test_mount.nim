@@ -96,8 +96,10 @@ suite "ax vault mount run":
     for exe in cmdSpec.deps:
       writeFakeExe(dir, exe, "")
     let rec = newRecordingRunner(
-      output = "/dev/mapper/mydata on " & (dir / "Vaults" / "mydata") &
-               " type ext4 (rw,relatime)\n")
+      output =
+        "/dev/mapper/mydata on " & (dir / "Vaults" / "mydata") &
+        " type ext4 (rw,relatime)\n"
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -132,8 +134,8 @@ suite "ax vault mount run":
     check rec.calls.len == 4
     check rec.calls[0].cmd == "mount" # already-mounted probe, empty output
     check rec.calls[1].cmd == "sudo"
-    check rec.calls[1].args == @["cryptsetup", "open", "--type", "luks",
-                                  vaultFile, "mydata"]
+    check rec.calls[1].args ==
+      @["cryptsetup", "open", "--type", "luks", vaultFile, "mydata"]
     check rec.calls[2].cmd == "mkdir"
     check rec.calls[2].args == @["--parents", mountPoint]
     check rec.calls[3].cmd == "sudo"
@@ -151,14 +153,18 @@ suite "ax vault mount run":
     writeFakeExe(dir, "mkdir", "exit 0")
     writeFakeExe(dir, "umount", "exit 0")
     writeFakeExe(dir, "chown", "exit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
   mount) exit 1 ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

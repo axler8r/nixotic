@@ -8,12 +8,22 @@ proc sample(): CommandSpec =
     kind: ckVerb,
     summary: "list local Docker images",
     usage: "ax docker image list [--dangling]",
-    args: @[ArgSpec(name: "term", required: false, variadic: false,
-                    description: "filter term")],
-    flags: @[FlagSpec(long: "dangling", short: "", takesValue: false,
-                      description: "only dangling images")],
+    args: @[
+      ArgSpec(
+        name: "term", required: false, variadic: false, description: "filter term"
+      )
+    ],
+    flags: @[
+      FlagSpec(
+        long: "dangling",
+        short: "",
+        takesValue: false,
+        description: "only dangling images",
+      )
+    ],
     deps: @["docker"],
-    dryRun: false)
+    dryRun: false,
+  )
 
 suite "spec JSON round-trip":
   test "toJson emits the documented shape":
@@ -44,8 +54,10 @@ suite "spec JSON round-trip":
 
 suite "spec schema and semantics":
   test "wrong top-level field kinds never silently default":
-    for name in ["specVersion", "path", "kind", "summary", "usage", "args",
-                 "flags", "deps", "dryRun"]:
+    for name in [
+      "specVersion", "path", "kind", "summary", "usage", "args", "flags", "deps",
+      "dryRun",
+    ]:
       var n = sample().toJson()
       n[name] = newJNull()
       expect ValueError:
@@ -86,12 +98,19 @@ suite "spec schema and semantics":
       discard commandSpecFromJson(n)
 
   test "paths must be reversible canonical non-builtin command paths":
-    for path in [@["list"], @["a", "b", "c", "list"],
-                 @["../escape", "list"], @["bad-group", "list"],
-                 @["Group", "list"], @["", "list"],
-                 @["self", "list"], @["help", "list"],
-                 @["version", "list"], @["docker", "ls"],
-                 @["docker", "frobnicate"]]:
+    for path in [
+      @["list"],
+      @["a", "b", "c", "list"],
+      @["../escape", "list"],
+      @["bad-group", "list"],
+      @["Group", "list"],
+      @["", "list"],
+      @["self", "list"],
+      @["help", "list"],
+      @["version", "list"],
+      @["docker", "ls"],
+      @["docker", "frobnicate"],
+    ]:
       var s = sample()
       s.path = path
       s.usage = "ax " & path.join(" ")
@@ -110,8 +129,10 @@ suite "spec schema and semantics":
       discard commandSpecFromJson(s.toJson())
 
   test "reserved global and hidden flags cannot be declared by commands":
-    for name in ["output", "raw", "dry-run", "color", "quiet", "verbose",
-                 "help", "version", "ax-spec"]:
+    for name in [
+      "output", "raw", "dry-run", "color", "quiet", "verbose", "help", "version",
+      "ax-spec",
+    ]:
       var s = sample()
       s.flags = @[FlagSpec(long: name)]
       expect ValueError:
@@ -123,20 +144,26 @@ suite "spec schema and semantics":
         discard commandSpecFromJson(s.toJson())
 
   test "invalid duplicate and nameless flags are rejected":
-    for flags in [@[FlagSpec()], @[FlagSpec(long: "--force")],
-                  @[FlagSpec(short: "ff")], @[FlagSpec(short: "-")],
-                  @[FlagSpec(long: "force"), FlagSpec(long: "force")],
-                  @[FlagSpec(short: "f"), FlagSpec(short: "f")]]:
+    for flags in [
+      @[FlagSpec()],
+      @[FlagSpec(long: "--force")],
+      @[FlagSpec(short: "ff")],
+      @[FlagSpec(short: "-")],
+      @[FlagSpec(long: "force"), FlagSpec(long: "force")],
+      @[FlagSpec(short: "f"), FlagSpec(short: "f")],
+    ]:
       var s = sample()
       s.flags = flags
       expect ValueError:
         discard commandSpecFromJson(s.toJson())
 
   test "positional declarations must be unambiguous":
-    for args in [@[ArgSpec(name: "")],
-                 @[ArgSpec(name: "x"), ArgSpec(name: "x")],
-                 @[ArgSpec(name: "x"), ArgSpec(name: "y", required: true)],
-                 @[ArgSpec(name: "x", variadic: true), ArgSpec(name: "y")]]:
+    for args in [
+      @[ArgSpec(name: "")],
+      @[ArgSpec(name: "x"), ArgSpec(name: "x")],
+      @[ArgSpec(name: "x"), ArgSpec(name: "y", required: true)],
+      @[ArgSpec(name: "x", variadic: true), ArgSpec(name: "y")],
+    ]:
       var s = sample()
       s.args = args
       expect ValueError:
@@ -157,8 +184,9 @@ suite "spec schema and semantics":
       expect ValueError:
         discard commandSpecFromJson(s.toJson())
 
-proc checkedArgs(s: CommandSpec, args: openArray[string]):
-    tuple[ok: bool, diagnostic: string] =
+proc checkedArgs(
+    s: CommandSpec, args: openArray[string]
+): tuple[ok: bool, diagnostic: string] =
   let tmp = getTempDir() / "test_spec_validate_args.txt"
   let f = open(tmp, fmWrite)
   try:
@@ -171,8 +199,12 @@ proc checkedArgs(s: CommandSpec, args: openArray[string]):
 suite "spec argument validation":
   let s = CommandSpec(
     args: @[ArgSpec(name: "name", required: true), ArgSpec(name: "dir")],
-    flags: @[FlagSpec(long: "file", short: "f", takesValue: true),
-             FlagSpec(short: "e", takesValue: true), FlagSpec(long: "force")])
+    flags: @[
+      FlagSpec(long: "file", short: "f", takesValue: true),
+      FlagSpec(short: "e", takesValue: true),
+      FlagSpec(long: "force"),
+    ],
+  )
 
   test "known flags and optional positionals validate":
     check checkedArgs(s, ["name"]).ok
@@ -189,10 +221,15 @@ suite "spec argument validation":
     check checkedArgs(s, ["name", "--typo"]).diagnostic.contains("Unknown option")
 
   test "missing option values cannot consume the next option or terminator":
-    for args in [@["name", "--file"], @["name", "--file="],
-                 @["name", "-e="], @["name", "-e:"],
-                 @["name", "--file", ""], @["name", "--file", "--force"],
-                 @["name", "--file", "--"]]:
+    for args in [
+      @["name", "--file"],
+      @["name", "--file="],
+      @["name", "-e="],
+      @["name", "-e:"],
+      @["name", "--file", ""],
+      @["name", "--file", "--force"],
+      @["name", "--file", "--"],
+    ]:
       let result = checkedArgs(s, args)
       check not result.ok
       check result.diagnostic.contains("Missing value")
@@ -209,9 +246,12 @@ suite "spec argument validation":
     check not checkedArgs(s, ["--"]).ok
 
   test "required variadic arguments need at least one value":
-    let variadic = CommandSpec(args: @[
-      ArgSpec(name: "name", required: true),
-      ArgSpec(name: "files", required: true, variadic: true)])
+    let variadic = CommandSpec(
+      args: @[
+        ArgSpec(name: "name", required: true),
+        ArgSpec(name: "files", required: true, variadic: true),
+      ]
+    )
     check not checkedArgs(variadic, []).ok
     check not checkedArgs(variadic, ["name"]).ok
     check checkedArgs(variadic, ["name", "a"]).ok

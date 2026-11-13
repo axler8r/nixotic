@@ -11,9 +11,12 @@ func stripAnsi*(s: string): string =
   while i < s.len:
     if s[i] == '\e' and i + 1 < s.len and s[i + 1] == '[':
       i += 2
-      while i < s.len and s[i] in {'\x30'..'\x3F'}: inc i
-      while i < s.len and s[i] in {'\x20'..'\x2F'}: inc i
-      if i < s.len and s[i] in {'\x40'..'\x7E'}: inc i
+      while i < s.len and s[i] in {'\x30' .. '\x3F'}:
+        inc i
+      while i < s.len and s[i] in {'\x20' .. '\x2F'}:
+        inc i
+      if i < s.len and s[i] in {'\x40' .. '\x7E'}:
+        inc i
     else:
       result.add s[i]
       inc i
@@ -50,5 +53,7 @@ proc readPipedItems*(inp: File = stdin): seq[string] =
 proc resolveItems*(positional: seq[string], inp: File = stdin): seq[string] =
   ## Explicit positionals always win; stdin is consulted only when none
   ## were given.
-  if positional.len > 0: positional
-  else: readPipedItems(inp)
+  if positional.len > 0:
+    positional
+  else:
+    readPipedItems(inp)

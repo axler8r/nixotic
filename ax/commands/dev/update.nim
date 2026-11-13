@@ -11,14 +11,14 @@ let cmdSpec* = CommandSpec(
   summary: "advance flake.lock and reload the direnv environment",
   usage: "ax dev update",
   deps: @["direnv", "nix"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax dev update
@@ -35,8 +35,10 @@ Examples:
     ax dev update        # Update flake inputs and reload environment"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
-  if not checkDeps(["direnv", "nix"], errp): return 2
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
+  if not checkDeps(["direnv", "nix"], errp):
+    return 2
 
   if not fileExists("flake.nix"):
     error("No flake.nix found in current directory", errp)

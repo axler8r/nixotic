@@ -61,8 +61,9 @@ suite "ax github license list run":
     writeFakeExe(dir, "curl", "")
     writeFakeExe(dir, "jq", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "mit|MIT License\napache-2.0|Apache License 2.0\n")
+    let rec = newRecordingRunner(
+      exitCode = 0, output = "mit|MIT License\napache-2.0|Apache License 2.0\n"
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -78,4 +79,5 @@ suite "ax github license list run":
     check rec.calls[1].args == @["-r", ".[] | \"\\(.key)|\\(.name)\""]
     check rec.calls[1].input == "mit|MIT License\napache-2.0|Apache License 2.0\n"
     check rec.calls[2].cmd == "column"
-    check rec.calls[2].input == "Key|Name\nmit|MIT License\napache-2.0|Apache License 2.0\n"
+    check rec.calls[2].input ==
+      "Key|Name\nmit|MIT License\napache-2.0|Apache License 2.0\n"

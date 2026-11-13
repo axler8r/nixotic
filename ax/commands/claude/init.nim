@@ -11,21 +11,22 @@ let cmdSpec* = CommandSpec(
   summary: "set up the Claude GitHub-MCP workflow in the current project",
   usage: "ax claude init",
   deps: @["git"],
-  dryRun: false
+  dryRun: false,
 )
 
 const templateRelPath = ".claude/templates/project/axler8r.md"
 
 proc gitSucceeds(runner: Runner, args: seq[string]): bool =
   ## Exit code only; output is drained and discarded.
-  if findExe("git").len == 0: return false
+  if findExe("git").len == 0:
+    return false
   runner.runQuiet("git", args) == 0
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax claude init
@@ -51,9 +52,11 @@ Examples:
     ax claude init"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  if not checkDeps(["git"], errp): return 2
+  if not checkDeps(["git"], errp):
+    return 2
 
   if not gitSucceeds(runner, @["rev-parse", "--git-dir"]):
     error("Not a git repository", errp)
@@ -83,8 +86,10 @@ Examples:
         f.write("\n@axler8r.md\n")
         f.close()
   except IOError, OSError:
-    error("Cannot write .claude/ in the current directory: " &
-          getCurrentExceptionMsg(), errp)
+    error(
+      "Cannot write .claude/ in the current directory: " & getCurrentExceptionMsg(),
+      errp,
+    )
     return 1
 
   success("Claude workflow initialised", errp)

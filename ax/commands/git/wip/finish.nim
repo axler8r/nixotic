@@ -11,14 +11,14 @@ let cmdSpec* = CommandSpec(
   summary: "fast-forward stable to the current wip/* branch",
   usage: "ax git wip finish",
   deps: @["git"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax git wip finish
@@ -36,25 +36,31 @@ Notes:
   - This does not delete the merged branch."""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var code = requireGitRepo(runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireCleanGitWorktree(runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireBranchExists("stable", runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
 
   let wipBranch = gitCurrentBranch(runner, errp)
-  if wipBranch.len == 0: return 1
+  if wipBranch.len == 0:
+    return 1
   code = requireWipBranch(wipBranch, runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
 
-  if runner.runQuiet(
-    "git", @["merge-base", "--is-ancestor", "stable", wipBranch]
-  ) != 0:
-    error("stable cannot be fast-forwarded to " & wipBranch &
-        ". Rebase onto stable first.", errp)
+  if runner.runQuiet("git", @["merge-base", "--is-ancestor", "stable", wipBranch]) != 0:
+    error(
+      "stable cannot be fast-forwarded to " & wipBranch & ". Rebase onto stable first.",
+      errp,
+    )
     return 1
 
   if runner.runQuiet("git", @["checkout", "stable"]) != 0:

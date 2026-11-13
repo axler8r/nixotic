@@ -51,11 +51,12 @@ suite "ax fs histogram formatSizeLabel":
 suite "ax fs histogram run":
   test "queued discovery failure never looks like an empty tree":
     let dir = createTempDir("ax-histogram-scan-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "fd", "")
-    let rec = newRecordingRunner(replies = @[
-      CommandResult(exitCode: 1, error: "scanner failed")
-    ])
+    let rec = newRecordingRunner(
+      replies = @[CommandResult(exitCode: 1, error: "scanner failed")]
+    )
     let outPath = dir / "out"
     let errPath = dir / "err"
     let outf = open(outPath, fmWrite)
@@ -136,9 +137,8 @@ suite "ax fs histogram run":
     let bigPath = scanDir / "bigger.txt"
     writeFile(smallPath, "x")
     writeFile(bigPath, "x".repeat(2000))
-    let rec = newRecordingRunner(
-      exitCode = 0, output = smallPath & "\0" & bigPath & "\0"
-    )
+    let rec =
+      newRecordingRunner(exitCode = 0, output = smallPath & "\0" & bigPath & "\0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

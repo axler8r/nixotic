@@ -153,7 +153,8 @@ suite "ax dev remove run":
     let inTmp = getTempDir() / "test_remove_dev_environment_accept_with_direnv_in.txt"
     writeFile(inTmp, "y\n")
     let inp = open(inTmp, fmRead)
-    let outPath = getTempDir() / "test_remove_dev_environment_accept_with_direnv_out.txt"
+    let outPath =
+      getTempDir() / "test_remove_dev_environment_accept_with_direnv_out.txt"
     let f = open(outPath, fmWrite)
     let code = run(@[], f, f, defaultRunner, inp)
     inp.close()

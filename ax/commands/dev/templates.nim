@@ -11,14 +11,14 @@ let cmdSpec* = CommandSpec(
   kind: ckReport,
   summary: "list what ax dev create accepts",
   usage: "ax dev templates [-o table|plain|json]",
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax dev templates [-o table|plain|json]
@@ -34,7 +34,8 @@ Examples:
     ax dev templates -o json | jq -r '.[].template'"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":

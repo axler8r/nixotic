@@ -19,7 +19,8 @@ proc mkTmpDir(name: string): string =
 suite "ax git repo optimize run":
   test "attached log value and terminator match the split-value invocation":
     let dir = mkTmpDir("ax_repo_optimize_attached")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let repoDir = dir / "repo"
@@ -28,7 +29,8 @@ suite "ax git repo optimize run":
     let split = newRecordingRunner()
     let attached = newRecordingRunner()
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     withPath(dir):
       check run(@["--log", logPath, repoDir], f, f, split.runner) == 0
       check run(@["--log=" & logPath, "--", repoDir], f, f, attached.runner) == 0
@@ -86,7 +88,8 @@ suite "ax git repo optimize run":
 
   test "contract: directories piped on stdin are used when argv has none":
     let dir = mkTmpDir("contract_igro_stdin")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let repoA = dir / "repoA"
@@ -97,10 +100,12 @@ suite "ax git repo optimize run":
     let inPath = dir / "stdin"
     writeFile(inPath, repoA & "\n" & dir / "plain" & "\n\n" & repoB & "\n")
     let inp = open(inPath, fmRead)
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     var code: int
     withPath(dir):
       code = run(@[], f, f, rec.runner, inp)
@@ -110,7 +115,8 @@ suite "ax git repo optimize run":
 
   test "contract: argv directories take precedence over stdin":
     let dir = mkTmpDir("contract_igro_argv_wins")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let given = dir / "given"
@@ -120,10 +126,12 @@ suite "ax git repo optimize run":
     let inPath = dir / "stdin"
     writeFile(inPath, piped & "\n")
     let inp = open(inPath, fmRead)
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     var code: int
     withPath(dir):
       code = run(@[given], f, f, rec.runner, inp)
@@ -196,7 +204,8 @@ suite "ax git repo optimize run":
     removeDir(dir)
     # gcCommand is a private (non-exported) const at
     # InvokeGitRepositoryOptimization.nim:8, so it's inlined here verbatim.
-    let gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
+    let gcCommand =
+      "git -C {} fetch --prune && git -C {} fsck --full && " &
       "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
     check code == 0
     check calls == @["--jobs 4 --progress " & gcCommand & " ::: repoA"]
@@ -225,15 +234,14 @@ suite "ax git repo optimize run":
     removeDir(dir)
     # gcCommand is a private (non-exported) const at
     # InvokeGitRepositoryOptimization.nim:8, so it's inlined here verbatim.
-    let gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
+    let gcCommand =
+      "git -C {} fetch --prune && git -C {} fsck --full && " &
       "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "parallel"
-    check rec.calls[0].args == @[
-      "--jobs", "4", "--progress", "--joblog", logPath, gcCommand,
-      ":::", repoDir
-    ]
+    check rec.calls[0].args ==
+      @["--jobs", "4", "--progress", "--joblog", logPath, gcCommand, ":::", repoDir]
 
 suite "filterGitDirs":
   test "keeps only directories that exist and contain .git":

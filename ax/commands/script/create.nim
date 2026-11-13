@@ -11,19 +11,18 @@ let cmdSpec* = CommandSpec(
   summary: "write stdin to an executable zsh script",
   usage: "ax script create <filename>",
   args: @[
-    ArgSpec(name: "filename", required: true,
-            description: "the script file to create")
+    ArgSpec(name: "filename", required: true, description: "the script file to create")
   ],
   deps: @["chmod"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  inp: File = stdin,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    inp: File = stdin,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax script create <filename>
@@ -39,13 +38,20 @@ Examples:
     echo 'foreach file in *(.); do echo $file; done' | ax script create list-file"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  let positional = if args[0] == "--": args[1 .. ^1] else: args
+  let positional =
+    if args[0] == "--":
+      args[1 .. ^1]
+    else:
+      args
   let filename = positional[0]
 
-  if not requireArg(filename, "filename", errp): return 64
-  if not checkDeps(["chmod"], errp): return 2
+  if not requireArg(filename, "filename", errp):
+    return 64
+  if not checkDeps(["chmod"], errp):
+    return 2
 
   var content = inp.readAll()
   # `$(cat)` (command substitution) strips all trailing newlines from

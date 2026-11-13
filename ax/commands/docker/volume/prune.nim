@@ -11,7 +11,7 @@ let cmdSpec* = CommandSpec(
   summary: "remove all dangling Docker volumes",
   usage: "ax docker volume prune",
   deps: @["docker"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc parseDockerList*(output: string): seq[string] =
@@ -21,14 +21,15 @@ proc parseDockerList*(output: string): seq[string] =
   ## which never yields empty words from a well-formed docker listing).
   result = @[]
   for line in output.splitLines():
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
     result.add(line)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax docker volume prune
@@ -42,14 +43,14 @@ Examples:
     ax docker volume prune"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  if not checkDeps(["docker"], errp): return 2
+  if not checkDeps(["docker"], errp):
+    return 2
 
-  let listing = runner.capture(
-    "docker",
-    @["volume", "list", "--quiet", "--filter=dangling=true"]
-  )
+  let listing =
+    runner.capture("docker", @["volume", "list", "--quiet", "--filter=dangling=true"])
   if listing.exitCode != 0:
     error("Cannot list Docker volumes: " & listing.error.strip(), errp)
     return 1

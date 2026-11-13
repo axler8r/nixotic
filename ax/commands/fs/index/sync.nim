@@ -11,49 +11,60 @@ let cmdSpec* = CommandSpec(
   summary: "reconcile a tickmark index file with directory contents",
   usage: "ax fs index sync [-f INDEX_FILE] [-n] [dir]",
   args: @[
-    ArgSpec(name: "dir", required: false,
-            description: "directory to scan (default: the index file's directory)")
+    ArgSpec(
+      name: "dir",
+      required: false,
+      description: "directory to scan (default: the index file's directory)",
+    )
   ],
   flags: @[
-    FlagSpec(long: "file", short: "f", takesValue: true,
-             description: "index file to reconcile (default: _TRACK in dir)")
+    FlagSpec(
+      long: "file",
+      short: "f",
+      takesValue: true,
+      description: "index file to reconcile (default: _TRACK in dir)",
+    )
   ],
-  dryRun: true
+  dryRun: true,
 )
 
 const selfName = "ax-fs-index-sync"
 
 proc matchesGlob(name, pattern: string): bool =
-  if pattern.len == 0: return false
+  if pattern.len == 0:
+    return false
   let parts = pattern.split('*')
   if parts.len == 1:
     return name == pattern
   var pos = 0
   if parts[0].len > 0:
-    if not name.startsWith(parts[0]): return false
+    if not name.startsWith(parts[0]):
+      return false
     pos = parts[0].len
   for i in 1 ..< parts.len - 1:
-    if parts[i].len == 0: continue
+    if parts[i].len == 0:
+      continue
     let idx = name.find(parts[i], pos)
-    if idx < 0: return false
+    if idx < 0:
+      return false
     pos = idx + parts[i].len
   let last = parts[^1]
   if last.len > 0:
-    if not name.endsWith(last): return false
-    if pos > name.len - last.len: return false
+    if not name.endsWith(last):
+      return false
+    if pos > name.len - last.len:
+      return false
   true
 
 proc isExcluded(name: string, excludeGlobs: seq[string]): bool =
-  if name == selfName: return true
+  if name == selfName:
+    return true
   for pat in excludeGlobs:
-    if matchesGlob(name, pat): return true
+    if matchesGlob(name, pat):
+      return true
   false
 
-proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr
-): int =
+proc run*(args: seq[string], outp: File = stdout, errp: File = stderr): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax fs index sync [-f INDEX_FILE] [-n] [DIRECTORY]
 
@@ -80,7 +91,8 @@ Examples:
     TRACK_EXCLUDE_GLOB="*.sh" ax fs index sync"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   var trackFile = ""
   var dir = ""
   var dryRun = ctxFromEnv().dryRun
@@ -133,11 +145,13 @@ Examples:
   if dir.len == 0:
     dir = parentDir(trackFile)
 
-  if not requireFile(trackFile, errp): return 1
+  if not requireFile(trackFile, errp):
+    return 1
   if symlinkExists(trackFile):
     error("Refusing symlink index file: " & trackFile, errp)
     return 1
-  if not requireDir(dir, errp): return 1
+  if not requireDir(dir, errp):
+    return 1
 
   var excludeGlobs: seq[string] = @[]
   let excludeEnv = getEnv("TRACK_EXCLUDE_GLOB")
@@ -158,10 +172,13 @@ Examples:
 
     # A missing/unreadable scan is an error, never an empty desired state.
     for kind, path in walkDir(dir, checkDir = true):
-      if kind != pcFile: continue
+      if kind != pcFile:
+        continue
       let bname = extractFilename(path)
-      if bname == trackBase: continue
-      if isExcluded(bname, excludeGlobs): continue
+      if bname == trackBase:
+        continue
+      if isExcluded(bname, excludeGlobs):
+        continue
       onDisk.incl(bname)
   except IOError, OSError:
     error("Cannot discover index contents: " & getCurrentExceptionMsg(), errp)
@@ -188,7 +205,8 @@ Examples:
   if removed.len > 0:
     info("removing (" & $removed.len & "): " & removed.join(", "), errp)
 
-  if dryRun: return 0
+  if dryRun:
+    return 0
 
   var outLines: seq[string] = @[]
   for fname in order:

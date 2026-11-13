@@ -14,9 +14,12 @@ proc colorEnabled*(f: File): bool =
   ## NO_COLOR stays honoured by default and an explicit `always` wins over
   ## it (no-color.org convention).
   case getEnv(axColorEnv)
-  of "always": true
-  of "never": false
-  else: isatty(f) and not existsEnv("NO_COLOR")
+  of "always":
+    true
+  of "never":
+    false
+  else:
+    isatty(f) and not existsEnv("NO_COLOR")
 
 proc quietEnabled(): bool =
   getEnv(axQuietEnv) == "1"
@@ -67,13 +70,21 @@ proc confirm*(message: string, inp: File = stdin, outp: File = stderr): bool =
 func tableUsesColor*(color: ColorMode, tty, noColor, gumAvailable: bool): bool =
   gumAvailable and (color == cmAlways or (color == cmAuto and tty and not noColor))
 
-proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
-           outp: File = stdout, errp: File = stderr,
-           color: ColorMode = ctxFromEnv().color): int =
+proc table*(
+    data: string,
+    raw: bool = false,
+    runner: Runner = defaultRunner,
+    outp: File = stdout,
+    errp: File = stderr,
+    color: ColorMode = ctxFromEnv().color,
+): int =
   ## Plain output always uses column. Table output follows the resolved
   ## colour policy, including an explicit override of NO_COLOR.
-  let plain = raw or not tableUsesColor(color, isatty(outp), existsEnv("NO_COLOR"),
-                                       findExe("gum").len > 0)
+  let plain =
+    raw or
+    not tableUsesColor(
+      color, isatty(outp), existsEnv("NO_COLOR"), findExe("gum").len > 0
+    )
   var cr: CommandResult
   if plain:
     cr = runner.capture("column", @["-t", "-s|"], data)
@@ -88,13 +99,18 @@ proc table*(data: string, raw: bool = false, runner: Runner = defaultRunner,
       if color == cmAlways:
         delEnv("NO_COLOR")
         putEnv("CLICOLOR_FORCE", "1")
-      cr = runner.capture("gum", @["table", "--separator", "|", "--border",
-                                  "rounded", "--print"], data)
+      cr = runner.capture(
+        "gum", @["table", "--separator", "|", "--border", "rounded", "--print"], data
+      )
     finally:
-      if hadNoColor: putEnv("NO_COLOR", noColor)
-      else: delEnv("NO_COLOR")
-      if hadForce: putEnv("CLICOLOR_FORCE", force)
-      else: delEnv("CLICOLOR_FORCE")
+      if hadNoColor:
+        putEnv("NO_COLOR", noColor)
+      else:
+        delEnv("NO_COLOR")
+      if hadForce:
+        putEnv("CLICOLOR_FORCE", force)
+      else:
+        delEnv("CLICOLOR_FORCE")
   outp.write(cr.output)
   if cr.error.len > 0:
     errp.write(cr.error)
@@ -107,18 +123,29 @@ func displayCell*(value: string): string =
   ## Display encoding, not a transport format; JSON preserves exact data.
   for c in value:
     case c
-    of '\\': result.add "\\\\"
-    of '|': result.add "\\x7c"
-    of '\n': result.add "\\n"
-    of '\r': result.add "\\r"
-    of '\t': result.add "\\t"
+    of '\\':
+      result.add "\\\\"
+    of '|':
+      result.add "\\x7c"
+    of '\n':
+      result.add "\\n"
+    of '\r':
+      result.add "\\r"
+    of '\t':
+      result.add "\\t"
     of '\0' .. '\b', '\v', '\f', '\x0e' .. '\x1f', '\x7f':
       result.add "\\x" & toHex(ord(c), 2).toLowerAscii()
-    else: result.add c
+    else:
+      result.add c
 
-proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
-             runner: Runner = defaultRunner,
-             outp: File = stdout, errp: File = stderr): int =
+proc render*(
+    header: seq[string],
+    rows: seq[seq[string]],
+    ctx: Ctx,
+    runner: Runner = defaultRunner,
+    outp: File = stdout,
+    errp: File = stderr,
+): int =
   ## Ctx-aware renderer for tabular data — every list and report command
   ## goes through it. `table` and `plain` reproduce the pre-ax behaviour
   ## (gum/column and --raw respectively); `json` emits an array of objects
@@ -147,11 +174,19 @@ proc render*(header: seq[string], rows: seq[seq[string]], ctx: Ctx,
     0
   of omTable, omPlain:
     var columns: seq[string]
-    for h in header: columns.add displayCell(h)
+    for h in header:
+      columns.add displayCell(h)
     var data = columns.join("|") & "\n"
     for row in rows:
       columns.setLen(0)
-      for cell in row: columns.add displayCell(cell)
+      for cell in row:
+        columns.add displayCell(cell)
       data.add columns.join("|") & "\n"
-    table(data, raw = ctx.output == omPlain, runner = runner,
-          outp = outp, errp = errp, color = ctx.color)
+    table(
+      data,
+      raw = ctx.output == omPlain,
+      runner = runner,
+      outp = outp,
+      errp = errp,
+      color = ctx.color,
+    )

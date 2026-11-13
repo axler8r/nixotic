@@ -14,8 +14,10 @@ template withSavedContext(body: untyped) =
       body
     finally:
       for (name, existed, value) in saved:
-        if existed: putEnv(name, value)
-        else: delEnv(name)
+        if existed:
+          putEnv(name, value)
+        else:
+          delEnv(name)
 
 let basePaths = @[
   @["attr", "get"],
@@ -24,7 +26,7 @@ let basePaths = @[
   @["vault", "unmount"],
   @["git", "wip", "start"],
   @["git", "wip", "finish"],
-  @["docker", "image", "list"]
+  @["docker", "image", "list"],
 ]
 
 suite "driver extractCommon":
@@ -57,8 +59,7 @@ suite "driver extractCommon":
     check ex.ctx.output == omTable
 
   test "-n, -q, -v, --color are consumed":
-    let ex = extractCommon(
-      @["-n", "--color", "never", "-q", "-v", "vault"], Ctx())
+    let ex = extractCommon(@["-n", "--color", "never", "-q", "-v", "vault"], Ctx())
     check ex.ctx.dryRun == true
     check ex.ctx.color == cmNever
     check ex.ctx.quiet == true
@@ -147,9 +148,14 @@ suite "driver resolveCommand":
 suite "driver buildRegistry":
   proc fakeSpec(path: seq[string]): string =
     let s = CommandSpec(
-      specVersion: specVersionCurrent, path: path, kind: ckVerb,
-      summary: "fake", usage: "ax " & path.join(" "), deps: @[],
-      dryRun: false)
+      specVersion: specVersionCurrent,
+      path: path,
+      kind: ckVerb,
+      summary: "fake",
+      usage: "ax " & path.join(" "),
+      deps: @[],
+      dryRun: false,
+    )
     "echo " & quoteShell($s.toJson())
 
   test "concatenates and sorts the specs of every ax-* binary":
@@ -213,15 +219,24 @@ suite "driver buildRegistry":
 
 suite "driver help and completion":
   let specs = @[
-    CommandSpec(specVersion: 1, path: @["vault", "mount"], kind: ckVerb,
-                summary: "mount a LUKS vault",
-                usage: "ax vault mount <name>", dryRun: false),
-    CommandSpec(specVersion: 1, path: @["git", "wip", "start"], kind: ckVerb,
-                summary: "begin a WIP branch",
-                usage: "ax git wip start <name>",
-                flags: @[FlagSpec(long: "force", takesValue: false,
-                                  description: "no confirmation")],
-                dryRun: false)
+    CommandSpec(
+      specVersion: 1,
+      path: @["vault", "mount"],
+      kind: ckVerb,
+      summary: "mount a LUKS vault",
+      usage: "ax vault mount <name>",
+      dryRun: false,
+    ),
+    CommandSpec(
+      specVersion: 1,
+      path: @["git", "wip", "start"],
+      kind: ckVerb,
+      summary: "begin a WIP branch",
+      usage: "ax git wip start <name>",
+      flags:
+        @[FlagSpec(long: "force", takesValue: false, description: "no confirmation")],
+      dryRun: false,
+    ),
   ]
   let groups = block:
     var t: OrderedTable[string, string]
@@ -265,12 +280,23 @@ suite "driver help and completion":
 
 suite "driver self machinery":
   let specs = @[
-    CommandSpec(specVersion: 1, path: @["vault", "mount"], kind: ckVerb,
-                summary: "mount a LUKS vault", usage: "ax vault mount <name>",
-                deps: @["cryptsetup", "mount"], dryRun: false),
-    CommandSpec(specVersion: 1, path: @["sys", "swap"], kind: ckReport,
-                summary: "per-process swap usage", usage: "ax sys swap",
-                dryRun: false)
+    CommandSpec(
+      specVersion: 1,
+      path: @["vault", "mount"],
+      kind: ckVerb,
+      summary: "mount a LUKS vault",
+      usage: "ax vault mount <name>",
+      deps: @["cryptsetup", "mount"],
+      dryRun: false,
+    ),
+    CommandSpec(
+      specVersion: 1,
+      path: @["sys", "swap"],
+      kind: ckReport,
+      summary: "per-process swap usage",
+      usage: "ax sys swap",
+      dryRun: false,
+    ),
   ]
   let groups = block:
     var t: OrderedTable[string, string]
@@ -384,11 +410,13 @@ suite "driver strict registry inputs":
     let dir = getTempDir() / "test_driver_scaffold_overlap"
     removeDir(dir)
     createDir(dir / "vault")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFile(dir / "groups.json", "{\"vault\":\"vault commands\"}")
     writeFile(dir / "vault" / "mount.nim", "existing")
     let f = open(dir / "output.txt", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     check newCommand(@["vault", "mount", "list"], dir, f, f) == 1
     check not dirExists(dir / "vault" / "mount")
     removeFile(dir / "vault" / "mount.nim")
@@ -399,9 +427,12 @@ suite "driver strict registry inputs":
 
   test "registry requires an array of valid nonoverlapping specs":
     let tmp = getTempDir() / "test_driver_registry_shape.json"
-    let s = CommandSpec(specVersion: specVersionCurrent,
-      path: @["vault", "mount"], summary: "mount a vault",
-          usage: "ax vault mount")
+    let s = CommandSpec(
+      specVersion: specVersionCurrent,
+      path: @["vault", "mount"],
+      summary: "mount a vault",
+      usage: "ax vault mount",
+    )
     for text in ["{}", "null", "[null]", "[{}]"]:
       writeFile(tmp, text)
       expect CatchableError:
@@ -409,9 +440,12 @@ suite "driver strict registry inputs":
     writeFile(tmp, $(%*[s.toJson(), s.toJson()]))
     expect ValueError:
       discard loadRegistry(tmp)
-    let nested = CommandSpec(specVersion: specVersionCurrent,
-      path: @["vault", "mount", "list"], summary: "list mounts",
-      usage: "ax vault mount list")
+    let nested = CommandSpec(
+      specVersion: specVersionCurrent,
+      path: @["vault", "mount", "list"],
+      summary: "list mounts",
+      usage: "ax vault mount list",
+    )
     writeFile(tmp, $(%*[s.toJson(), nested.toJson()]))
     expect ValueError:
       discard loadRegistry(tmp)
@@ -421,10 +455,11 @@ suite "driver strict registry inputs":
 
   test "groups require an object with valid paths and string summaries":
     let tmp = getTempDir() / "test_driver_groups_shape.json"
-    for text in ["[]", "null", "{\"vault\":false}", "{\"vault\":null}",
-                 "{\"vault\":\"\"}", "{\"../escape\":\"bad\"}",
-                 "{\"a b c\":\"bad\"}", "{\"a  b\":\"bad\"}",
-                 "{\"self\":\"reserved\"}"]:
+    for text in [
+      "[]", "null", "{\"vault\":false}", "{\"vault\":null}", "{\"vault\":\"\"}",
+      "{\"../escape\":\"bad\"}", "{\"a b c\":\"bad\"}", "{\"a  b\":\"bad\"}",
+      "{\"self\":\"reserved\"}",
+    ]:
       writeFile(tmp, text)
       expect ValueError:
         discard loadGroups(tmp)
@@ -437,9 +472,12 @@ suite "driver strict registry inputs":
     removeDir(dir)
     createDir(dir)
     writeFile(dir / "ax-vault-mount", "")
-    let s = CommandSpec(specVersion: specVersionCurrent,
-      path: @["vault", "mount"], summary: "mount a vault",
-          usage: "ax vault mount")
+    let s = CommandSpec(
+      specVersion: specVersionCurrent,
+      path: @["vault", "mount"],
+      summary: "mount a vault",
+      usage: "ax vault mount",
+    )
     var node = s.toJson()
     node["dryRun"] = %"false"
     let rec = newRecordingRunner(output = $node)
@@ -463,12 +501,26 @@ suite "driver builtin safety and context":
     let f = open(dir / "out.txt", fmWrite)
     let rec = newRecordingRunner()
     withSavedContext:
-      for words in [newSeq[string](), @["commands"], @["doctor"],
-                    @["completion", "invalid"], @["build-registry"],
-                    @["new-command", "zfs", "snapshot", "remove"]]:
-        check selfCmd(words, Ctx(dryRun: true), dir / "missing-libexec",
-          dir / "missing-registry", dir / "missing-groups", help = true,
-          runner = rec.runner, outp = f, errp = f, commandsDir = dir) == 0
+      for words in [
+        newSeq[string](),
+        @["commands"],
+        @["doctor"],
+        @["completion", "invalid"],
+        @["build-registry"],
+        @["new-command", "zfs", "snapshot", "remove"],
+      ]:
+        check selfCmd(
+          words,
+          Ctx(dryRun: true),
+          dir / "missing-libexec",
+          dir / "missing-registry",
+          dir / "missing-groups",
+          help = true,
+          runner = rec.runner,
+          outp = f,
+          errp = f,
+          commandsDir = dir,
+        ) == 0
       check rec.calls.len == 0
     f.close()
     check not dirExists(dir / "zfs")
@@ -482,12 +534,20 @@ suite "driver builtin safety and context":
     writeFile(dir / "groups.json", "{}\n")
     let f = open(dir / "out.txt", fmWrite)
     withSavedContext:
-      let fromFlag = extractCommon(@["self", "new-command", "zfs", "remove",
-          "-n"], Ctx())
+      let fromFlag =
+        extractCommon(@["self", "new-command", "zfs", "remove", "-n"], Ctx())
       putEnv(axDryRunEnv, "1")
       for ctx in [fromFlag.ctx, ctxFromEnv()]:
-        check selfCmd(@["new-command", "zfs", "remove"], ctx, "", "", "",
-          outp = f, errp = f, commandsDir = dir) == 64
+        check selfCmd(
+          @["new-command", "zfs", "remove"],
+          ctx,
+          "",
+          "",
+          "",
+          outp = f,
+          errp = f,
+          commandsDir = dir,
+        ) == 64
     f.close()
     check not dirExists(dir / "zfs")
     check readFile(dir / "groups.json") == "{}\n"
@@ -501,10 +561,13 @@ suite "driver builtin safety and context":
     let f = open(dir / "out.txt", fmWrite)
     withSavedContext:
       exportCtx(Ctx(color: cmAlways))
-      let ex = extractCommon(@["self", "doctor", "--quiet", "--color", "never",
-                               "-o", "json", "--verbose"], Ctx())
-      check selfCmd(@["doctor"], ex.ctx, "", dir / "registry.json", "",
-                    outp = f, errp = f) == 0
+      let ex = extractCommon(
+        @["self", "doctor", "--quiet", "--color", "never", "-o", "json", "--verbose"],
+        Ctx(),
+      )
+      check selfCmd(
+        @["doctor"], ex.ctx, "", dir / "registry.json", "", outp = f, errp = f
+      ) == 0
       check ctxFromEnv() == ex.ctx
     f.close()
     check readFile(dir / "out.txt") == ""
@@ -514,8 +577,8 @@ suite "driver builtin safety and context":
     let tmp = getTempDir() / "test_driver_command_help_context.txt"
     let f = open(tmp, fmWrite)
     let rec = newRecordingRunner(output = "Usage: command\n")
-    let ctx = Ctx(output: omJson, color: cmNever, dryRun: true,
-                  quiet: true, verbose: true)
+    let ctx =
+      Ctx(output: omJson, color: cmNever, dryRun: true, quiet: true, verbose: true)
     withSavedContext:
       check commandHelp("fake-command", ctx, @["topic"], rec.runner, f, f) == 0
       check rec.calls.len == 1
@@ -534,11 +597,15 @@ suite "driver builtin safety and context":
     let f = open(tmp, fmWrite)
     let rec = newRecordingRunner()
     withSavedContext:
-      for words in [@["commands", "extra"], @["doctor", "--typo"],
-                    @["build-registry", "extra"], @["completion"],
-                    @["completion", "zsh", "extra"]]:
-        check selfCmd(words, Ctx(), "", "", "", runner = rec.runner,
-                      outp = f, errp = f) == 64
+      for words in [
+        @["commands", "extra"],
+        @["doctor", "--typo"],
+        @["build-registry", "extra"],
+        @["completion"],
+        @["completion", "zsh", "extra"],
+      ]:
+        check selfCmd(words, Ctx(), "", "", "", runner = rec.runner, outp = f, errp = f) ==
+          64
     f.close()
     check rec.calls.len == 0
     removeFile(tmp)

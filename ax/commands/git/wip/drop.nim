@@ -12,18 +12,17 @@ let cmdSpec* = CommandSpec(
   summary: "delete a merged local wip/* branch",
   usage: "ax git wip drop <branch>",
   args: @[
-    ArgSpec(name: "branch", required: true,
-            description: "the wip/* branch to delete")
+    ArgSpec(name: "branch", required: true, description: "the wip/* branch to delete")
   ],
   deps: @["git"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax git wip drop <branch>
@@ -38,25 +37,34 @@ Requirements:
   - Branch cannot be the current branch"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  let branch = if args[0] == "--": args[1] else: args[0]
-  if not requireArg(branch, "wip branch name", errp): return 64
+  let branch =
+    if args[0] == "--":
+      args[1]
+    else:
+      args[0]
+  if not requireArg(branch, "wip branch name", errp):
+    return 64
 
   var code = requireGitRepo(runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireBranchExists("stable", runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireBranchExists(branch, runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireWipBranch(branch, runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
   code = requireNotBranch(branch, runner, errp)
-  if code != 0: return code
+  if code != 0:
+    return code
 
-  if runner.runQuiet(
-    "git", @["merge-base", "--is-ancestor", branch, "stable"]
-  ) != 0:
+  if runner.runQuiet("git", @["merge-base", "--is-ancestor", branch, "stable"]) != 0:
     error("Branch is not fully merged into stable: " & branch, errp)
     return 1
 

@@ -12,7 +12,7 @@ let cmdSpec* = CommandSpec(
   summary: "map repository directories to their remote fetch URLs",
   usage: "ax git repo root [-o table|plain|json]",
   deps: @["git"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc isGitRepo*(dir: string, runner: Runner): bool =
@@ -29,34 +29,40 @@ proc gitRemoteFetchUrl*(dir: string, runner: Runner): string =
   let listing = res.output
   var firstUrl = ""
   for line in listing.splitLines():
-    if line.len == 0: continue
-    if not line.contains("(fetch)"): continue
+    if line.len == 0:
+      continue
+    if not line.contains("(fetch)"):
+      continue
     let parts = line.splitWhitespace()
-    if parts.len < 2: continue
-    if firstUrl.len == 0: firstUrl = parts[1]
-    if parts[0] == "origin": return parts[1]
+    if parts.len < 2:
+      continue
+    if firstUrl.len == 0:
+      firstUrl = parts[1]
+    if parts[0] == "origin":
+      return parts[1]
   firstUrl
 
-proc collectRepoRows*(
-  baseDir: string, runner: Runner
-): seq[tuple[url, path: string]] =
+proc collectRepoRows*(baseDir: string, runner: Runner): seq[tuple[url, path: string]] =
   result = @[]
   var dirs: seq[string] = @[]
   for kind, path in walkDir(baseDir, checkDir = true):
-    if kind != pcDir: continue
-    if path.extractFilename.startsWith("."): continue
+    if kind != pcDir:
+      continue
+    if path.extractFilename.startsWith("."):
+      continue
     dirs.add(path)
   dirs.sort()
   for dir in dirs:
-    if not isGitRepo(dir, runner): continue
+    if not isGitRepo(dir, runner):
+      continue
     result.add((gitRemoteFetchUrl(dir, runner), dir.absolutePath))
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  baseDir: string = "."
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    baseDir: string = ".",
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax git repo root [-o table|plain|json]
@@ -71,14 +77,16 @@ Examples:
     ax git repo root"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var ctx = ctxFromEnv()
   for arg in args:
     if arg == "--raw":
       ctx.output = omPlain
 
-  if not checkDeps(["git"], errp): return 2
+  if not checkDeps(["git"], errp):
+    return 2
 
   var repoRows: seq[tuple[url, path: string]]
   try:

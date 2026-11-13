@@ -13,24 +13,27 @@ import "../../../../lib/testing"
 suite "ax media video convert run":
   test "VAAPI success applies hflip and stops before software fallback":
     let dir = createTempDir("ax-convert-vaapi-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "ffmpeg", "")
     let input = dir / "in.mp4"
     writeFile(input, "")
     let output = dir / "out.mp4"
-    let rec = newRecordingRunner(replies = @[
-      CommandResult(exitCode: 1),
-      CommandResult(exitCode: 1),
-      CommandResult(exitCode: 0)
-    ])
+    let rec = newRecordingRunner(
+      replies = @[
+        CommandResult(exitCode: 1),
+        CommandResult(exitCode: 1),
+        CommandResult(exitCode: 0),
+      ]
+    )
     let outPath = dir / "out"
     let errPath = dir / "err"
     let outf = open(outPath, fmWrite)
     let errf = open(errPath, fmWrite)
     var code: int
     withPath(dir):
-      code = run(@[input, "--orientation=horizontal", "--", output],
-                 outf, errf, rec.runner)
+      code =
+        run(@[input, "--orientation=horizontal", "--", output], outf, errf, rec.runner)
     outf.close()
     errf.close()
     check code == 0
@@ -39,12 +42,13 @@ suite "ax media video convert run":
     check rec.calls[1].args.contains("h264_nvenc")
     check rec.calls[2].kind == "capture"
     check rec.calls[2].cmd == "ffmpeg"
-    check rec.calls[2].args == @[
-      "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi",
-      "-hwaccel_device", "/dev/dri/renderD128", "-i", input,
-      "-vf", "hwdownload,format=nv12,hflip,hwupload",
-      "-c:v", "h264_vaapi", "-c:a", "aac", "-b:a", "128k", output
-    ]
+    check rec.calls[2].args ==
+      @[
+        "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi", "-hwaccel_device",
+        "/dev/dri/renderD128", "-i", input, "-vf",
+        "hwdownload,format=nv12,hflip,hwupload", "-c:v", "h264_vaapi", "-c:a", "aac",
+        "-b:a", "128k", output,
+      ]
     let content = readFile(errPath)
     check content.contains("VA-API hardware acceleration successful!")
     check content.contains("Video flip complete")
@@ -108,12 +112,9 @@ suite "ax media video convert run":
     let tmp = getTempDir() / "test_convert_to_video_horizontal_no_input.txt"
     let f = open(tmp, fmWrite)
     let code = run(
-      @[
-        "/nonexistent/path/xyz.mp4",
-        "/tmp/out.mp4",
-        "--orientation",
-        "horizontal"
-      ], f, f
+      @["/nonexistent/path/xyz.mp4", "/tmp/out.mp4", "--orientation", "horizontal"],
+      f,
+      f,
     )
     f.close()
     let content = readFile(tmp)
@@ -148,13 +149,18 @@ suite "ax media video convert run":
     let output = dir / "out.mp4"
     # Every hardware probe fails (exit 1); the software fallback is the
     # fourth and final invocation and succeeds.
-    writeFakeExe(dir, "ffmpeg", """
+    writeFakeExe(
+      dir,
+      "ffmpeg",
+      """
 echo "$@" >> """ & log.quoteShell & """
 
-count=$(wc -l < """ & log.quoteShell & """)
+count=$(wc -l < """ & log.quoteShell &
+        """)
 if [ "$count" -lt 4 ]; then exit 1; fi
 exit 0
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -218,13 +224,12 @@ exit 0
     # tryFfmpeg call -- the characterization test above pins probe identity
     # by substring (its job is distinguishing probes by codec token); this
     # contract test pins the full construction instead.
-    check rec.calls[0].args == @[
-      "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv",
-      "-c:v", "h264_qsv", "-i", input,
-      "-vf", "vpp_qsv=transpose=hflip",
-      "-c:v", "h264_qsv", "-preset", "fast",
-      "-c:a", "aac", "-b:a", "128k", output
-    ]
+    check rec.calls[0].args ==
+      @[
+        "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv", "-c:v", "h264_qsv",
+        "-i", input, "-vf", "vpp_qsv=transpose=hflip", "-c:v", "h264_qsv", "-preset",
+        "fast", "-c:a", "aac", "-b:a", "128k", output,
+      ]
 
   test "contract: a failing software fallback returns failure, never completion":
     let dir = getTempDir() / "contract_convert_video_all_fail"

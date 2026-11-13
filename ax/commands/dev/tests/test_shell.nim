@@ -66,10 +66,12 @@ suite "ax dev shell run":
     removeDir(dir)
     createDir(dir)
     let log = dir / "calls.log"
-    writeFakeExe(dir, "nix", "echo \"$@\" >> " & log.quoteShell &
-                             "\necho \"IN_NIX_SHELL=$IN_NIX_SHELL\" >> " &
-                             log.quoteShell &
-                             "\necho \"name=$name\" >> " & log.quoteShell)
+    writeFakeExe(
+      dir,
+      "nix",
+      "echo \"$@\" >> " & log.quoteShell & "\necho \"IN_NIX_SHELL=$IN_NIX_SHELL\" >> " &
+        log.quoteShell & "\necho \"name=$name\" >> " & log.quoteShell,
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

@@ -129,8 +129,8 @@ suite "ax vault create run":
     let f = open(outPath, fmWrite)
     var code: int
     withPath(dir):
-      code = run(@["mydata", "--location", dir / "Vaults", "--size", "2G"],
-                 f, f, rec.runner)
+      code =
+        run(@["mydata", "--location", dir / "Vaults", "--size", "2G"], f, f, rec.runner)
     f.close()
     removeDir(dir)
     check code == 0
@@ -140,15 +140,28 @@ suite "ax vault create run":
     check rec.calls[1].cmd == "fallocate"
     check rec.calls[1].args == @["--length", "2G", dir / "Vaults" / ".mydata.vault"]
     check rec.calls[2].cmd == "cryptsetup"
-    check rec.calls[2].args == @["luksFormat", "--verify-passphrase",
-                                  dir / "Vaults" / ".mydata.vault"]
+    check rec.calls[2].args ==
+      @["luksFormat", "--verify-passphrase", dir / "Vaults" / ".mydata.vault"]
     check rec.calls[3].cmd == "sudo"
-    check rec.calls[3].args == @["cryptsetup", "open", "--type", "luks",
-                                  dir / "Vaults" / ".mydata.vault", "mydata"]
+    check rec.calls[3].args ==
+      @[
+        "cryptsetup",
+        "open",
+        "--type",
+        "luks",
+        dir / "Vaults" / ".mydata.vault",
+        "mydata",
+      ]
     check rec.calls[4].cmd == "sudo"
-    check rec.calls[4].args == @["mkfs.ext4", "-E",
-      "root_owner=" & $getuid() & ":" & $getgid(),
-      "-L", "mydata", "/dev/mapper/mydata"]
+    check rec.calls[4].args ==
+      @[
+        "mkfs.ext4",
+        "-E",
+        "root_owner=" & $getuid() & ":" & $getgid(),
+        "-L",
+        "mydata",
+        "/dev/mapper/mydata",
+      ]
     check rec.calls[5].cmd == "sudo"
     check rec.calls[5].args == @["cryptsetup", "close", "mydata"]
 
@@ -173,7 +186,8 @@ suite "ax vault create run":
     removeDir(dir)
     check code == 1
     check calls[0].contains("--length")
-    check calls[1] == "luksFormat --verify-passphrase " & (dir / "Vaults" / ".mydata.vault")
+    check calls[1] ==
+      "luksFormat --verify-passphrase " & (dir / "Vaults" / ".mydata.vault")
     check calls[2] == "--force " & (dir / "Vaults" / ".mydata.vault")
 
   test "characterization: a failing sudo cryptsetup open rolls back with rm --force":
@@ -209,14 +223,18 @@ suite "ax vault create run":
     writeFakeExe(dir, "fallocate", "exit 0")
     writeFakeExe(dir, "cryptsetup", "exit 0")
     writeFakeExe(dir, "rm", fakeRecorder(log) & "\nexit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
   mkfs.ext4) exit 1 ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

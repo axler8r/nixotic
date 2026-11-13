@@ -47,14 +47,17 @@ suite "ax sys browser run":
 
   test "JSON output is structured even when stdout is not a TTY":
     let dir = createTempDir("ax-browser-json-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "xdg-mime", "")
     let hadOutput = existsEnv("AX_OUTPUT")
     let savedOutput = getEnv("AX_OUTPUT")
     putEnv("AX_OUTPUT", "json")
     defer:
-      if hadOutput: putEnv("AX_OUTPUT", savedOutput)
-      else: delEnv("AX_OUTPUT")
+      if hadOutput:
+        putEnv("AX_OUTPUT", savedOutput)
+      else:
+        delEnv("AX_OUTPUT")
     let rec = newRecordingRunner(output = "browser.desktop\n")
     let path = dir / "out"
     let f = open(path, fmWrite)
@@ -64,17 +67,22 @@ suite "ax sys browser run":
     f.close()
     check code == 0
     let data = parseJson(readFile(path))
-    check data == %*[{"scheme": "http", "handler": "browser.desktop"},
-                    {"scheme": "https", "handler": "browser.desktop"}]
+    check data ==
+      %*[
+        {"scheme": "http", "handler": "browser.desktop"},
+        {"scheme": "https", "handler": "browser.desktop"},
+      ]
     check rec.calls.len == 2
 
   test "failed handler query is not reported as an empty default":
     let dir = createTempDir("ax-browser-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "xdg-mime", "")
     let rec = newRecordingRunner(exitCode = 1, error = "query failed")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     withPath(dir):
       check run(@[], f, f, rec.runner) == 1
     check rec.calls.len == 1
@@ -94,10 +102,8 @@ suite "ax sys browser run":
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @[
-      "query default x-scheme-handler/http",
-      "query default x-scheme-handler/https"
-    ]
+    check calls ==
+      @["query default x-scheme-handler/http", "query default x-scheme-handler/https"]
 
   test "contract: queries the http then https scheme handlers in order":
     let rec = newRecordingRunner(exitCode = 0)

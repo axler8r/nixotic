@@ -48,7 +48,7 @@ proc requireDir*(path: string, errp: File = stderr): bool =
     return false
   true
 
-const xattrChars = {'a'..'z', 'A'..'Z', '0'..'9', '.', '_', '-'}
+const xattrChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '.', '_', '-'}
 
 proc requireXattrName*(attribute: string, errp: File = stderr): bool =
   if attribute.len == 0 or not attribute.allCharsInSet(xattrChars):

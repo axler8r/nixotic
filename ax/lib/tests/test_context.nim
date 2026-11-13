@@ -9,7 +9,7 @@ template withCleanEnv(body: untyped) =
     (axDryRunEnv, getEnv(axDryRunEnv)),
     (axColorEnv, getEnv(axColorEnv)),
     (axQuietEnv, getEnv(axQuietEnv)),
-    (axVerboseEnv, getEnv(axVerboseEnv))
+    (axVerboseEnv, getEnv(axVerboseEnv)),
   ]
   for (name, _) in saved:
     delEnv(name)
@@ -17,7 +17,10 @@ template withCleanEnv(body: untyped) =
     body
   finally:
     for (name, value) in saved:
-      if value.len > 0: putEnv(name, value) else: delEnv(name)
+      if value.len > 0:
+        putEnv(name, value)
+      else:
+        delEnv(name)
 
 suite "context ctxFromEnv":
   test "defaults with a clean environment":

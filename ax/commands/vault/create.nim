@@ -11,18 +11,17 @@ let cmdSpec* = CommandSpec(
   kind: ckVerb,
   summary: "create a new LUKS vault",
   usage: "ax vault create <name> [--size SIZE] [--location DIR]",
-  args: @[
-    ArgSpec(name: "name", required: true,
-            description: "vault name, e.g. mydata")
-  ],
+  args: @[ArgSpec(name: "name", required: true, description: "vault name, e.g. mydata")],
   flags: @[
-    FlagSpec(long: "size", takesValue: true,
-             description: "vault size (default: 1G)"),
-    FlagSpec(long: "location", takesValue: true,
-             description: "directory to store the vault file (default: ~/Vaults)")
+    FlagSpec(long: "size", takesValue: true, description: "vault size (default: 1G)"),
+    FlagSpec(
+      long: "location",
+      takesValue: true,
+      description: "directory to store the vault file (default: ~/Vaults)",
+    ),
   ],
   deps: @["fallocate", "cryptsetup", "mkfs.ext4", "mkdir", "rm"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -75,10 +74,10 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       inc i
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax vault create <name> [opts]
@@ -99,16 +98,19 @@ Examples:
     ax vault create external --location /mnt/storage"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
     return 64
-  if not requireArg(parsed.vaultName, "vault name", errp): return 64
+  if not requireArg(parsed.vaultName, "vault name", errp):
+    return 64
   if '/' in parsed.vaultName:
     error("Vault name must be a bare name; use --location for its directory", errp)
     return 64
-  if not checkDeps(cmdSpec.deps, errp): return 2
+  if not checkDeps(cmdSpec.deps, errp):
+    return 2
 
   let vaultFile = parsed.location / ("." & parsed.vaultName & ".vault")
   let mapperName = parsed.vaultName
@@ -127,14 +129,16 @@ Examples:
     return 1
 
   outp.writeLine("Encrypting vault with LUKS...")
-  if runner.runInherited("cryptsetup",
-      @["luksFormat", "--verify-passphrase", vaultFile]) != 0:
+  if runner.runInherited(
+    "cryptsetup", @["luksFormat", "--verify-passphrase", vaultFile]
+  ) != 0:
     discard runner.runInherited("rm", @["--force", vaultFile])
     return 1
 
   outp.writeLine("Opening encrypted vault...")
-  if runner.runInherited("sudo",
-      @["cryptsetup", "open", "--type", "luks", vaultFile, mapperName]) != 0:
+  if runner.runInherited(
+    "sudo", @["cryptsetup", "open", "--type", "luks", vaultFile, mapperName]
+  ) != 0:
     discard runner.runInherited("rm", @["--force", vaultFile])
     return 1
 
@@ -145,10 +149,20 @@ Examples:
     # Set only the new filesystem root owner. Ordinary mounting must never
     # rewrite existing file ownership, recursively or otherwise.
     let rootOwner = "root_owner=" & $getuid() & ":" & $getgid()
-    formatted = runner.runInherited("sudo",
-      @["mkfs.ext4", "-E", rootOwner, "-L", parsed.vaultName,
-        "/dev/mapper" / mapperName]) == 0
-    if formatted: result = 0
+    formatted =
+      runner.runInherited(
+        "sudo",
+        @[
+          "mkfs.ext4",
+          "-E",
+          rootOwner,
+          "-L",
+          parsed.vaultName,
+          "/dev/mapper" / mapperName,
+        ],
+      ) == 0
+    if formatted:
+      result = 0
   finally:
     if not closeVault(runner, mapperName, errp):
       result = 1
@@ -159,7 +173,8 @@ Examples:
       except CatchableError as e:
         warn("Could not remove failed vault creation: " & e.msg, errp)
 
-  if result != 0: return result
+  if result != 0:
+    return result
 
   outp.writeLine("Vault created successfully: " & vaultFile)
   outp.writeLine("Mount with: ax vault mount " & parsed.vaultName)

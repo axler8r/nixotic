@@ -74,10 +74,14 @@ suite "ax dev update run":
     # Per-command logs disambiguate which command received which args; the
     # shared log (each line prefixed with the command name) additionally
     # pins the ORDER between the two commands.
-    writeFakeExe(dir, "nix", fakeRecorder(nixLog) &
-      "\necho \"nix $@\" >> " & sharedLog.quoteShell)
-    writeFakeExe(dir, "direnv", fakeRecorder(direnvLog) &
-      "\necho \"direnv $@\" >> " & sharedLog.quoteShell)
+    writeFakeExe(
+      dir, "nix", fakeRecorder(nixLog) & "\necho \"nix $@\" >> " & sharedLog.quoteShell
+    )
+    writeFakeExe(
+      dir,
+      "direnv",
+      fakeRecorder(direnvLog) & "\necho \"direnv $@\" >> " & sharedLog.quoteShell,
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     let savedDir = getCurrentDir()

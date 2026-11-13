@@ -50,9 +50,12 @@ suite "ax script create run":
     let target = mkTmpPath("test_write_executable_last_wins")
     let decoy = mkTmpPath("test_write_executable_decoy")
     let rec = newRecordingRunner()
-    withStdin("echo hi\n", proc(inf: File) =
-      let code = run(@[decoy, target], stdout, stderr, inf, rec.runner)
-      check code == 64
+    withStdin(
+      "echo hi\n",
+      proc(inf: File) =
+        let code = run(@[decoy, target], stdout, stderr, inf, rec.runner)
+        check code == 64
+      ,
     )
     check rec.calls.len == 0
     check not fileExists(target)
@@ -60,9 +63,12 @@ suite "ax script create run":
 
   test "writes shebang, blank line, content, trailing newline -- stdin WITH trailing newline":
     let target = mkTmpPath("test_write_executable_with_nl")
-    withStdin("echo hello\n", proc(inf: File) =
-      let code = run(@[target], stdout, stderr, inf)
-      check code == 0
+    withStdin(
+      "echo hello\n",
+      proc(inf: File) =
+        let code = run(@[target], stdout, stderr, inf)
+        check code == 0
+      ,
     )
     let written = readFile(target)
     removeFile(target)
@@ -70,9 +76,12 @@ suite "ax script create run":
 
   test "writes shebang, blank line, content, trailing newline -- stdin WITHOUT trailing newline":
     let target = mkTmpPath("test_write_executable_without_nl")
-    withStdin("echo hello", proc(inf: File) =
-      let code = run(@[target], stdout, stderr, inf)
-      check code == 0
+    withStdin(
+      "echo hello",
+      proc(inf: File) =
+        let code = run(@[target], stdout, stderr, inf)
+        check code == 0
+      ,
     )
     let written = readFile(target)
     removeFile(target)
@@ -80,9 +89,12 @@ suite "ax script create run":
 
   test "multiple trailing newlines are all stripped, matching zsh $(cat) semantics":
     let target = mkTmpPath("test_write_executable_multi_nl")
-    withStdin("echo hello\n\n\n", proc(inf: File) =
-      let code = run(@[target], stdout, stderr, inf)
-      check code == 0
+    withStdin(
+      "echo hello\n\n\n",
+      proc(inf: File) =
+        let code = run(@[target], stdout, stderr, inf)
+        check code == 0
+      ,
     )
     let written = readFile(target)
     removeFile(target)
@@ -90,9 +102,12 @@ suite "ax script create run":
 
   test "interior blank lines in stdin are preserved":
     let target = mkTmpPath("test_write_executable_interior_blank")
-    withStdin("echo a\n\necho b\n", proc(inf: File) =
-      let code = run(@[target], stdout, stderr, inf)
-      check code == 0
+    withStdin(
+      "echo a\n\necho b\n",
+      proc(inf: File) =
+        let code = run(@[target], stdout, stderr, inf)
+        check code == 0
+      ,
     )
     let written = readFile(target)
     removeFile(target)
@@ -100,8 +115,10 @@ suite "ax script create run":
 
   test "file is executable after writing":
     let target = mkTmpPath("test_write_executable_perm")
-    withStdin("echo hi\n", proc(inf: File) =
-      discard run(@[target], stdout, stderr, inf)
+    withStdin(
+      "echo hi\n",
+      proc(inf: File) =
+        discard run(@[target], stdout, stderr, inf),
     )
     let perms = getFilePermissions(target)
     removeFile(target)
@@ -111,8 +128,10 @@ suite "ax script create run":
     let target = mkTmpPath("test_write_executable_message")
     let outTmp = getTempDir() / "test_write_executable_message_out.txt"
     let outf = open(outTmp, fmWrite)
-    withStdin("echo hi\n", proc(inf: File) =
-      discard run(@[target], stdout, outf, inf)
+    withStdin(
+      "echo hi\n",
+      proc(inf: File) =
+        discard run(@[target], stdout, outf, inf),
     )
     outf.close()
     let message = readFile(outTmp)
@@ -157,8 +176,10 @@ suite "ax script create run":
     let target = mkTmpPath("test_write_executable_contract")
     let rec = newRecordingRunner(exitCode = 0)
     var code: int
-    withStdin("echo hi\n", proc(inf: File) =
-      code = run(@[target], stdout, stderr, inf, rec.runner)
+    withStdin(
+      "echo hi\n",
+      proc(inf: File) =
+        code = run(@[target], stdout, stderr, inf, rec.runner),
     )
     removeFile(target)
     check code == 0
@@ -169,8 +190,12 @@ suite "ax script create run":
   test "chmod failure is not successful script creation":
     let target = mkTmpPath("test_write_executable_chmod_failure")
     defer:
-      if fileExists(target): removeFile(target)
+      if fileExists(target):
+        removeFile(target)
     let rec = newRecordingRunner(exitCode = 1)
-    withStdin("echo hi\n", proc(inf: File) =
-      check run(@[target], stdout, stderr, inf, rec.runner) == 1
+    withStdin(
+      "echo hi\n",
+      proc(inf: File) =
+        check run(@[target], stdout, stderr, inf, rec.runner) == 1
+      ,
     )

@@ -18,7 +18,8 @@ suite "ax docker image prune parseDockerList":
 suite "ax docker image prune run":
   test "invalid arguments cannot list or remove images":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for args in @[@["--bogus"], @["extra"], @["--dry-run"], @["-n"]]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
@@ -26,14 +27,15 @@ suite "ax docker image prune run":
 
   test "failed listing cannot become empty success or removal":
     let dir = createTempDir("ax-image-prune-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for listing in ["", "sha256:partial\n"]:
-      let rec = newRecordingRunner(
-        exitCode = 1, output = listing, error = "daemon unavailable"
-      )
+      let rec =
+        newRecordingRunner(exitCode = 1, output = listing, error = "daemon unavailable")
       withPath(dir):
         check run(@[], f, f, rec.runner) == 1
       check rec.calls.len == 1
@@ -79,13 +81,17 @@ suite "ax docker image prune run":
     createDir(dir)
     let log = dir / "calls.log"
     # First call (image list) prints two ids; every call is logged.
-    writeFakeExe(dir, "docker", """
+    writeFakeExe(
+      dir,
+      "docker",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1 $2" in
   "image list") echo sha256:aaa; echo sha256:bbb ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -95,11 +101,11 @@ esac
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @[
-      "image list --filter=dangling=true --format={{.ID}}",
-      "rmi sha256:aaa",
-      "rmi sha256:bbb"
-    ]
+    check calls ==
+      @[
+        "image list --filter=dangling=true --format={{.ID}}", "rmi sha256:aaa",
+        "rmi sha256:bbb",
+      ]
 
   test "contract: lists dangling images then removes each returned ID":
     # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
@@ -121,7 +127,7 @@ esac
     check code == 0
     check rec.calls.len == 3
     check rec.calls[0].cmd == "docker"
-    check rec.calls[0].args == @["image", "list", "--filter=dangling=true",
-                                  "--format={{.ID}}"]
+    check rec.calls[0].args ==
+      @["image", "list", "--filter=dangling=true", "--format={{.ID}}"]
     check rec.calls[1].args == @["rmi", "sha256:aaa"]
     check rec.calls[2].args == @["rmi", "sha256:bbb"]

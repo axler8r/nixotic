@@ -69,7 +69,8 @@ suite "ax fs indent check stripDirPrefix":
 suite "ax fs indent check run":
   test "queued discovery or MIME failures never report a clean or partial scan":
     let dir = createTempDir("ax-indent-scan-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "fd", "")
     writeFakeExe(dir, "file", "")
     let first = dir / "first.py"
@@ -80,7 +81,7 @@ suite "ax fs indent check run":
       var replies = @[
         CommandResult(exitCode: 0, output: first & "\0" & second & "\0"),
         CommandResult(exitCode: 0, output: "text/plain\n"),
-        CommandResult(exitCode: 0, output: "text/plain\n")
+        CommandResult(exitCode: 0, output: "text/plain\n"),
       ]
       replies[failedCall].exitCode = 1
       replies[failedCall].error = "scanner failed"
@@ -168,9 +169,7 @@ suite "ax fs indent check run":
     let scanDir = dir / "scan"
     createDir(scanDir)
     writeFile(scanDir / "mixed.py", "\tfoo\n bar\n")
-    writeFakeExe(
-      dir, "fd", "printf '%s\\0' " & (scanDir / "mixed.py").quoteShell
-    )
+    writeFakeExe(dir, "fd", "printf '%s\\0' " & (scanDir / "mixed.py").quoteShell)
     writeFakeExe(dir, "file", "echo text/plain")
     let stdinLog = dir / "column_stdin.log"
     writeFakeExe(dir, "column", "cat > " & stdinLog.quoteShell)

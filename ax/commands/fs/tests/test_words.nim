@@ -29,10 +29,19 @@ suite "ax fs words parseArgs":
 
   test "invalid counts and extensions are rejected without subprocess calls":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
-    for args in @[@["--top", "0"], @["--top", "-2"], @["--top=oops"],
-                  @["--top", "999999999999999999999999"], @["-n", "5"],
-                  @["-e"], @["-e", ""], @["-e", "   "], @["one", "two"]]:
+    defer:
+      f.close()
+    for args in @[
+      @["--top", "0"],
+      @["--top", "-2"],
+      @["--top=oops"],
+      @["--top", "999999999999999999999999"],
+      @["-n", "5"],
+      @["-e"],
+      @["-e", ""],
+      @["-e", "   "],
+      @["one", "two"],
+    ]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
       check rec.calls.len == 0
@@ -73,7 +82,8 @@ suite "ax fs words countWords":
 suite "ax fs words run":
   test "queued discovery or MIME failures cannot emit partial word totals":
     let dir = createTempDir("ax-words-scan-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "fd", "")
     writeFakeExe(dir, "file", "")
     let first = dir / "first.txt"
@@ -84,7 +94,7 @@ suite "ax fs words run":
       var replies = @[
         CommandResult(exitCode: 0, output: first & "\0" & second & "\0"),
         CommandResult(exitCode: 0, output: "text/plain\n"),
-        CommandResult(exitCode: 0, output: "text/plain\n")
+        CommandResult(exitCode: 0, output: "text/plain\n"),
       ]
       replies[failedCall].exitCode = 1
       replies[failedCall].error = "scanner failed"
@@ -165,8 +175,12 @@ suite "ax fs words run":
     createDir(scanDir)
     writeFile(scanDir / "a.py", "one two three")
     writeFile(scanDir / "b.md", "four five")
-    writeFakeExe(dir, "fd", "printf '%s\\0%s\\0' " &
-      (scanDir / "a.py").quoteShell & " " & (scanDir / "b.md").quoteShell)
+    writeFakeExe(
+      dir,
+      "fd",
+      "printf '%s\\0%s\\0' " & (scanDir / "a.py").quoteShell & " " &
+        (scanDir / "b.md").quoteShell,
+    )
     writeFakeExe(dir, "file", "echo text/plain")
     let stdinLog = dir / "column_stdin.log"
     writeFakeExe(dir, "column", "cat > " & stdinLog.quoteShell)
@@ -179,8 +193,8 @@ suite "ax fs words run":
     let stdinContent = readFile(stdinLog)
     removeDir(dir)
     check code == 0
-    check stdinContent == "Extension|Words|Files|Share\n" &
-      ".py|3|1|60%\n.md|2|1|40%\nTotal|5|2|100%\n"
+    check stdinContent ==
+      "Extension|Words|Files|Share\n" & ".py|3|1|60%\n.md|2|1|40%\nTotal|5|2|100%\n"
 
   test "no text files found is a warning, exit 0":
     let dir = getTempDir() / "run_no_text_files"

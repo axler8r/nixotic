@@ -12,11 +12,16 @@ let cmdSpec* = CommandSpec(
   summary: "pull and update git repositories in parallel",
   usage: "ax git repo sync [path...]",
   args: @[
-    ArgSpec(name: "path", required: false, variadic: true,
-            description: "git repository paths (default: one per line on stdin, else scan the current directory)")
+    ArgSpec(
+      name: "path",
+      required: false,
+      variadic: true,
+      description:
+        "git repository paths (default: one per line on stdin, else scan the current directory)",
+    )
   ],
   deps: @["git", "parallel"],
-  dryRun: false
+  dryRun: false,
 )
 
 const usage = """Usage: ax git repo sync [path...]
@@ -66,19 +71,21 @@ proc scanCurrentDirGitRepos*(root: string): seq[string] =
         result.add(path)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  inp: File = stdin
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    inp: File = stdin,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  if not checkDeps(["git", "parallel"], errp): return 2
+  if not checkDeps(["git", "parallel"], errp):
+    return 2
 
   var dirs: seq[string]
   var positional: seq[string]

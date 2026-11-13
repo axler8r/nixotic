@@ -12,11 +12,14 @@ let cmdSpec* = CommandSpec(
   summary: "unmount a LUKS vault and close its mapping",
   usage: "ax vault unmount <name>",
   args: @[
-    ArgSpec(name: "name", required: true,
-            description: "vault name (e.g. mydata) or mount point path")
+    ArgSpec(
+      name: "name",
+      required: true,
+      description: "vault name (e.g. mydata) or mount point path",
+    )
   ],
   deps: @["mount", "umount", "cryptsetup"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ResolvedTarget* = object
@@ -56,11 +59,11 @@ proc resolveTarget*(target: string, mountOutput: string): ResolvedTarget =
   result
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  mapperProbe: MapperProbe = mapperPresent
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    mapperProbe: MapperProbe = mapperPresent,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax vault unmount <name>
@@ -77,14 +80,20 @@ Examples:
     ax vault unmount ~/Vaults/mydata"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   if args.len == 0 or args[0].len == 0:
     error("Mount point or vault name required", errp)
     outp.writeLine("Usage: ax vault unmount <name>")
     return 64
-  let target = if args[0] == "--": args[1] else: args[0]
+  let target =
+    if args[0] == "--":
+      args[1]
+    else:
+      args[0]
 
-  if not checkDeps(cmdSpec.deps, errp): return 2
+  if not checkDeps(cmdSpec.deps, errp):
+    return 2
   let mounted = runner.capture("mount", @[])
   if mounted.exitCode != 0:
     error("Cannot inspect mounted vaults", errp)
@@ -113,7 +122,8 @@ Examples:
     if canClose and not closeVault(runner, resolved.mapperName, errp):
       result = 1
 
-  if result != 0: return result
+  if result != 0:
+    return result
   outp.writeLine("Vault dismounted successfully")
 
 when isMainModule:

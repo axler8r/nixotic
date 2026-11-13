@@ -20,13 +20,12 @@ type
     error*: string
 
   Runner* = ref object
-    runInheritedImpl*: proc (cmd: string, args: seq[string],
-                             env: StringTableRef): int
-    captureImpl*: proc (cmd: string, args: seq[string],
-                        input: string): CommandResult
+    runInheritedImpl*: proc(cmd: string, args: seq[string], env: StringTableRef): int
+    captureImpl*: proc(cmd: string, args: seq[string], input: string): CommandResult
 
-proc runInherited*(r: Runner, cmd: string, args: seq[string],
-                   env: StringTableRef = nil): int =
+proc runInherited*(
+    r: Runner, cmd: string, args: seq[string], env: StringTableRef = nil
+): int =
   ## Runs `cmd` with the parent's real stdin/stdout/stderr. For output that
   ## must stream to the user live.
   ##
@@ -36,8 +35,7 @@ proc runInherited*(r: Runner, cmd: string, args: seq[string],
   ## every variable the child needs, PATH included.
   r.runInheritedImpl(cmd, args, env)
 
-proc capture*(r: Runner, cmd: string, args: seq[string],
-              input = ""): CommandResult =
+proc capture*(r: Runner, cmd: string, args: seq[string], input = ""): CommandResult =
   ## Runs `cmd` with both output streams captured and drained concurrently.
   ## `input`, when non-empty, is written to the child's stdin.
   ##
@@ -72,15 +70,14 @@ proc drainProc(arg: DrainArg) {.thread.} =
     # through owned storage after joining instead of escaping this thread.
     arg.failure[] = e.msg
 
-proc realRunInherited(cmd: string, args: seq[string],
-                      env: StringTableRef): int =
-  var p = startProcess(cmd, args = args, env = env,
-                       options = {poUsePath, poParentStreams})
-  defer: p.close()
+proc realRunInherited(cmd: string, args: seq[string], env: StringTableRef): int =
+  var p =
+    startProcess(cmd, args = args, env = env, options = {poUsePath, poParentStreams})
+  defer:
+    p.close()
   p.waitForExit()
 
-proc realCapture(cmd: string, args: seq[string],
-                 input: string): CommandResult =
+proc realCapture(cmd: string, args: seq[string], input: string): CommandResult =
   var p = startProcess(cmd, args = args, options = {poUsePath})
 
   var outBuf, errBuf, outFailure, errFailure: string
@@ -89,13 +86,9 @@ proc realCapture(cmd: string, args: seq[string],
   try:
     # Establish ownership BEFORE either thread starts: starting the second
     # thread can fail while the first still borrows our stack storage.
-    createThread(
-      outThread, drainProc, (p.outputStream, addr outBuf, addr outFailure)
-    )
+    createThread(outThread, drainProc, (p.outputStream, addr outBuf, addr outFailure))
     outStarted = true
-    createThread(
-      errThread, drainProc, (p.errorStream, addr errBuf, addr errFailure)
-    )
+    createThread(errThread, drainProc, (p.errorStream, addr errBuf, addr errFailure))
     errStarted = true
     try:
       if input.len > 0:
@@ -121,7 +114,8 @@ proc realCapture(cmd: string, args: seq[string],
     result.exitCode = p.waitForExit()
     reaped = true
     if outFailure.len > 0 or errFailure.len > 0:
-      raise newException(IOError, "Cannot capture child output: " & outFailure & errFailure)
+      raise
+        newException(IOError, "Cannot capture child output: " & outFailure & errFailure)
     result.output = outBuf
     result.error = errBuf
   finally:
@@ -138,13 +132,13 @@ proc realCapture(cmd: string, args: seq[string],
         except CatchableError:
           discard
         if not joined:
-          if outStarted: joinThread(outThread)
-          if errStarted: joinThread(errThread)
+          if outStarted:
+            joinThread(outThread)
+          if errStarted:
+            joinThread(errThread)
         discard p.waitForExit()
     finally:
       p.close()
 
-let defaultRunner* = Runner(
-  runInheritedImpl: realRunInherited,
-  captureImpl: realCapture
-)
+let defaultRunner* =
+  Runner(runInheritedImpl: realRunInherited, captureImpl: realCapture)

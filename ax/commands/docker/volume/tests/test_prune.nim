@@ -18,7 +18,8 @@ suite "ax docker volume prune parseDockerList":
 suite "ax docker volume prune run":
   test "invalid arguments cannot list or remove volumes":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for args in @[@["--bogus"], @["extra"], @["--dry-run"], @["-n"]]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
@@ -26,14 +27,15 @@ suite "ax docker volume prune run":
 
   test "failed listing cannot become empty success or removal":
     let dir = createTempDir("ax-volume-prune-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for listing in ["", "partial-volume\n"]:
-      let rec = newRecordingRunner(
-        exitCode = 1, output = listing, error = "daemon unavailable"
-      )
+      let rec =
+        newRecordingRunner(exitCode = 1, output = listing, error = "daemon unavailable")
       withPath(dir):
         check run(@[], f, f, rec.runner) == 1
       check rec.calls.len == 1
@@ -79,13 +81,17 @@ suite "ax docker volume prune run":
     createDir(dir)
     let log = dir / "calls.log"
     # First call (volume list) prints two names; every call is logged.
-    writeFakeExe(dir, "docker", """
+    writeFakeExe(
+      dir,
+      "docker",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1 $2" in
   "volume list") echo vol_a; echo vol_b ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -95,11 +101,11 @@ esac
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @[
-      "volume list --quiet --filter=dangling=true",
-      "volume rm vol_a",
-      "volume rm vol_b"
-    ]
+    check calls ==
+      @[
+        "volume list --quiet --filter=dangling=true", "volume rm vol_a",
+        "volume rm vol_b",
+      ]
 
   test "contract: lists dangling volumes then removes each returned name":
     # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
@@ -121,7 +127,6 @@ esac
     check code == 0
     check rec.calls.len == 3
     check rec.calls[0].cmd == "docker"
-    check rec.calls[0].args == @["volume", "list", "--quiet",
-                                  "--filter=dangling=true"]
+    check rec.calls[0].args == @["volume", "list", "--quiet", "--filter=dangling=true"]
     check rec.calls[1].args == @["volume", "rm", "vol_a"]
     check rec.calls[2].args == @["volume", "rm", "vol_b"]

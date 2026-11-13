@@ -4,8 +4,8 @@ import "../../../lib/testing"
 
 suite "ax vault unmount resolveTarget":
   test "an existing, currently-mounted directory resolves the mapper name from the source column":
-    let mountOutput = "/dev/mapper/mydata on " & getTempDir() &
-                       " type ext4 (rw,relatime)\n"
+    let mountOutput =
+      "/dev/mapper/mydata on " & getTempDir() & " type ext4 (rw,relatime)\n"
     let r = resolveTarget(getTempDir(), mountOutput)
     check r.invalid == false
     check r.mapperName == "mydata"

@@ -17,14 +17,20 @@ proc execBinary(binPath: string, args: seq[string], ctx: Ctx): int =
   ## signals pass straight through). Ctx travels via the environment.
   exportCtx(ctx)
   let argv = allocCStringArray(@[binPath] & args)
-  defer: deallocCStringArray(argv)
+  defer:
+    deallocCStringArray(argv)
   discard execv(binPath.cstring, argv)
   error("cannot exec " & binPath & ": " & $strerror(errno))
   1
 
-proc helpCmd(specs: seq[CommandSpec], groups: auto,
-             paths: seq[seq[string]], words: seq[string],
-             libexecDir: string, ctx: Ctx): int =
+proc helpCmd(
+    specs: seq[CommandSpec],
+    groups: auto,
+    paths: seq[seq[string]],
+    words: seq[string],
+    libexecDir: string,
+    ctx: Ctx,
+): int =
   if words.len == 0:
     return renderHelp(overviewText(specs, groups, axVersion))
   let res = resolveCommand(words, words.len, paths)
@@ -63,11 +69,13 @@ proc main(): int =
   # self runs before the registry loads: `ax self build-registry` is what
   # CREATES the registry during the package build.
   if ex.words.len > 0 and ex.words[0] == "self":
-    return selfCmd(ex.words[1 .. ^1], ex.ctx, libexecDir, registryFile,
-                   groupsFile, help = ex.help)
+    return selfCmd(
+      ex.words[1 .. ^1], ex.ctx, libexecDir, registryFile, groupsFile, help = ex.help
+    )
   if ex.words.len > 1 and ex.words[0 .. 1] == @["help", "self"]:
-    return selfCmd(ex.words[2 .. ^1], ex.ctx, libexecDir, registryFile,
-                   groupsFile, help = true)
+    return selfCmd(
+      ex.words[2 .. ^1], ex.ctx, libexecDir, registryFile, groupsFile, help = true
+    )
   if ex.words.len > 0 and ex.words[0] == "version":
     if ex.help:
       return renderHelp("Usage: ax version\nPrint the ax version.\n")
@@ -111,10 +119,13 @@ proc main(): int =
     64
   of rkNone:
     error("unknown command: ax " & ex.words.join(" "))
-    let at = if res.deepest.len > 0: "ax " & res.deepest.join(" ") else: "ax"
+    let at =
+      if res.deepest.len > 0:
+        "ax " & res.deepest.join(" ")
+      else:
+        "ax"
     if res.children.len > 0:
-      stderr.writeLine("Available under " & at & ": " &
-                       res.children.join(", "))
+      stderr.writeLine("Available under " & at & ": " & res.children.join(", "))
     stderr.writeLine("Run `ax help` for the command tree.")
     64
 

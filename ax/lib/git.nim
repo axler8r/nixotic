@@ -12,15 +12,14 @@ proc requireGitRepo*(runner: Runner = defaultRunner, errp: File = stderr): int =
   ## 0 inside a git repo; 2 if `git` itself is missing (matching
   ## validation.checkDeps's convention); 1 otherwise. Callers propagate
   ## this code verbatim, mirroring the zsh original's `|| return $?`.
-  if not checkDeps(["git"], errp): return 2
+  if not checkDeps(["git"], errp):
+    return 2
   if runner.runQuiet("git", @["rev-parse", "--is-inside-work-tree"]) != 0:
     error("Not inside a Git repository.", errp)
     return 1
   0
 
-proc gitCurrentBranch*(
-  runner: Runner = defaultRunner, errp: File = stderr
-): string =
+proc gitCurrentBranch*(runner: Runner = defaultRunner, errp: File = stderr): string =
   ## The current branch name, or "" (with an error already printed) on a
   ## detached HEAD. Callers must check for an empty result themselves,
   ## same as the zsh original's `|| return 1` after each call site.
@@ -31,10 +30,11 @@ proc gitCurrentBranch*(
   res.output.strip()
 
 proc requireCleanGitWorktree*(
-  runner: Runner = defaultRunner, errp: File = stderr
+    runner: Runner = defaultRunner, errp: File = stderr
 ): int =
   let repoCode = requireGitRepo(runner, errp)
-  if repoCode != 0: return repoCode
+  if repoCode != 0:
+    return repoCode
   let res = runner.capture("git", @["status", "--porcelain"])
   if res.exitCode != 0:
     error("Could not inspect Git worktree: " & res.error.strip(), errp)
@@ -47,28 +47,32 @@ proc requireCleanGitWorktree*(
   0
 
 proc requireBranchExists*(
-  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+    branch: string, runner: Runner = defaultRunner, errp: File = stderr
 ): int =
-  if not requireArg(branch, "branch name", errp): return 1
-  if runner.runQuiet("git", @["show-ref", "--verify", "--quiet", "refs/heads/" &
-      branch]) != 0:
+  if not requireArg(branch, "branch name", errp):
+    return 1
+  if runner.runQuiet(
+    "git", @["show-ref", "--verify", "--quiet", "refs/heads/" & branch]
+  ) != 0:
     error("Branch does not exist: " & branch, errp)
     return 1
   0
 
 proc requireNotBranch*(
-  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+    branch: string, runner: Runner = defaultRunner, errp: File = stderr
 ): int =
-  if not requireArg(branch, "branch name", errp): return 1
+  if not requireArg(branch, "branch name", errp):
+    return 1
   let current = gitCurrentBranch(runner, errp)
-  if current.len == 0: return 1
+  if current.len == 0:
+    return 1
   if current == branch:
     error("Refusing to operate on the current branch: " & branch, errp)
     return 1
   0
 
 proc requireWipBranch*(
-  branch: string, runner: Runner = defaultRunner, errp: File = stderr
+    branch: string, runner: Runner = defaultRunner, errp: File = stderr
 ): int =
   ## Mirrors __ax_require_wip_branch: an empty branch defaults to the
   ## current branch. The zsh original delegates to a general
@@ -78,7 +82,8 @@ proc requireWipBranch*(
   var b = branch
   if b.len == 0:
     b = gitCurrentBranch(runner, errp)
-    if b.len == 0: return 1
+    if b.len == 0:
+      return 1
   if not b.startsWith("wip/"):
     error("Branch must match wip/*: " & b, errp)
     return 1

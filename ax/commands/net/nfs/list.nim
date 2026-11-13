@@ -12,11 +12,14 @@ let cmdSpec* = CommandSpec(
   summary: "list a server's exported NFS mounts",
   usage: "ax net nfs list [server]",
   args: @[
-    ArgSpec(name: "server", required: false,
-            description: "NFS server hostname or IP (default: localhost)")
+    ArgSpec(
+      name: "server",
+      required: false,
+      description: "NFS server hostname or IP (default: localhost)",
+    )
   ],
   deps: @["showmount"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -63,17 +66,20 @@ proc splitFirstWhitespaceRun*(line: string): string =
   ## Mirrors `sed 's/[[:space:]]\+/|/'`: replaces only the FIRST run of
   ## whitespace with "|", leaving any later whitespace in the line as-is.
   var i = 0
-  while i < line.len and line[i] notin Whitespace: inc i
-  if i >= line.len: return line
+  while i < line.len and line[i] notin Whitespace:
+    inc i
+  if i >= line.len:
+    return line
   var j = i
-  while j < line.len and line[j] in Whitespace: inc j
+  while j < line.len and line[j] in Whitespace:
+    inc j
   line[0 ..< i] & "|" & line[j .. ^1]
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax net nfs list [server]
@@ -94,7 +100,8 @@ Examples:
     ax net nfs list nfs.example.com"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
@@ -105,7 +112,8 @@ Examples:
   if parsed.raw:
     ctx.output = omPlain
 
-  if not checkDeps(["showmount"], errp): return 2
+  if not checkDeps(["showmount"], errp):
+    return 2
 
   info("Querying NFS exports on '" & parsed.server & "'...", errp)
 
@@ -119,14 +127,17 @@ Examples:
   let trimmed = exports.strip()
   if trimmed.len == 0 or trimmed == "Export list for " & parsed.server & ":":
     warn("No NFS exports found on '" & parsed.server & "'.", errp)
-    if ctx.output != omJson: return 0
+    if ctx.output != omJson:
+      return 0
     return render(@["Export", "Clients"], @[], ctx, runner, outp, errp)
 
   var lineList = exports.splitLines()
-  if lineList.len > 0: lineList = lineList[1 .. ^1]
+  if lineList.len > 0:
+    lineList = lineList[1 .. ^1]
   var rows: seq[seq[string]] = @[]
   for line in lineList:
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
     rows.add splitFirstWhitespaceRun(line).split("|", maxsplit = 1)
 
   if ctx.output == omTable:

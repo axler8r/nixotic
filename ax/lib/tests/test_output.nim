@@ -156,8 +156,8 @@ suite "output.table":
     let outTmp = getTempDir() / "test_output_table_raw.txt"
     let outf = open(outTmp, fmWrite)
     let rec = newRecordingRunner(exitCode = 0)
-    let code = table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner,
-                     outp = outf)
+    let code =
+      table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner, outp = outf)
     outf.close()
     removeFile(outTmp)
     check code == 0
@@ -167,10 +167,9 @@ suite "output.table":
   test "writes the runner's captured stdout to outp":
     let outTmp = getTempDir() / "test_output_table_stdout.txt"
     let outf = open(outTmp, fmWrite)
-    let rec = newRecordingRunner(exitCode = 0,
-        output = "Name  Size\nfoo.txt  1.2 KB\n")
-    discard table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner,
-                  outp = outf)
+    let rec = newRecordingRunner(exitCode = 0, output = "Name  Size\nfoo.txt  1.2 KB\n")
+    discard
+      table("Name|Size\nfoo.txt|1.2 KB", raw = true, runner = rec.runner, outp = outf)
     outf.close()
     let content = readFile(outTmp)
     removeFile(outTmp)
@@ -182,8 +181,8 @@ suite "output.table":
     let outf = open(outTmp, fmWrite)
     let errf = open(errTmp, fmWrite)
     let rec = newRecordingRunner(exitCode = 1, error = "column: bad option\n")
-    let code = table("Name|Size", raw = true, runner = rec.runner, outp = outf,
-                     errp = errf)
+    let code =
+      table("Name|Size", raw = true, runner = rec.runner, outp = outf, errp = errf)
     outf.close()
     errf.close()
     let errContent = readFile(errTmp)
@@ -212,9 +211,13 @@ suite "output.render":
     let f = open(tmp, fmWrite)
     var ctx = Ctx()
     ctx.output = omJson
-    let code = render(@["Repository", "Tag Name"],
-                      @[@["nginx", "latest"], @["redis", "7"]],
-                      ctx, outp = f, errp = f)
+    let code = render(
+      @["Repository", "Tag Name"],
+      @[@["nginx", "latest"], @["redis", "7"]],
+      ctx,
+      outp = f,
+      errp = f,
+    )
     f.close()
     let parsed = parseJson(readFile(tmp))
     removeFile(tmp)
@@ -230,8 +233,8 @@ suite "output.render":
     var ctx = Ctx()
     ctx.output = omPlain
     let rec = newRecordingRunner(exitCode = 0, output = "aligned\n")
-    let code = render(@["Name"], @[@["foo"]], ctx, runner = rec.runner,
-                      outp = f, errp = f)
+    let code =
+      render(@["Name"], @[@["foo"]], ctx, runner = rec.runner, outp = f, errp = f)
     f.close()
     let content = readFile(tmp)
     removeFile(tmp)
@@ -270,8 +273,7 @@ suite "output display safety":
       f.close()
       removeFile(tmp)
     let rec = newRecordingRunner()
-    check render(@["Name"], @[@["a|b\nc"]], Ctx(output: omPlain),
-                 rec.runner, f, f) == 0
+    check render(@["Name"], @[@["a|b\nc"]], Ctx(output: omPlain), rec.runner, f, f) == 0
     check rec.calls[0].input == "Name\na\\x7cb\\nc\n"
 
   test "ambiguous headers and excess cells fail before rendering":

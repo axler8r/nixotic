@@ -4,11 +4,13 @@ import "../../../../lib/testing"
 
 suite "ax docker image list parseDockerList":
   test "splits multiple rows on newlines":
-    check parseDockerList("nginx|latest|2 days ago|abc123\npostgres|16|1 week ago|def456\n") ==
-      @["nginx|latest|2 days ago|abc123", "postgres|16|1 week ago|def456"]
+    check parseDockerList(
+      "nginx|latest|2 days ago|abc123\npostgres|16|1 week ago|def456\n"
+    ) == @["nginx|latest|2 days ago|abc123", "postgres|16|1 week ago|def456"]
 
   test "drops the empty trailing line from a trailing newline":
-    check parseDockerList("nginx|latest|2 days ago|abc123\n") == @["nginx|latest|2 days ago|abc123"]
+    check parseDockerList("nginx|latest|2 days ago|abc123\n") ==
+      @["nginx|latest|2 days ago|abc123"]
 
   test "returns an empty seq for empty output":
     check parseDockerList("") == newSeq[string]()
@@ -54,13 +56,17 @@ suite "ax docker image list run":
     removeDir(dir)
     createDir(dir)
     let log = dir / "calls.log"
-    writeFakeExe(dir, "docker", """
+    writeFakeExe(
+      dir,
+      "docker",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1 $2" in
   "image list") printf "postgres|16|1 week ago|def456\nnginx|latest|2 days ago|abc123\n" ;;
 esac
-""")
+""",
+    )
     writeFakeExe(dir, "column", fakeRecorder(dir / "column.log"))
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -71,9 +77,10 @@ esac
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @[
-      "image list --format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.ID}} --filter=dangling=false"
-    ]
+    check calls ==
+      @[
+        "image list --format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.ID}} --filter=dangling=false"
+      ]
 
   test "contract: docker is queried for non-dangling images, rows sorted, rendered via table":
     # `docker` is not a nativeBuildInput of the test sandbox (flake.nix), so
@@ -85,8 +92,10 @@ esac
     createDir(dir)
     writeFakeExe(dir, "docker", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "postgres|16|1 week ago|def456\nnginx|latest|2 days ago|abc123\n")
+    let rec = newRecordingRunner(
+      exitCode = 0,
+      output = "postgres|16|1 week ago|def456\nnginx|latest|2 days ago|abc123\n",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -97,11 +106,14 @@ esac
     check code == 0
     check rec.calls.len == 2
     check rec.calls[0].cmd == "docker"
-    check rec.calls[0].args == @["image", "list",
-      "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.ID}}",
-      "--filter=dangling=false"]
+    check rec.calls[0].args ==
+      @[
+        "image", "list", "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.ID}}",
+        "--filter=dangling=false",
+      ]
     check rec.calls[1].cmd == "column"
-    check rec.calls[1].input == "Repository|Tag|Created|ID\n" &
+    check rec.calls[1].input ==
+      "Repository|Tag|Created|ID\n" &
       "nginx|latest|2 days ago|abc123\npostgres|16|1 week ago|def456\n"
 
   test "contract: --dangling switches to the dangling filter and adds the Size column":
@@ -110,8 +122,9 @@ esac
     createDir(dir)
     writeFakeExe(dir, "docker", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "<none>|<none>|2 days ago|10MB|abc123\n")
+    let rec = newRecordingRunner(
+      exitCode = 0, output = "<none>|<none>|2 days ago|10MB|abc123\n"
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -121,8 +134,11 @@ esac
     removeDir(dir)
     check code == 0
     check rec.calls.len == 2
-    check rec.calls[0].args == @["image", "list",
-      "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.Size}}|{{.ID}}",
-      "--filter=dangling=true"]
-    check rec.calls[1].input == "Repository|Tag|Created|Size|ID\n" &
-      "<none>|<none>|2 days ago|10MB|abc123\n"
+    check rec.calls[0].args ==
+      @[
+        "image", "list",
+        "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.Size}}|{{.ID}}",
+        "--filter=dangling=true",
+      ]
+    check rec.calls[1].input ==
+      "Repository|Tag|Created|Size|ID\n" & "<none>|<none>|2 days ago|10MB|abc123\n"

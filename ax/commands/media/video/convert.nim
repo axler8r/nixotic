@@ -11,17 +11,18 @@ let cmdSpec* = CommandSpec(
   summary: "transform a video file (currently: horizontal flip)",
   usage: "ax media video convert <input> <output> --orientation horizontal",
   args: @[
-    ArgSpec(name: "input", required: true,
-            description: "the video file to read"),
-    ArgSpec(name: "output", required: true,
-            description: "the video file to write")
+    ArgSpec(name: "input", required: true, description: "the video file to read"),
+    ArgSpec(name: "output", required: true, description: "the video file to write"),
   ],
   flags: @[
-    FlagSpec(long: "orientation", takesValue: true,
-             description: "the transform to apply; only 'horizontal' is supported")
+    FlagSpec(
+      long: "orientation",
+      takesValue: true,
+      description: "the transform to apply; only 'horizontal' is supported",
+    )
   ],
   deps: @["ffmpeg"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc tryFfmpeg(runner: Runner, ffmpegArgs: seq[string]): bool =
@@ -30,10 +31,10 @@ proc tryFfmpeg(runner: Runner, ffmpegArgs: seq[string]): bool =
   runner.runQuiet("ffmpeg", ffmpegArgs) == 0
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax media video convert <input> <output> --orientation horizontal
@@ -75,7 +76,8 @@ Examples:
     ax media video convert input.mp4 output.mp4 --orientation horizontal"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var input = ""
   var output = ""
@@ -109,14 +111,17 @@ Examples:
       error("Too many arguments", errp)
       return 64
 
-  if not requireArg(input, "input file", errp): return 64
-  if not requireArg(output, "output file", errp): return 64
-  if not requireArg(orientation, "--orientation", errp): return 64
-  if orientation != "horizontal":
-    error("Unsupported orientation: " & orientation &
-          " (supported: horizontal)", errp)
+  if not requireArg(input, "input file", errp):
     return 64
-  if not checkDeps(["ffmpeg"], errp): return 2
+  if not requireArg(output, "output file", errp):
+    return 64
+  if not requireArg(orientation, "--orientation", errp):
+    return 64
+  if orientation != "horizontal":
+    error("Unsupported orientation: " & orientation & " (supported: horizontal)", errp)
+    return 64
+  if not checkDeps(["ffmpeg"], errp):
+    return 2
 
   if not fileExists(input):
     error("Input file '" & input & "' does not exist", errp)
@@ -126,38 +131,47 @@ Examples:
   info("Output file: " & output, errp)
   info("Attempting hardware-accelerated flip...", errp)
 
-  if tryFfmpeg(runner, @[
-    "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv",
-    "-c:v", "h264_qsv", "-i", input,
-    "-vf", "vpp_qsv=transpose=hflip",
-    "-c:v", "h264_qsv", "-preset", "fast",
-    "-c:a", "aac", "-b:a", "128k", output
-  ]):
+  if tryFfmpeg(
+    runner,
+    @[
+      "-y", "-hwaccel", "qsv", "-hwaccel_output_format", "qsv", "-c:v", "h264_qsv",
+      "-i", input, "-vf", "vpp_qsv=transpose=hflip", "-c:v", "h264_qsv", "-preset",
+      "fast", "-c:a", "aac", "-b:a", "128k", output,
+    ],
+  ):
     success("Intel QSV/VPL hardware acceleration successful!", errp)
-  elif tryFfmpeg(runner, @[
-    "-y", "-i", input, "-vf", "hflip",
-    "-c:v", "h264_nvenc", "-preset", "fast",
-    "-c:a", "aac", "-b:a", "128k", output
-  ]):
+  elif tryFfmpeg(
+    runner,
+    @[
+      "-y", "-i", input, "-vf", "hflip", "-c:v", "h264_nvenc", "-preset", "fast",
+      "-c:a", "aac", "-b:a", "128k", output,
+    ],
+  ):
     success("NVIDIA NVENC hardware acceleration successful!", errp)
-  elif tryFfmpeg(runner, @[
-    "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi",
-    "-hwaccel_device", "/dev/dri/renderD128",
-    "-i", input,
-    "-vf", "hwdownload,format=nv12,hflip,hwupload",
-    "-c:v", "h264_vaapi",
-    "-c:a", "aac", "-b:a", "128k", output
-  ]):
+  elif tryFfmpeg(
+    runner,
+    @[
+      "-y", "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi", "-hwaccel_device",
+      "/dev/dri/renderD128", "-i", input, "-vf",
+      "hwdownload,format=nv12,hflip,hwupload", "-c:v", "h264_vaapi", "-c:a", "aac",
+      "-b:a", "128k", output,
+    ],
+  ):
     success("VA-API hardware acceleration successful!", errp)
   else:
-    info("All hardware acceleration methods failed, falling back to software processing...", errp)
+    info(
+      "All hardware acceleration methods failed, falling back to software processing...",
+      errp,
+    )
     # Software fallback: real stdout/stderr reach the terminal live,
     # matching the original's unsuppressed passthrough.
-    let code = runner.runInherited("ffmpeg", @[
-      "-y", "-i", input, "-vf", "hflip",
-      "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-      "-c:a", "aac", "-b:a", "128k", output
-    ])
+    let code = runner.runInherited(
+      "ffmpeg",
+      @[
+        "-y", "-i", input, "-vf", "hflip", "-c:v", "libx264", "-preset", "fast", "-crf",
+        "23", "-c:a", "aac", "-b:a", "128k", output,
+      ],
+    )
     if code != 0:
       error("Software video encoding failed.", errp)
       return code

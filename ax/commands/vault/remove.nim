@@ -12,15 +12,19 @@ let cmdSpec* = CommandSpec(
   summary: "delete a LUKS vault file",
   usage: "ax vault remove <name> [--force]",
   args: @[
-    ArgSpec(name: "name", required: true,
-            description: "vault name (e.g. mydata) or full path to the vault file")
+    ArgSpec(
+      name: "name",
+      required: true,
+      description: "vault name (e.g. mydata) or full path to the vault file",
+    )
   ],
   flags: @[
-    FlagSpec(long: "force", takesValue: false,
-             description: "skip the confirmation prompt")
+    FlagSpec(
+      long: "force", takesValue: false, description: "skip the confirmation prompt"
+    )
   ],
   deps: @["rm", "losetup"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -38,12 +42,12 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       result.vaultInput = a
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  inp: File = stdin,
-  mapperProbe: MapperProbe = mapperPresent
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    inp: File = stdin,
+    mapperProbe: MapperProbe = mapperPresent,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax vault remove <name> [--force]
@@ -67,10 +71,13 @@ Examples:
     ax vault remove ~/Vaults/.mydata.vault      # Explicit path"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   let parsed = parseArgs(args)
-  if not requireArg(parsed.vaultInput, "vault name", errp): return 64
-  if not checkDeps(cmdSpec.deps, errp): return 2
+  if not requireArg(parsed.vaultInput, "vault name", errp):
+    return 64
+  if not checkDeps(cmdSpec.deps, errp):
+    return 2
 
   let v = resolveVault(parsed.vaultInput)
   if not fileExists(v.vaultFile):
@@ -88,7 +95,8 @@ Examples:
       outp.writeLine("Aborted")
       return 0
 
-  if not backingFileIdle(runner, v.vaultFile, errp): return 1
+  if not backingFileIdle(runner, v.vaultFile, errp):
+    return 1
   outp.writeLine("Removing vault file: " & v.vaultFile)
   if runner.runInherited("rm", @["--force", v.vaultFile]) != 0:
     return 1

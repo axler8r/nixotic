@@ -12,11 +12,15 @@ let cmdSpec* = CommandSpec(
   summary: "search Docker Hub for images",
   usage: "ax docker image search <term>...",
   args: @[
-    ArgSpec(name: "term", required: true, variadic: true,
-            description: "one or more words to search for")
+    ArgSpec(
+      name: "term",
+      required: true,
+      variadic: true,
+      description: "one or more words to search for",
+    )
   ],
   deps: @["docker"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -40,7 +44,8 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
 proc parseDockerList*(output: string): seq[string] =
   result = @[]
   for line in output.splitLines():
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
     result.add(line)
 
 proc starCount(row: string): int =
@@ -48,17 +53,18 @@ proc starCount(row: string): int =
   ## (should not happen for real `docker search` output) sorts as 0, the
   ## same leniency GNU sort's -n gives a malformed numeric field.
   let parts = row.rsplit("|", maxsplit = 1)
-  if parts.len < 2: return 0
+  if parts.len < 2:
+    return 0
   try:
     parseInt(parts[1])
   except ValueError:
     0
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax docker image search <term>...
@@ -77,7 +83,8 @@ Examples:
     ax docker image search postgres official"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   let parsed = parseArgs(args)
   if parsed.searchTerm.len == 0:
@@ -89,19 +96,22 @@ Examples:
   if parsed.raw:
     ctx.output = omPlain
 
-  if not checkDeps(["docker"], errp): return 2
+  if not checkDeps(["docker"], errp):
+    return 2
 
   info("Searching for Docker images matching: '" & parsed.searchTerm & "'", errp)
 
   let listing = runner.capture(
-    "docker",
-    @["search", parsed.searchTerm, "--format={{.Name}}|{{.StarCount}}"]
+    "docker", @["search", parsed.searchTerm, "--format={{.Name}}|{{.StarCount}}"]
   )
   if listing.exitCode != 0:
     error("Cannot search Docker images: " & listing.error.strip(), errp)
     return 1
   var lines = parseDockerList(listing.output)
-  lines.sort(proc(a, b: string): int = cmp(starCount(b), starCount(a)))
+  lines.sort(
+    proc(a, b: string): int =
+      cmp(starCount(b), starCount(a))
+  )
   var rows: seq[seq[string]] = @[]
   for line in lines:
     rows.add line.split("|")

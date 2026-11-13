@@ -12,11 +12,12 @@ let cmdSpec* = CommandSpec(
   summary: "list ZFS snapshots, newest first",
   usage: "ax zfs snapshot list [dataset]",
   args: @[
-    ArgSpec(name: "dataset", required: false,
-            description: "dataset name to filter snapshots")
+    ArgSpec(
+      name: "dataset", required: false, description: "dataset name to filter snapshots"
+    )
   ],
   deps: @["zfs"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -43,10 +44,10 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       hasDataset = true
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax zfs snapshot list [dataset]
@@ -67,7 +68,8 @@ Examples:
     ax zfs snapshot list -o plain | awk -F'\t' '{print $1}'"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
@@ -79,8 +81,8 @@ Examples:
 
   let ctx = ctxFromEnv()
   # Preserve native table/plain output; JSON uses the shared renderer.
-  var zfsArgs = @["-r", "-t", "snapshot", "-S", "creation", "-o",
-                  "name,used,referenced,creation"]
+  var zfsArgs =
+    @["-r", "-t", "snapshot", "-S", "creation", "-o", "name,used,referenced,creation"]
   if parsed.raw or ctx.output != omTable or not isatty(outp):
     zfsArgs.add("-H")
 
@@ -94,11 +96,10 @@ Examples:
       return 1
     var rows: seq[seq[string]] = @[]
     for line in listing.output.splitLines():
-      if line.len > 0: rows.add(line.split('\t', maxsplit = 3))
-    return render(
-      @["Name", "Used", "Referenced", "Creation"],
-      rows, ctx, runner, outp, errp
-    )
+      if line.len > 0:
+        rows.add(line.split('\t', maxsplit = 3))
+    return
+      render(@["Name", "Used", "Referenced", "Creation"], rows, ctx, runner, outp, errp)
   result = runner.runInherited("zfs", @["list"] & zfsArgs)
 
 when isMainModule:

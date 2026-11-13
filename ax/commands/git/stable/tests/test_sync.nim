@@ -7,8 +7,12 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath, poStdErrToStdOut})
+  let p = startProcess(
+    findExe("git"),
+    workingDir = dir,
+    args = @args,
+    options = {poUsePath, poStdErrToStdOut},
+  )
   let output = p.outputStream.readAll()
   let code = p.waitForExit()
   p.close()
@@ -56,9 +60,12 @@ suite "ax git stable sync run":
     f.close()
     var branchOut: string
     block:
-      let p = startProcess(findExe("git"), workingDir = dir,
-                            args = @["symbolic-ref", "--short", "HEAD"],
-                            options = {poUsePath})
+      let p = startProcess(
+        findExe("git"),
+        workingDir = dir,
+        args = @["symbolic-ref", "--short", "HEAD"],
+        options = {poUsePath},
+      )
       branchOut = p.outputStream.readAll().strip()
       discard p.waitForExit()
       p.close()

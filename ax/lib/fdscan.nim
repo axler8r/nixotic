@@ -16,8 +16,9 @@ proc buildFdArgs*(extensions: seq[string], allFlag: bool): seq[string] =
     result.add("--extension")
     result.add(ext)
 
-proc findFiles*(runner: Runner, dir: string, extensions: seq[string],
-                allFlag: bool): seq[string] =
+proc findFiles*(
+    runner: Runner, dir: string, extensions: seq[string], allFlag: bool
+): seq[string] =
   ## NUL-delimited paths preserve embedded newlines. Failed discovery must
   ## never be mistaken for an empty tree.
   let args = buildFdArgs(extensions, allFlag) & @["--", ".", dir]
@@ -27,22 +28,20 @@ proc findFiles*(runner: Runner, dir: string, extensions: seq[string],
   let listing = res.output
   result = @[]
   for line in listing.split('\0'):
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
     result.add(line)
 
 proc isTextMimeType*(mime: string): bool =
   ## Mirrors the zsh original's (inverted) skip condition: true when mime
   ## starts with "text/" or is exactly "application/json" or
   ## "application/xml".
-  mime.startsWith("text/") or mime == "application/json" or
-    mime == "application/xml"
+  mime.startsWith("text/") or mime == "application/json" or mime == "application/xml"
 
 proc mimeType*(runner: Runner, path: string): string =
   let res = runner.capture("file", @["--brief", "--mime-type", "--", path])
   if res.exitCode != 0:
-    raise newException(
-      IOError, "Cannot classify '" & path & "': " & res.error.strip()
-    )
+    raise newException(IOError, "Cannot classify '" & path & "': " & res.error.strip())
   result = res.output.strip()
   if result.len == 0 or result.startsWith("cannot open") or result.startsWith("ERROR:"):
     raise newException(IOError, "Cannot classify '" & path & "': " & result)

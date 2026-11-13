@@ -80,8 +80,7 @@ suite "ax docker volume list run":
     check code == 0
     check content.contains("No volumes found.")
     check rec.calls.len == 1
-    check rec.calls[0].args == @["volume", "list",
-      "--format={{.Driver}}|{{.Name}}"]
+    check rec.calls[0].args == @["volume", "list", "--format={{.Driver}}|{{.Name}}"]
 
   test "contract: docker is queried for dangling volumes, rendered via table, unsorted":
     let dir = getTempDir() / "contract_get_docker_dangling_volumes"
@@ -89,9 +88,7 @@ suite "ax docker volume list run":
     createDir(dir)
     writeFakeExe(dir, "docker", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(
-      exitCode = 0, output = "local|vol-b\nlocal|vol-a\n"
-    )
+    let rec = newRecordingRunner(exitCode = 0, output = "local|vol-b\nlocal|vol-a\n")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -102,8 +99,8 @@ suite "ax docker volume list run":
     check code == 0
     check rec.calls.len == 2
     check rec.calls[0].cmd == "docker"
-    check rec.calls[0].args == @["volume", "list", "--filter=dangling=true",
-      "--format={{.Driver}}|{{.Name}}"]
+    check rec.calls[0].args ==
+      @["volume", "list", "--filter=dangling=true", "--format={{.Driver}}|{{.Name}}"]
     check rec.calls[1].cmd == "column"
     # Deliberately NOT sorted — the zsh original never pipes this listing
     # through `sort`, unlike the two image-listing functions.

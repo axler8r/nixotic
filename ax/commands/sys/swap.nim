@@ -10,7 +10,7 @@ let cmdSpec* = CommandSpec(
   kind: ckReport,
   summary: "per-process swap usage, highest first",
   usage: "ax sys swap [-o table|plain|json]",
-  dryRun: false
+  dryRun: false,
 )
 
 type SwapRow* = tuple[swapKb: int, pid: string, name: string]
@@ -41,19 +41,21 @@ proc readStatusFields*(path: string): tuple[swapKb: int, name: string] =
 proc collectSwapRows*(procDir: string): seq[SwapRow] =
   result = @[]
   for kind, path in walkDir(procDir):
-    if kind != pcDir: continue
+    if kind != pcDir:
+      continue
     let pid = path.extractFilename
-    if pid.len == 0 or not pid.allCharsInSet({'0' .. '9'}): continue
+    if pid.len == 0 or not pid.allCharsInSet({'0' .. '9'}):
+      continue
     let fields = readStatusFields(path / "status")
     if fields.swapKb > 0:
       result.add((fields.swapKb, pid, fields.name))
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  procDir: string = "/proc"
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    procDir: string = "/proc",
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax sys swap
@@ -70,11 +72,13 @@ Examples:
     ax sys swap"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var ctx = ctxFromEnv()
   for arg in args:
-    if arg == "--": break
+    if arg == "--":
+      break
     if arg == "--raw":
       ctx.output = omPlain
     else:
@@ -84,9 +88,13 @@ Examples:
   var swapRows = collectSwapRows(procDir)
   if swapRows.len == 0:
     info("No processes currently using swap.", errp)
-    if ctx.output != omJson: return 0
+    if ctx.output != omJson:
+      return 0
 
-  swapRows.sort(proc(a, b: SwapRow): int = cmp(b.swapKb, a.swapKb))
+  swapRows.sort(
+    proc(a, b: SwapRow): int =
+      cmp(b.swapKb, a.swapKb)
+  )
 
   var rows: seq[seq[string]] = @[]
   for r in swapRows:

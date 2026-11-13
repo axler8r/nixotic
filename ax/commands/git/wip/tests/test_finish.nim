@@ -8,8 +8,8 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath})
+  let p =
+    startProcess(findExe("git"), workingDir = dir, args = @args, options = {poUsePath})
   discard p.waitForExit()
   p.close()
 
@@ -25,7 +25,8 @@ proc initRepoOnStable(dir: string) =
 suite "ax git wip finish run":
   test "invalid arguments cannot inspect, checkout, or merge branches":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for args in @[@["extra"], @["--bogus"], @["--dry-run"], @["-n"]]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
@@ -85,7 +86,9 @@ suite "ax git wip finish run":
     removeFile(outPath)
     removeDir(dir)
     check code == 1
-    check content.contains("stable cannot be fast-forwarded to wip/diverged. Rebase onto stable first.")
+    check content.contains(
+      "stable cannot be fast-forwarded to wip/diverged. Rebase onto stable first."
+    )
 
   test "contract: full success fast-forwards stable and switches to it":
     let dir = mkTmpDir("complete_git_wip_success")
@@ -102,9 +105,12 @@ suite "ax git wip finish run":
     f.close()
     var branchOut: string
     block:
-      let p = startProcess(findExe("git"), workingDir = dir,
-                            args = @["symbolic-ref", "--short", "HEAD"],
-                            options = {poUsePath})
+      let p = startProcess(
+        findExe("git"),
+        workingDir = dir,
+        args = @["symbolic-ref", "--short", "HEAD"],
+        options = {poUsePath},
+      )
       branchOut = p.outputStream.readAll().strip()
       discard p.waitForExit()
       p.close()

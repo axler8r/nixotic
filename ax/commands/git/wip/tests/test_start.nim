@@ -11,8 +11,8 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath})
+  let p =
+    startProcess(findExe("git"), workingDir = dir, args = @args, options = {poUsePath})
   discard p.waitForExit()
   p.close()
 
@@ -30,28 +30,33 @@ suite "ax git wip start randomAlnum":
     let s = randomAlnum(7)
     check s.len == 7
     for c in s:
-      check c in {'A'..'Z', 'a'..'z', '0'..'9'}
+      check c in {'A' .. 'Z', 'a' .. 'z', '0' .. '9'}
 
 suite "ax git wip start generateWipBranchName":
   test "accepts the first candidate when nothing collides":
-    let name = generateWipBranchName(proc(n: string): bool = false)
+    let name = generateWipBranchName(
+      proc(n: string): bool =
+        false
+    )
     check name.startsWith("wip/")
     check name.len == "wip/".len + 8 + 1 + 7 # wip/ + YYYYMMDD + - + 7 chars
 
   test "retries past a collision":
     var calls = 0
-    let name = generateWipBranchName(proc(n: string): bool =
-      inc calls
-      calls < 3
+    let name = generateWipBranchName(
+      proc(n: string): bool =
+        inc calls
+        calls < 3
     )
     check calls == 3
     check name.startsWith("wip/")
 
   test "gives up after 10 collisions, returning empty":
     var calls = 0
-    let name = generateWipBranchName(proc(n: string): bool =
-      inc calls
-      true
+    let name = generateWipBranchName(
+      proc(n: string): bool =
+        inc calls
+        true
     )
     check calls == 10
     check name == ""
@@ -59,13 +64,16 @@ suite "ax git wip start generateWipBranchName":
 suite "ax git wip start run":
   test "queued status failure is not a clean worktree and cannot create a branch":
     let dir = mkTmpDir("ax_wip_start_status_failure")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
-    let rec = newRecordingRunner(replies = @[
-      CommandResult(exitCode: 0),
-      CommandResult(exitCode: 0),
-      CommandResult(exitCode: 128, error: "status query failed")
-    ])
+    let rec = newRecordingRunner(
+      replies = @[
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 0),
+        CommandResult(exitCode: 128, error: "status query failed"),
+      ]
+    )
     let outPath = dir / "out"
     let f = open(outPath, fmWrite)
     var code: int
@@ -83,7 +91,8 @@ suite "ax git wip start run":
 
   test "invalid arguments cannot inspect or create branches":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for args in @[@["extra"], @["--bogus"], @["--dry-run"], @["-n"]]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
@@ -157,9 +166,12 @@ suite "ax git wip start run":
     f.close()
     var branchOut: string
     block:
-      let p = startProcess(findExe("git"), workingDir = dir,
-                            args = @["symbolic-ref", "--short", "HEAD"],
-                            options = {poUsePath})
+      let p = startProcess(
+        findExe("git"),
+        workingDir = dir,
+        args = @["symbolic-ref", "--short", "HEAD"],
+        options = {poUsePath},
+      )
       branchOut = p.outputStream.readAll().strip()
       discard p.waitForExit()
       p.close()

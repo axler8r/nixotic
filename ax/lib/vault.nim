@@ -10,11 +10,11 @@ import ./process
 import ./output
 
 type
-  MapperProbe* = proc (mapperName: string): bool
+  MapperProbe* = proc(mapperName: string): bool
 
   VaultRef* = object
-    vaultFile*: string  ## absolute path to the vault's backing file
-    vaultName*: string  ## bare name, e.g. "mydata"
+    vaultFile*: string ## absolute path to the vault's backing file
+    vaultName*: string ## bare name, e.g. "mydata"
     mapperName*: string ## dm-crypt mapper name; always equals vaultName
 
 proc resolveVault*(input: string): VaultRef =
@@ -27,8 +27,10 @@ proc resolveVault*(input: string): VaultRef =
     result.vaultFile = absolutePath(expandTilde(input))
     let (_, name, _) = splitFile(result.vaultFile)
     result.vaultName =
-      if name.len > 0 and name[0] == '.': name[1 .. ^1]
-      else: name
+      if name.len > 0 and name[0] == '.':
+        name[1 .. ^1]
+      else:
+        name
   else:
     result.vaultName = input
     result.vaultFile = getHomeDir() / "Vaults" / ("." & input & ".vault")
@@ -42,7 +44,8 @@ proc mapperPresent*(mapperName: string): bool =
     discard getFileInfo("/dev/mapper" / mapperName)
     true
   except OSError as e:
-    if e.errorCode == ENOENT: return false
+    if e.errorCode == ENOENT:
+      return false
     raise
 
 proc closeVault*(runner: Runner, mapperName: string, errp: File): bool =
@@ -51,11 +54,15 @@ proc closeVault*(runner: Runner, mapperName: string, errp: File): bool =
   try:
     if runner.runInherited("sudo", @["cryptsetup", "close", mapperName]) == 0:
       return true
-    error("Could not close vault mapping: " & mapperName &
-          "; backing file retained", errp)
+    error(
+      "Could not close vault mapping: " & mapperName & "; backing file retained", errp
+    )
   except CatchableError as e:
-    error("Could not close vault mapping: " & mapperName & ": " & e.msg &
-          "; backing file retained", errp)
+    error(
+      "Could not close vault mapping: " & mapperName & ": " & e.msg &
+        "; backing file retained",
+      errp,
+    )
   false
 
 proc backingFileIdle*(runner: Runner, vaultFile: string, errp: File): bool =
@@ -63,8 +70,10 @@ proc backingFileIdle*(runner: Runner, vaultFile: string, errp: File): bool =
   ## device can be held by another mapping/name or by a non-crypt consumer.
   ## This is a point-in-time check, not a lock against concurrent opens.
   try:
-    let probe = runner.capture("sudo", @["-n", "losetup", "--associated",
-        vaultFile, "--noheadings", "--output", "NAME"])
+    let probe = runner.capture(
+      "sudo",
+      @["-n", "losetup", "--associated", vaultFile, "--noheadings", "--output", "NAME"],
+    )
     if probe.exitCode != 0:
       error("Cannot inspect vault loop devices; refusing to modify backing file", errp)
       return false

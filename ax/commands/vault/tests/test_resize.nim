@@ -113,12 +113,15 @@ suite "ax vault resize run":
     let vaultFile = dir / ".mydata.vault"
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "stat", "echo 5000000000")
-    writeFakeExe(dir, "numfmt", """
+    writeFakeExe(
+      dir, "numfmt",
+      """
 case "$1" in
   --from=iec) echo 1000000000 ;;
   --to=iec) echo 5G ;;
 esac
-""")
+""",
+    )
     for exe in [
       "fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"
     ]:
@@ -142,8 +145,9 @@ esac
     writeFile(vaultFile, "x")
     writeFakeExe(dir, "stat", "echo 100000000")
     writeFakeExe(dir, "numfmt", "exit 1")
-    for exe in ["fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid",
-        "sudo", "losetup"]:
+    for exe in [
+      "fallocate", "cryptsetup", "resize2fs", "e2fsck", "blkid", "sudo", "losetup"
+    ]:
       writeFakeExe(dir, exe, "exit 0")
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
@@ -171,14 +175,18 @@ esac
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
     writeFakeExe(dir, "losetup", "exit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
   blkid) echo btrfs ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -211,7 +219,10 @@ esac
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
     writeFakeExe(dir, "losetup", "exit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
@@ -219,7 +230,8 @@ case "$1" in
   e2fsck) exit 1 ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -231,7 +243,8 @@ esac
     removeDir(dir)
     check code == 0
     check content.contains("Vault resized successfully")
-    check calls.len == 10 # two loop probes, preflight open/blkid/close, growth open/resize/fsck/resize2fs/close
+    check calls.len == 10
+      # two loop probes, preflight open/blkid/close, growth open/resize/fsck/resize2fs/close
 
   test "characterization: e2fsck exit code 2 (real error) aborts and re-closes the vault":
     let dir = getTempDir() / "char_resize_vault_fsck_error"
@@ -248,7 +261,10 @@ esac
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
     writeFakeExe(dir, "losetup", "exit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
@@ -256,7 +272,8 @@ case "$1" in
   e2fsck) exit 2 ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -285,14 +302,18 @@ esac
     writeFakeExe(dir, "e2fsck", "exit 0")
     writeFakeExe(dir, "blkid", "exit 0")
     writeFakeExe(dir, "losetup", "exit 0")
-    writeFakeExe(dir, "sudo", """
+    writeFakeExe(
+      dir,
+      "sudo",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1" in
   blkid) echo ext4 ;;
   *) exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int

@@ -9,8 +9,8 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath})
+  let p =
+    startProcess(findExe("git"), workingDir = dir, args = @args, options = {poUsePath})
   discard p.waitForExit()
   p.close()
 
@@ -26,19 +26,23 @@ proc initRepoOnStable(dir: string) =
 suite "ax git wip drop run":
   test "leading and trailing terminators preserve the branch being deleted":
     let dir = mkTmpDir("ax_wip_drop_terminator")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     for args in @[@["--", "wip/test"], @["wip/test", "--"]]:
-      let rec = newRecordingRunner(replies = @[
-        CommandResult(exitCode: 0),
-        CommandResult(exitCode: 0),
-        CommandResult(exitCode: 0),
-        CommandResult(exitCode: 0, output: "stable\n"),
-        CommandResult(exitCode: 0),
-        CommandResult(exitCode: 0)
-      ])
+      let rec = newRecordingRunner(
+        replies = @[
+          CommandResult(exitCode: 0),
+          CommandResult(exitCode: 0),
+          CommandResult(exitCode: 0),
+          CommandResult(exitCode: 0, output: "stable\n"),
+          CommandResult(exitCode: 0),
+          CommandResult(exitCode: 0),
+        ]
+      )
       withPath(dir):
         check run(args, f, f, rec.runner) == 0
       require rec.calls.len == 6
@@ -46,9 +50,14 @@ suite "ax git wip drop run":
 
   test "invalid arguments cannot inspect or delete branches":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
-    for args in @[@["wip/test", "extra"], @["--force", "wip/test"],
-                  @["--dry-run", "wip/test"], @["-n", "wip/test"]]:
+    defer:
+      f.close()
+    for args in @[
+      @["wip/test", "extra"],
+      @["--force", "wip/test"],
+      @["--dry-run", "wip/test"],
+      @["-n", "wip/test"],
+    ]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
       check rec.calls.len == 0
@@ -162,10 +171,12 @@ suite "ax git wip drop run":
     f.close()
     var branchExists = true
     block:
-      let p = startProcess(findExe("git"), workingDir = dir,
-                            args = @["show-ref", "--verify", "--quiet",
-                                     "refs/heads/wip/merged"],
-                            options = {poUsePath})
+      let p = startProcess(
+        findExe("git"),
+        workingDir = dir,
+        args = @["show-ref", "--verify", "--quiet", "refs/heads/wip/merged"],
+        options = {poUsePath},
+      )
       branchExists = p.waitForExit() == 0
       p.close()
     setCurrentDir(saved)

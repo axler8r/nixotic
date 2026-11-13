@@ -12,15 +12,22 @@ let cmdSpec* = CommandSpec(
   summary: "fetch, fsck, and gc git repositories in parallel",
   usage: "ax git repo optimize [--log <path>] [dir...]",
   args: @[
-    ArgSpec(name: "dir", required: false, variadic: true,
-            description: "directories to optimise (default: one per line on stdin)")
+    ArgSpec(
+      name: "dir",
+      required: false,
+      variadic: true,
+      description: "directories to optimise (default: one per line on stdin)",
+    )
   ],
   flags: @[
-    FlagSpec(long: "log", takesValue: true,
-             description: "write a GNU parallel job log to this path")
+    FlagSpec(
+      long: "log",
+      takesValue: true,
+      description: "write a GNU parallel job log to this path",
+    )
   ],
   deps: @["git", "parallel"],
-  dryRun: false
+  dryRun: false,
 )
 
 const usage = """Usage: ax git repo optimize [--log <path>] [dir...]
@@ -40,7 +47,8 @@ Examples:
     ax git repo optimize --log /tmp/gc.log ~/Projects/*/
     ls -d ~/Projects/*/ | ax git repo optimize"""
 
-const gcCommand = "git -C {} fetch --prune && git -C {} fsck --full && " &
+const gcCommand =
+  "git -C {} fetch --prune && git -C {} fsck --full && " &
   "git -C {} reflog expire --expire=90.days.ago && git -C {} gc --prune=90.days.ago"
 
 proc filterGitDirs*(dirs: seq[string]): seq[string] =
@@ -53,19 +61,21 @@ proc filterGitDirs*(dirs: seq[string]): seq[string] =
       result.add(dir)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  inp: File = stdin
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    inp: File = stdin,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine(usage)
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  if not checkDeps(["git", "parallel"], errp): return 2
+  if not checkDeps(["git", "parallel"], errp):
+    return 2
 
   var logPath = ""
   var dirs: seq[string] = @[]
@@ -88,8 +98,13 @@ proc run*(
     case arg
     of "--log":
       inc i
-      let next = if i < args.len: args[i] else: ""
-      if not requireArg(next, "log path", errp): return 64
+      let next =
+        if i < args.len:
+          args[i]
+        else:
+          ""
+      if not requireArg(next, "log path", errp):
+        return 64
       logPath = next
     of "-h", "--help":
       outp.writeLine(usage)
@@ -104,7 +119,9 @@ proc run*(
 
   dirs = resolveItems(dirs, inp)
   if dirs.len == 0:
-    error("Missing required argument: dir (pass directories or pipe them on stdin)", errp)
+    error(
+      "Missing required argument: dir (pass directories or pipe them on stdin)", errp
+    )
     return 64
 
   let gitDirs = filterGitDirs(dirs)

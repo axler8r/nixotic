@@ -13,19 +13,30 @@ let cmdSpec* = CommandSpec(
   summary: "count words across text files, per extension",
   usage: "ax fs words [-e ext] [--top count] [--all] [dir]",
   args: @[
-    ArgSpec(name: "dir", required: false,
-            description: "target directory (default: current directory)")
+    ArgSpec(
+      name: "dir",
+      required: false,
+      description: "target directory (default: current directory)",
+    )
   ],
   flags: @[
-    FlagSpec(long: "", short: "e", takesValue: true,
-             description: "only count files with this extension (repeatable)"),
-    FlagSpec(long: "top", takesValue: true,
-             description: "show top N extensions (default: 15)"),
-    FlagSpec(long: "all", takesValue: false,
-             description: "include hidden files and ignored files")
+    FlagSpec(
+      long: "",
+      short: "e",
+      takesValue: true,
+      description: "only count files with this extension (repeatable)",
+    ),
+    FlagSpec(
+      long: "top", takesValue: true, description: "show top N extensions (default: 15)"
+    ),
+    FlagSpec(
+      long: "all",
+      takesValue: false,
+      description: "include hidden files and ignored files",
+    ),
   ],
   deps: @["fd", "file"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -63,21 +74,25 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
     elif arg.startsWith("-e") and arg.len > 2:
       attachedValue = true
       value = arg[2 .. ^1]
-      if value[0] in {'=', ':'}: value = value[1 .. ^1]
+      if value[0] in {'=', ':'}:
+        value = value[1 .. ^1]
       arg = "-e"
     elif arg in ["-e", "--top"]:
       inc i
-      if i < args.len: value = args[i]
+      if i < args.len:
+        value = args[i]
     case arg
-    of "--all": result.allFlag = true
-    of "--raw": result.raw = true
+    of "--all":
+      result.allFlag = true
+    of "--raw":
+      result.raw = true
     of "-e":
       if value.strip().len == 0 or (not attachedValue and value.startsWith("-")):
         result.unknownOption = "-e requires a nonempty extension"
         return
       result.extensions.add(value)
     of "--top":
-      if value.len == 0 or not value.allCharsInSet({'0'..'9'}):
+      if value.len == 0 or not value.allCharsInSet({'0' .. '9'}):
         result.unknownOption = "--top requires a positive integer"
         return
       try:
@@ -96,7 +111,10 @@ proc extractExtension*(path: string): string =
   ## Mirrors the zsh original's `${file:e}`: the text after the last "." in
   ## the basename, "" if there isn't one.
   let ext = splitFile(path).ext
-  if ext.len > 0: ext[1 .. ^1] else: ""
+  if ext.len > 0:
+    ext[1 .. ^1]
+  else:
+    ""
 
 proc countWords*(path: string): int =
   ## Mirrors `wc -w < "$file"`: the number of whitespace-separated tokens.
@@ -106,10 +124,10 @@ proc countWords*(path: string): int =
       inc result
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax fs words [opts] [directory]
@@ -136,7 +154,8 @@ Examples:
     ax fs words --all"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
@@ -144,11 +163,14 @@ Examples:
     return 64
 
   let dir = if parsed.directory.len > 0: parsed.directory else: "."
-  if not requireDir(dir, errp): return 1
-  if not checkDeps(["fd", "file"], errp): return 2
+  if not requireDir(dir, errp):
+    return 1
+  if not checkDeps(["fd", "file"], errp):
+    return 2
 
   var ctx = ctxFromEnv()
-  if parsed.raw: ctx.output = omPlain
+  if parsed.raw:
+    ctx.output = omPlain
   var files: seq[string]
   try:
     files = findFiles(runner, dir, parsed.extensions, parsed.allFlag)
@@ -157,10 +179,10 @@ Examples:
     return 1
   if files.len == 0:
     warn("No text files found in '" & dir & "'", errp)
-    if ctx.output != omJson: return 0
-    return render(
-      @["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp
-    )
+    if ctx.output != omJson:
+      return 0
+    return
+      render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
 
   var extWords = initTable[string, int]()
   var extFiles = initTable[string, int]()
@@ -171,14 +193,16 @@ Examples:
     var words: int
     try:
       let mime = mimeType(runner, file)
-      if not isTextMimeType(mime): continue
+      if not isTextMimeType(mime):
+        continue
       words = countWords(file)
     except CatchableError as e:
       error("Cannot count '" & file & "': " & e.msg, errp)
       return 1
 
     var ext = extractExtension(file)
-    if ext.len == 0: ext = "(no ext)"
+    if ext.len == 0:
+      ext = "(no ext)"
 
     extWords[ext] = extWords.getOrDefault(ext, 0) + words
     extFiles[ext] = extFiles.getOrDefault(ext, 0) + 1
@@ -187,22 +211,28 @@ Examples:
 
   if totalWords == 0:
     warn("No words found in '" & dir & "'", errp)
-    if ctx.output != omJson: return 0
-    return render(
-      @["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp
-    )
+    if ctx.output != omJson:
+      return 0
+    return
+      render(@["Extension", "Words", "Files", "Share"], @[], ctx, runner, outp, errp)
 
   var extList: seq[string] = @[]
   for ext in extWords.keys:
     extList.add(ext)
-  extList.sort(proc(a, b: string): int =
-    let byCount = cmp(extWords[b], extWords[a])
-    if byCount != 0: byCount else: cmp(a, b))
+  extList.sort(
+    proc(a, b: string): int =
+      let byCount = cmp(extWords[b], extWords[a])
+      if byCount != 0:
+        byCount
+      else:
+        cmp(a, b)
+  )
 
   var rows: seq[seq[string]] = @[]
   var shown = 0
   for ext in extList:
-    if shown >= parsed.topN: break
+    if shown >= parsed.topN:
+      break
     let words = extWords[ext]
     let pct = words * 100 div totalWords
     rows.add @["." & ext, insertSep($words, ','), $extFiles[ext], $pct & "%"]
@@ -212,8 +242,8 @@ Examples:
 
   if ctx.output == omTable:
     outp.writeLine("")
-  let renderCode = render(@["Extension", "Words", "Files", "Share"], rows, ctx,
-                          runner, outp, errp)
+  let renderCode =
+    render(@["Extension", "Words", "Files", "Share"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
   return renderCode

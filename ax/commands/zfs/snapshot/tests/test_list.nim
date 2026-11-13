@@ -115,9 +115,10 @@ suite "ax zfs snapshot list run":
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @[
-      "list -r -t snapshot -S creation -o name,used,referenced,creation -H dpool/data"
-    ]
+    check calls ==
+      @[
+        "list -r -t snapshot -S creation -o name,used,referenced,creation -H dpool/data"
+      ]
 
   test "contract: zfs list receives the sort/format flags, no dataset":
     # `zfs` is not a nativeBuildInput of the test sandbox (flake.nix), so
@@ -139,9 +140,11 @@ suite "ax zfs snapshot list run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "zfs"
-    check rec.calls[0].args == @["list", "-r", "-t", "snapshot", "-S",
-                                  "creation", "-o",
-                                  "name,used,referenced,creation", "-H"]
+    check rec.calls[0].args ==
+      @[
+        "list", "-r", "-t", "snapshot", "-S", "creation", "-o",
+        "name,used,referenced,creation", "-H",
+      ]
 
   test "contract: zfs list appends the dataset positional when given":
     let dir = getTempDir() / "contract_get_zfs_snapshots_dataset"
@@ -158,7 +161,8 @@ suite "ax zfs snapshot list run":
     removeDir(dir)
     check code == 0
     check rec.calls.len == 1
-    check rec.calls[0].args == @["list", "-r", "-t", "snapshot", "-S",
-                                  "creation", "-o",
-                                  "name,used,referenced,creation", "-H",
-                                  "dpool/data"]
+    check rec.calls[0].args ==
+      @[
+        "list", "-r", "-t", "snapshot", "-S", "creation", "-o",
+        "name,used,referenced,creation", "-H", "dpool/data",
+      ]

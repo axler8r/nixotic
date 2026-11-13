@@ -12,11 +12,14 @@ let cmdSpec* = CommandSpec(
   summary: "list local Docker images",
   usage: "ax docker image list [--dangling]",
   flags: @[
-    FlagSpec(long: "dangling", takesValue: false,
-             description: "only dangling images (untagged, unreferenced)")
+    FlagSpec(
+      long: "dangling",
+      takesValue: false,
+      description: "only dangling images (untagged, unreferenced)",
+    )
   ],
   deps: @["docker"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc parseDockerList*(output: string): seq[string] =
@@ -26,14 +29,15 @@ proc parseDockerList*(output: string): seq[string] =
   ## volume commands.
   result = @[]
   for line in output.splitLines():
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
     result.add(line)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax docker image list [--dangling]
@@ -53,7 +57,8 @@ Examples:
     ax docker image list -o json | jq '.[].repository'"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var ctx = ctxFromEnv()
   var dangling = false
@@ -63,21 +68,22 @@ Examples:
     elif arg == "--dangling":
       dangling = true
 
-  if not checkDeps(["docker"], errp): return 2
+  if not checkDeps(["docker"], errp):
+    return 2
 
   let format =
     if dangling:
       "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.Size}}|{{.ID}}"
     else:
       "--format={{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.ID}}"
-  let filter =
-    if dangling: "--filter=dangling=true" else: "--filter=dangling=false"
+  let filter = if dangling: "--filter=dangling=true" else: "--filter=dangling=false"
   let header =
-    if dangling: @["Repository", "Tag", "Created", "Size", "ID"]
-    else: @["Repository", "Tag", "Created", "ID"]
+    if dangling:
+      @["Repository", "Tag", "Created", "Size", "ID"]
+    else:
+      @["Repository", "Tag", "Created", "ID"]
 
-  let listing = runner.capture(
-    "docker", @["image", "list", format, filter])
+  let listing = runner.capture("docker", @["image", "list", format, filter])
   if listing.exitCode != 0:
     error("Cannot list Docker images: " & listing.error.strip(), errp)
     return 1

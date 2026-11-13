@@ -12,13 +12,13 @@ let cmdSpec* = CommandSpec(
   summary: "tag HEAD from its commit type: v<MAJOR>.<MINOR>.0+<timestamp>",
   usage: "ax git tag create [-n]",
   deps: @["git"],
-  dryRun: true
+  dryRun: true,
 )
 
 proc extractCommitType*(subject: string): string =
   ## Conventional commits: type(scope)!: subject; scope and ! are optional.
   var i = 0
-  while i < subject.len and subject[i] in {'a'..'z'}:
+  while i < subject.len and subject[i] in {'a' .. 'z'}:
     inc i
   if i == 0:
     return ""
@@ -41,17 +41,18 @@ proc parseLastTag*(tag: string): tuple[major, minor: int, valid: bool] =
     return (0, 0, false)
   let rest = tag[1 .. ^1]
   let plusIdx = rest.find('+')
-  if plusIdx == -1: return (0, 0, false)
+  if plusIdx == -1:
+    return (0, 0, false)
   let versionPart = rest[0 ..< plusIdx]
   let suffix = rest[plusIdx + 1 .. ^1]
-  if suffix.len != 14 or not suffix.allCharsInSet({'0'..'9'}):
+  if suffix.len != 14 or not suffix.allCharsInSet({'0' .. '9'}):
     return (0, 0, false)
   let segments = versionPart.split(".")
   if segments.len != 3 or segments[2] != "0":
     return (0, 0, false)
-  if segments[0].len == 0 or not segments[0].allCharsInSet({'0'..'9'}):
+  if segments[0].len == 0 or not segments[0].allCharsInSet({'0' .. '9'}):
     return (0, 0, false)
-  if segments[1].len == 0 or not segments[1].allCharsInSet({'0'..'9'}):
+  if segments[1].len == 0 or not segments[1].allCharsInSet({'0' .. '9'}):
     return (0, 0, false)
   try:
     (parseInt(segments[0]), parseInt(segments[1]), true)
@@ -59,10 +60,10 @@ proc parseLastTag*(tag: string): tuple[major, minor: int, valid: bool] =
     (0, 0, false)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax git tag create [-n]
@@ -82,14 +83,16 @@ Requirements:
   - HEAD not already tagged"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   # The driver consumes -n and passes it down as AX_DRY_RUN; a literal
   # --dry-run still works for direct libexec invocation.
   let dryRun = ctxFromEnv().dryRun or "--dry-run" in args or "-n" in args
 
   let repoCode = requireGitRepo(runner, errp)
-  if repoCode != 0: return repoCode
+  if repoCode != 0:
+    return repoCode
 
   let existingResult = runner.capture("git", @["tag", "--points-at", "HEAD"])
   if existingResult.exitCode != 0:
@@ -112,15 +115,15 @@ Requirements:
 
   var tier: string
   case commitType
-  of "feat": tier = "major"
-  of "refactor", "defect", "dep", "sec": tier = "minor"
+  of "feat":
+    tier = "major"
+  of "refactor", "defect", "dep", "sec":
+    tier = "minor"
   else:
     success("No tag needed for type: " & commitType & ".", errp)
     return 0
 
-  let tagList = runner.capture(
-    "git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"]
-  )
+  let tagList = runner.capture("git", @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"])
   if tagList.exitCode != 0:
     error("Cannot list previous tags: " & tagList.error.strip(), errp)
     return 1
@@ -128,13 +131,14 @@ Requirements:
   var minor = 0
   for line in tagList.output.splitLines():
     let parsed = parseLastTag(line)
-    if parsed.valid and (parsed.major > major or
-        (parsed.major == major and parsed.minor > minor)):
+    if parsed.valid and
+        (parsed.major > major or (parsed.major == major and parsed.minor > minor)):
       major = parsed.major
       minor = parsed.minor
 
-  if (tier == "major" and major == high(int)) or
-      (tier == "minor" and minor == high(int)):
+  if (tier == "major" and major == high(int)) or (
+    tier == "minor" and minor == high(int)
+  ):
     error("Tag version exceeds supported integer range.", errp)
     return 1
 

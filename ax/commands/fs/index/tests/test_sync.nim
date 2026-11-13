@@ -6,12 +6,14 @@ suite "ax fs index scan safety":
     let dir = getTempDir() / "test_index_missing_directory"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     let index = dir / "_TRACK"
     let original = "[x] important.txt\n"
     writeFile(index, original)
     let f = open(dir / "output.txt", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     check run(@["--file", index, dir / "missing"], f, f) == 1
     check readFile(index) == original
 
@@ -19,11 +21,13 @@ suite "ax fs index scan safety":
     let dir = getTempDir() / "test_index_invalid_arguments"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     let index = dir / "_TRACK"
     writeFile(index, "[x] keep\n")
     let f = open(dir / "output.txt", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     check run(@["--file", index, "--dryrun"], f, f) == 64
     check run(@["--file", index, dir, dir], f, f) == 64
     check readFile(index) == "[x] keep\n"

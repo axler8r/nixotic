@@ -16,7 +16,7 @@ type
     description*: string
 
   FlagSpec* = object
-    long*: string  ## without the leading "--"
+    long*: string ## without the leading "--"
     short*: string ## without the leading "-"; "" for none
     takesValue*: bool
     description*: string
@@ -29,12 +29,12 @@ type
     specVersion*: int
     path*: seq[string] ## e.g. @["vault", "mount"]
     kind*: CommandKind
-    summary*: string   ## one line, lowercase first word, no trailing period
-    usage*: string     ## e.g. "ax vault mount <name> [mountpoint]"
+    summary*: string ## one line, lowercase first word, no trailing period
+    usage*: string ## e.g. "ax vault mount <name> [mountpoint]"
     args*: seq[ArgSpec]
     flags*: seq[FlagSpec]
     deps*: seq[string] ## the external commands checkDeps guards
-    dryRun*: bool      ## true when the command implements -n itself
+    dryRun*: bool ## true when the command implements -n itself
 
 const specVersionCurrent* = 1
 
@@ -48,22 +48,26 @@ proc toJson*(s: CommandSpec): JsonNode =
     "args": newJArray(),
     "flags": newJArray(),
     "deps": s.deps,
-    "dryRun": s.dryRun
+    "dryRun": s.dryRun,
   }
   for a in s.args:
     result["args"].add %*{
-      "name": a.name, "required": a.required,
-      "variadic": a.variadic, "description": a.description
+      "name": a.name,
+      "required": a.required,
+      "variadic": a.variadic,
+      "description": a.description,
     }
   for f in s.flags:
     result["flags"].add %*{
-      "long": f.long, "short": f.short,
-      "takesValue": f.takesValue, "description": f.description
+      "long": f.long,
+      "short": f.short,
+      "takesValue": f.takesValue,
+      "description": f.description,
     }
 
 proc validPathSegment*(word: string): bool =
-  word.len > 0 and word[0] in {'a'..'z'} and
-    word.allCharsInSet({'a'..'z', '0'..'9'})
+  word.len > 0 and word[0] in {'a' .. 'z'} and
+    word.allCharsInSet({'a' .. 'z', '0' .. '9'})
 
 proc invalidSpec(message: string) {.noreturn.} =
   raise newException(ValueError, "invalid command spec: " & message)
@@ -92,7 +96,7 @@ proc validateSpec*(s: CommandSpec) =
     invalidSpec("summary must be a nonempty single line")
   let invocation = "ax " & s.path.join(" ")
   if not singleLine(s.usage) or
-     not (s.usage == invocation or s.usage.startsWith(invocation & " ")):
+      not (s.usage == invocation or s.usage.startsWith(invocation & " ")):
     invalidSpec("usage must begin with '" & invocation & "'")
 
   var argNames, longNames, shortNames, deps: seq[string]
@@ -110,18 +114,21 @@ proc validateSpec*(s: CommandSpec) =
     if f.long.len == 0 and f.short.len == 0:
       invalidSpec("flag needs a long or short name")
     if f.long.len > 0:
-      if f.long[0] notin {'a'..'z'} or
-         not f.long.allCharsInSet({'a'..'z', '0'..'9', '-'}) or
-         f.long.endsWith("-") or f.long in longNames:
+      if f.long[0] notin {'a' .. 'z'} or
+          not f.long.allCharsInSet({'a' .. 'z', '0' .. '9', '-'}) or f.long.endsWith(
+        "-"
+      ) or f.long in longNames:
         invalidSpec("invalid or duplicate long flag '" & f.long & "'")
-      if f.long in ["output", "raw", "dry-run", "color", "quiet", "verbose",
-                    "help", "version", "ax-spec"]:
+      if f.long in [
+        "output", "raw", "dry-run", "color", "quiet", "verbose", "help", "version",
+        "ax-spec",
+      ]:
         invalidSpec("reserved global flag --" & f.long)
       longNames.add f.long
     if f.short.len > 0:
       if f.short.len != 1 or
-         not f.short.allCharsInSet({'a'..'z', 'A'..'Z', '0'..'9'}) or
-         f.short in shortNames:
+          not f.short.allCharsInSet({'a' .. 'z', 'A' .. 'Z', '0' .. '9'}) or
+          f.short in shortNames:
         invalidSpec("invalid or duplicate short flag '" & f.short & "'")
       if f.short in ["o", "n", "q", "v", "h", "V"]:
         invalidSpec("reserved global flag -" & f.short)
@@ -151,8 +158,14 @@ proc field(n: JsonNode, name: string, kind: JsonNodeKind): JsonNode =
 proc commandSpecFromJson*(n: JsonNode): CommandSpec =
   ## JsonNode getters silently default on wrong kinds. Check the entire
   ## schema explicitly before decoding, then validate its semantics.
-  requireFields(n, ["specVersion", "path", "kind", "summary", "usage",
-                    "args", "flags", "deps", "dryRun"], "spec")
+  requireFields(
+    n,
+    [
+      "specVersion", "path", "kind", "summary", "usage", "args", "flags", "deps",
+      "dryRun",
+    ],
+    "spec",
+  )
   let version = field(n, "specVersion", JInt).getBiggestInt
   if version != specVersionCurrent:
     invalidSpec("unsupported specVersion " & $version)
@@ -172,22 +185,23 @@ proc commandSpecFromJson*(n: JsonNode): CommandSpec =
       name: field(a, "name", JString).getStr,
       required: field(a, "required", JBool).getBool,
       variadic: field(a, "variadic", JBool).getBool,
-      description: field(a, "description", JString).getStr)
+      description: field(a, "description", JString).getStr,
+    )
   for f in field(n, "flags", JArray):
     requireFields(f, ["long", "short", "takesValue", "description"], "flag")
     result.flags.add FlagSpec(
       long: field(f, "long", JString).getStr,
       short: field(f, "short", JString).getStr,
       takesValue: field(f, "takesValue", JBool).getBool,
-      description: field(f, "description", JString).getStr)
+      description: field(f, "description", JString).getStr,
+    )
   for d in field(n, "deps", JArray):
     requireKind(d, JString, "dependency")
     result.deps.add d.getStr
   result.dryRun = field(n, "dryRun", JBool).getBool
   validateSpec(result)
 
-proc validateArgs*(s: CommandSpec, args: openArray[string],
-                   errp: File = stderr): bool =
+proc validateArgs*(s: CommandSpec, args: openArray[string], errp: File = stderr): bool =
   ## Run after a command's help branch and before dependencies or effects.
   ## Accept --long=value and the existing -eVALUE/-e=VALUE/-e:VALUE forms;
   ## boolean short flags are not clustered. `--` ends option recognition.
@@ -227,7 +241,8 @@ proc validateArgs*(s: CommandSpec, args: openArray[string],
           attached = token.len > 2
           if attached:
             value = token[2 .. ^1]
-            if value[0] in {'=', ':'}: value = value[1 .. ^1]
+            if value[0] in {'=', ':'}:
+              value = value[1 .. ^1]
           break
       if found < 0:
         error("Unknown option: " & token, errp)
@@ -266,8 +281,9 @@ proc validateArgs*(s: CommandSpec, args: openArray[string],
       return false
   true
 
-proc validateInvocation*(s: CommandSpec, args: openArray[string],
-                         dryRun: bool, errp: File = stderr): bool =
+proc validateInvocation*(
+    s: CommandSpec, args: openArray[string], dryRun: bool, errp: File = stderr
+): bool =
   ## Help must bypass both missing-argument and unsupported-dry-run checks.
   ## Match run*'s help-first contract; --help after `--` is only data.
   if args.len > 0 and args[0] in ["-h", "--help"]:

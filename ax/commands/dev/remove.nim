@@ -11,10 +11,11 @@ let cmdSpec* = CommandSpec(
   summary: "remove the dev environment from the current directory",
   usage: "ax dev remove [--gc]",
   flags: @[
-    FlagSpec(long: "gc", takesValue: false,
-             description: "run nix store gc after removal")
+    FlagSpec(
+      long: "gc", takesValue: false, description: "run nix store gc after removal"
+    )
   ],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -40,11 +41,11 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       return result
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  inp: File = stdin
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    inp: File = stdin,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax dev remove [opts]
@@ -64,7 +65,8 @@ Examples:
     ax dev remove --gc   # Remove and collect unreachable Nix store paths"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
     error("Unknown option: " & parsed.unknownOption, errp)
@@ -73,7 +75,8 @@ Examples:
     error("Unexpected argument: " & parsed.unexpectedArg, errp)
     return 64
 
-  if parsed.gc and not checkDeps(["nix"], errp): return 2
+  if parsed.gc and not checkDeps(["nix"], errp):
+    return 2
 
   # Discover the entire post-order deletion plan before removing anything.
   # In particular, Nim's removeDir traverses a top-level directory symlink.
@@ -81,7 +84,8 @@ Examples:
   proc collect(path: string) =
     let kind = getFileInfo(path, followSymlink = false).kind
     if access(parentDir(absolutePath(path)).cstring, W_OK or X_OK) != 0:
-      raise newException(IOError, "Cannot remove '" & path & "': parent is not writable")
+      raise
+        newException(IOError, "Cannot remove '" & path & "': parent is not writable")
     if kind == pcDir:
       for _, child in walkDir(path, checkDir = true):
         collect(child)
@@ -94,7 +98,8 @@ Examples:
     for path in ["flake.nix", ".envrc", ".direnv"]:
       var st: Stat
       if lstat(path.cstring, st) != 0:
-        if errno == ENOENT: continue
+        if errno == ENOENT:
+          continue
         raiseOSError(osLastError(), path)
       if path == ".direnv":
         if not S_ISDIR(st.st_mode):
@@ -109,8 +114,7 @@ Examples:
     return 1
 
   if not confirm(
-    "Remove dev environment in " & lastPathPart(getCurrentDir()) & "?",
-    inp, outp
+    "Remove dev environment in " & lastPathPart(getCurrentDir()) & "?", inp, outp
   ):
     return 0
 
@@ -123,9 +127,7 @@ Examples:
       else:
         removeFile(item.path)
       if item.path in ["flake.nix", ".envrc", ".direnv"]:
-        outp.writeLine(
-          "Removed " & item.path & (if item.directory: "/" else: "")
-        )
+        outp.writeLine("Removed " & item.path & (if item.directory: "/" else: ""))
   except IOError, OSError:
     error("Removal failed: " & getCurrentExceptionMsg(), errp)
     return 1

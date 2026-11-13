@@ -14,8 +14,8 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath})
+  let p =
+    startProcess(findExe("git"), workingDir = dir, args = @args, options = {poUsePath})
   let code = p.waitForExit()
   p.close()
   doAssert code == 0, "git fixture failed: " & $(@args)
@@ -89,9 +89,12 @@ suite "git.gitCurrentBranch":
     setCurrentDir(dir)
     var sha: string
     block:
-      let p = startProcess(findExe("git"), workingDir = dir,
-                            args = @["rev-parse", "HEAD"],
-                            options = {poUsePath, poStdErrToStdOut})
+      let p = startProcess(
+        findExe("git"),
+        workingDir = dir,
+        args = @["rev-parse", "HEAD"],
+        options = {poUsePath, poStdErrToStdOut},
+      )
       sha = p.outputStream.readAll().strip()
       discard p.waitForExit()
       p.close()
@@ -110,15 +113,17 @@ suite "git.gitCurrentBranch":
 suite "git.requireCleanGitWorktree":
   test "failed status with empty stdout is not a clean worktree":
     let rec = newRecordingRunner()
-    rec.runner.captureImpl = proc(cmd: string, args: seq[string],
-        input: string): CommandResult =
+    rec.runner.captureImpl = proc(
+        cmd: string, args: seq[string], input: string
+    ): CommandResult =
       rec.calls.add(CallRecord(kind: "capture", cmd: cmd, args: args, input: input))
       if args[0] == "status":
         CommandResult(exitCode: 128, error: "index unreadable")
       else:
         CommandResult(exitCode: 0)
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     check requireCleanGitWorktree(rec.runner, f) == 1
     check rec.calls.len == 2
 
@@ -270,4 +275,5 @@ suite "git contract: exact argv":
     discard requireBranchExists("mybranch", rec.runner)
     check rec.calls.len == 1
     check rec.calls[0].cmd == "git"
-    check rec.calls[0].args == @["show-ref", "--verify", "--quiet", "refs/heads/mybranch"]
+    check rec.calls[0].args ==
+      @["show-ref", "--verify", "--quiet", "refs/heads/mybranch"]

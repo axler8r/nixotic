@@ -96,8 +96,10 @@ suite "ax docker image search run":
     createDir(dir)
     writeFakeExe(dir, "docker", "")
     writeFakeExe(dir, "column", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "bitnami/nginx|100\nnginx|15000\nnginxinc/nginx-unprivileged|300\n")
+    let rec = newRecordingRunner(
+      exitCode = 0,
+      output = "bitnami/nginx|100\nnginx|15000\nnginxinc/nginx-unprivileged|300\n",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -110,5 +112,6 @@ suite "ax docker image search run":
     check rec.calls[0].cmd == "docker"
     check rec.calls[0].args == @["search", "nginx", "--format={{.Name}}|{{.StarCount}}"]
     check rec.calls[1].cmd == "column"
-    check rec.calls[1].input == "Name|Stars\n" &
+    check rec.calls[1].input ==
+      "Name|Stars\n" &
       "nginx|15000\nnginxinc/nginx-unprivileged|300\nbitnami/nginx|100\n"

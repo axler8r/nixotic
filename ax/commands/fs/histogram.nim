@@ -13,17 +13,27 @@ let cmdSpec* = CommandSpec(
   summary: "histogram of file sizes in a directory tree",
   usage: "ax fs histogram [-e ext] [--all] [dir]",
   args: @[
-    ArgSpec(name: "dir", required: false,
-            description: "target directory (default: current directory)")
+    ArgSpec(
+      name: "dir",
+      required: false,
+      description: "target directory (default: current directory)",
+    )
   ],
   flags: @[
-    FlagSpec(long: "", short: "e", takesValue: true,
-             description: "only count files with this extension (repeatable)"),
-    FlagSpec(long: "all", takesValue: false,
-             description: "include hidden files and ignored files")
+    FlagSpec(
+      long: "",
+      short: "e",
+      takesValue: true,
+      description: "only count files with this extension (repeatable)",
+    ),
+    FlagSpec(
+      long: "all",
+      takesValue: false,
+      description: "include hidden files and ignored files",
+    ),
   ],
   deps: @["fd"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -55,13 +65,16 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
     if arg.startsWith("-e") and arg.len > 2:
       attachedValue = true
       value = arg[2 .. ^1]
-      if value[0] in {'=', ':'}: value = value[1 .. ^1]
+      if value[0] in {'=', ':'}:
+        value = value[1 .. ^1]
       arg = "-e"
     elif arg == "-e":
       inc i
-      if i < args.len: value = args[i]
+      if i < args.len:
+        value = args[i]
     case arg
-    of "--all": result.allFlag = true
+    of "--all":
+      result.allFlag = true
     of "-e":
       if value.strip().len == 0 or (not attachedValue and value.startsWith("-")):
         result.unknownOption = "-e requires a nonempty extension"
@@ -74,8 +87,8 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
 
 const binLimits = [1024, 10240, 102400, 1048576, 10485760, 104857600, 1073741824]
 const binLabels = [
-  "   0B -   1KB", "  1KB -  10KB", " 10KB - 100KB", "100KB -   1MB",
-  "  1MB -  10MB", " 10MB - 100MB", "100MB -   1GB", "  1GB+       "
+  "   0B -   1KB", "  1KB -  10KB", " 10KB - 100KB", "100KB -   1MB", "  1MB -  10MB",
+  " 10MB - 100MB", "100MB -   1GB", "  1GB+       ",
 ]
 
 proc binIndex*(size: int): int =
@@ -83,7 +96,8 @@ proc binIndex*(size: int): int =
   ## bin whose upper limit `size` is strictly less than, or the last
   ## (overflow, ">= 1GB") bin if none match.
   for i, limit in binLimits:
-    if size < limit: return i
+    if size < limit:
+      return i
   binLabels.len - 1
 
 proc formatSizeLabel*(totalBytes: int): string =
@@ -98,10 +112,10 @@ proc formatSizeLabel*(totalBytes: int): string =
     $totalBytes & " B"
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax fs histogram [opts] [directory]
@@ -125,7 +139,8 @@ Examples:
     ax fs histogram --all"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   let parsed = parseArgs(args)
   if parsed.unknownOption.len > 0:
@@ -133,8 +148,10 @@ Examples:
     return 64
 
   let dir = if parsed.directory.len > 0: parsed.directory else: "."
-  if not requireDir(dir, errp): return 1
-  if not checkDeps(["fd"], errp): return 2
+  if not requireDir(dir, errp):
+    return 1
+  if not checkDeps(["fd"], errp):
+    return 2
 
   var files: seq[string]
   try:
@@ -160,20 +177,25 @@ Examples:
 
   if totalFiles == 0:
     warn("No files found in '" & dir & "'", errp)
-    if ctxFromEnv().output != omJson: return 0
-    return render(
-      @["Range", "Distribution", "Files"], @[], ctxFromEnv(), runner, outp, errp
-    )
+    if ctxFromEnv().output != omJson:
+      return 0
+    return
+      render(@["Range", "Distribution", "Files"], @[], ctxFromEnv(), runner, outp, errp)
 
   var maxCount = 0
   for c in binCounts:
-    if c > maxCount: maxCount = c
+    if c > maxCount:
+      maxCount = c
 
   const barWidth = 30
   var rows: seq[seq[string]] = @[]
   for i in 0 ..< binLabels.len:
     let count = binCounts[i]
-    let barLen = if maxCount > 0: count * barWidth div maxCount else: 0
+    let barLen =
+      if maxCount > 0:
+        count * barWidth div maxCount
+      else:
+        0
     let bar = "█".repeat(barLen) & " ".repeat(barWidth - barLen)
     rows.add @[binLabels[i], bar, $count]
 
@@ -183,8 +205,8 @@ Examples:
   info($totalFiles & " files, " & formatSizeLabel(totalBytes), errp)
   if ctx.output == omTable:
     outp.writeLine("")
-  let renderCode = render(@["Range", "Distribution", "Files"], rows, ctx,
-                          runner, outp, errp)
+  let renderCode =
+    render(@["Range", "Distribution", "Files"], rows, ctx, runner, outp, errp)
   if ctx.output == omTable:
     outp.writeLine("")
   return renderCode

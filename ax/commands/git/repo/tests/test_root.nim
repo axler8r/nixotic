@@ -16,18 +16,20 @@ suite "ax git repo root gitRemoteFetchUrl":
   test "returns origin's fetch URL when origin is present among several remotes":
     let rec = newRecordingRunner(
       exitCode = 0,
-      output = "upstream\tgit@github.com:other/repo.git (fetch)\n" &
-      "upstream\tgit@github.com:other/repo.git (push)\n" &
-      "origin\tgit@github.com:me/repo.git (fetch)\n" &
-      "origin\tgit@github.com:me/repo.git (push)\n"
+      output =
+        "upstream\tgit@github.com:other/repo.git (fetch)\n" &
+        "upstream\tgit@github.com:other/repo.git (push)\n" &
+        "origin\tgit@github.com:me/repo.git (fetch)\n" &
+        "origin\tgit@github.com:me/repo.git (push)\n",
     )
     check gitRemoteFetchUrl("/some/dir", rec.runner) == "git@github.com:me/repo.git"
 
   test "falls back to the first remote's fetch URL when there is no origin":
     let rec = newRecordingRunner(
       exitCode = 0,
-      output = "upstream\tgit@github.com:other/repo.git (fetch)\n" &
-      "upstream\tgit@github.com:other/repo.git (push)\n"
+      output =
+        "upstream\tgit@github.com:other/repo.git (fetch)\n" &
+        "upstream\tgit@github.com:other/repo.git (push)\n",
     )
     check gitRemoteFetchUrl("/some/dir", rec.runner) == "git@github.com:other/repo.git"
 
@@ -93,9 +95,12 @@ suite "ax git repo root run":
     createDir(dir)
     createDir(dir / "repo-a")
     writeFakeExe(dir, "git", "")
-    let rec = newRecordingRunner(exitCode = 0,
-      output = "origin\tgit@github.com:me/repo-a.git (fetch)\n" &
-               "origin\tgit@github.com:me/repo-a.git (push)\n")
+    let rec = newRecordingRunner(
+      exitCode = 0,
+      output =
+        "origin\tgit@github.com:me/repo-a.git (fetch)\n" &
+        "origin\tgit@github.com:me/repo-a.git (push)\n",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
@@ -105,5 +110,5 @@ suite "ax git repo root run":
     removeDir(dir)
     check code == 0
     check rec.calls[^1].cmd == "column"
-    check rec.calls[^1].input == "Remote|Path\ngit@github.com:me/repo-a.git|" &
-        (dir / "repo-a") & "\n"
+    check rec.calls[^1].input ==
+      "Remote|Path\ngit@github.com:me/repo-a.git|" & (dir / "repo-a") & "\n"

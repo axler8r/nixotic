@@ -84,11 +84,16 @@ suite "recording runner":
     check rec.calls[1].cmd == "b"
 
   test "queued replies are consumed in order across every runner shape":
-    let rec = newRecordingRunner(exitCode = 9, output = "fallback",
+    let rec = newRecordingRunner(
+      exitCode = 9,
+      output = "fallback",
       error = "default",
       replies = @[
         CommandResult(exitCode: 1, output: "first", error: "first error"),
-        CommandResult(exitCode: 2), CommandResult(exitCode: 3)])
+        CommandResult(exitCode: 2),
+        CommandResult(exitCode: 3),
+      ],
+    )
     let first = rec.runner.capture("a", @[])
     check first.exitCode == 1
     check first.output == "first"
@@ -136,5 +141,7 @@ suite "recording runner":
       check rec.calls[0].env["AX_RECORDING_TEST"] == "inherited"
       check rec.calls[1].env["AX_RECORDING_TEST"] == "captured"
     finally:
-      if existed: putEnv("AX_RECORDING_TEST", before)
-      else: delEnv("AX_RECORDING_TEST")
+      if existed:
+        putEnv("AX_RECORDING_TEST", before)
+      else:
+        delEnv("AX_RECORDING_TEST")

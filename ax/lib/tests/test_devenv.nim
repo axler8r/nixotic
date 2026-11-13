@@ -20,19 +20,25 @@ suite "devenv.flakeNixContent":
     check content.contains("description = \"myproj development environment\";")
     check content.contains("name = \"myproj\";")
     check content.contains("            pkgs.jq")
-    check content.contains("systems = [ \"x86_64-linux\" \"aarch64-linux\" \"x86_64-darwin\" \"aarch64-darwin\" ];")
+    check content.contains(
+      "systems = [ \"x86_64-linux\" \"aarch64-linux\" \"x86_64-darwin\" \"aarch64-darwin\" ];"
+    )
     check content.endsWith("}\n")
     check not content.contains("DOTNET")
 
   test "envAttrs, when given, is inserted right after the packages list closes":
-    let content = flakeNixContent("myproj", @["            pkgs.dotnet-sdk_9"],
-      "\n          DOTNET_CLI_TELEMETRY_OPTOUT = \"1\";\n          DOTNET_NOLOGO = \"1\";")
-    let expectedTail = "          ];\n          DOTNET_CLI_TELEMETRY_OPTOUT = \"1\";\n          DOTNET_NOLOGO = \"1\";\n        };\n"
+    let content = flakeNixContent(
+      "myproj",
+      @["            pkgs.dotnet-sdk_9"],
+      "\n          DOTNET_CLI_TELEMETRY_OPTOUT = \"1\";\n          DOTNET_NOLOGO = \"1\";",
+    )
+    let expectedTail =
+      "          ];\n          DOTNET_CLI_TELEMETRY_OPTOUT = \"1\";\n          DOTNET_NOLOGO = \"1\";\n        };\n"
     check content.contains(expectedTail)
 
   test "exact full content for a two-package, no-env-attrs case":
-    let content = flakeNixContent("demo", @["            pkgs.jq",
-        "            pkgs.fd"])
+    let content =
+      flakeNixContent("demo", @["            pkgs.jq", "            pkgs.fd"])
     let expected = """{
   description = "demo development environment";
 
@@ -230,7 +236,8 @@ suite "devenv scaffold safety":
     var writes = 0
     let writer = proc(file: File, content: string) =
       inc writes
-      if writes == 2: raise newException(IOError, "injected disk full")
+      if writes == 2:
+        raise newException(IOError, "injected disk full")
       file.write(content)
     check scaffoldDevEnvironment("content", f, f, rec.runner, writer) == 1
     check not fileExists("flake.nix")

@@ -19,7 +19,8 @@ proc mkTmpDir(name: string): string =
 suite "ax git repo sync run":
   test "a terminator after a repository is not treated as another path":
     let dir = mkTmpDir("ax_repo_sync_terminator")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let repoDir = dir / "repo"
@@ -33,9 +34,8 @@ suite "ax git repo sync run":
     f.close()
     check code == 0
     require rec.calls.len == 1
-    check rec.calls[0].args == @[
-      "echo {} && git -C {} pull && git -C {} submodule update", ":::", repoDir
-    ]
+    check rec.calls[0].args ==
+      @["echo {} && git -C {} pull && git -C {} submodule update", ":::", repoDir]
     check not readFile(outPath).contains("Not a git repository")
 
   test "-h/--help prints usage and returns 0, checked before checkDeps":
@@ -83,7 +83,8 @@ suite "ax git repo sync run":
 
   test "contract: paths piped on stdin are used when argv has none":
     let dir = mkTmpDir("contract_ugr_stdin")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let repoA = dir / "repoA"
@@ -93,23 +94,24 @@ suite "ax git repo sync run":
     let inPath = dir / "stdin"
     writeFile(inPath, repoA & "/\n\n" & repoB & "\n")
     let inp = open(inPath, fmRead)
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     var code: int
     withPath(dir):
       code = run(@[], f, f, rec.runner, inp)
     check code == 0
     require rec.calls.len == 1
-    check rec.calls[0].args == @[
-      "echo {} && git -C {} pull && git -C {} submodule update",
-      ":::", repoA, repoB
-    ]
+    check rec.calls[0].args ==
+      @["echo {} && git -C {} pull && git -C {} submodule update", ":::", repoA, repoB]
 
   test "contract: argv paths take precedence over stdin":
     let dir = mkTmpDir("contract_ugr_argv_wins")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     writeFakeExe(dir, "parallel", "")
     let given = dir / "given"
@@ -119,10 +121,12 @@ suite "ax git repo sync run":
     let inPath = dir / "stdin"
     writeFile(inPath, piped & "\n")
     let inp = open(inPath, fmRead)
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     var code: int
     withPath(dir):
       code = run(@[given], f, f, rec.runner, inp)
@@ -150,7 +154,9 @@ suite "ax git repo sync run":
     let calls = readFile(log).strip().splitLines()
     removeDir(dir)
     check code == 0
-    check calls == @["echo {} && git -C {} pull && git -C {} submodule update ::: repoA"]
+    check calls == @[
+      "echo {} && git -C {} pull && git -C {} submodule update ::: repoA"
+    ]
 
   test "contract: parallel receives the pull+submodule-update command and repo dir":
     # `git`/`parallel` are stubbed on a fixture $PATH via withPath, same as
@@ -176,10 +182,8 @@ suite "ax git repo sync run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "parallel"
-    check rec.calls[0].args == @[
-      "echo {} && git -C {} pull && git -C {} submodule update",
-      ":::", repoDir
-    ]
+    check rec.calls[0].args ==
+      @["echo {} && git -C {} pull && git -C {} submodule update", ":::", repoDir]
 
 suite "stripTrailingSlash":
   test "removes a single trailing slash":

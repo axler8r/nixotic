@@ -53,19 +53,20 @@ suite "ax attr set run":
     check code == 0
     check rec.calls.len == 1
     check rec.calls[0].cmd == "setfattr"
-    check rec.calls[0].args == @[
-      "--name", "user.colour", "--value", "red", "--", tmpFile
-    ]
+    check rec.calls[0].args ==
+      @["--name", "user.colour", "--value", "red", "--", tmpFile]
 
   test "real defaultRunner xattr set/read/remove roundtrip":
     let dir = createTempDir("ax-xattr-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     # Probe with the raw tool: a failure here is the filesystem, not ax
     # (the Nix sandbox's /build commonly lacks user xattr support).
     let probe = dir / "probe.txt"
     writeFile(probe, "x")
-    let probed = defaultRunner.capture("setfattr",
-      @["--name", "user.ax.probe", "--value", "1", "--", probe])
+    let probed = defaultRunner.capture(
+      "setfattr", @["--name", "user.ax.probe", "--value", "1", "--", probe]
+    )
     if probed.exitCode != 0:
       echo "skipping: user xattrs unsupported on ", dir, ": ", probed.error.strip()
       skip()
@@ -74,22 +75,25 @@ suite "ax attr set run":
       writeFile(path, "fixture")
       let value = "spaces, quotes \" and a newline\nvalue"
       require run(@["review.roundtrip", value, path], runner = defaultRunner) == 0
-      let fetched = defaultRunner.capture("getfattr",
-        @["--only-values", "--name", "user.review.roundtrip", "--", path])
+      let fetched = defaultRunner.capture(
+        "getfattr", @["--only-values", "--name", "user.review.roundtrip", "--", path]
+      )
       check fetched.exitCode == 0
       check fetched.output == value
-      check defaultRunner.runInherited("setfattr",
-        @["--remove", "user.review.roundtrip", "--", path]) == 0
+      check defaultRunner.runInherited(
+        "setfattr", @["--remove", "user.review.roundtrip", "--", path]
+      ) == 0
       check defaultRunner.capture(
-        "getfattr",
-        @["--only-values", "--name", "user.review.roundtrip", "--", path]
+        "getfattr", @["--only-values", "--name", "user.review.roundtrip", "--", path]
       ).exitCode != 0
 
   test "strict arguments reject before any attribute write":
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
-    for args in @[@["comment", "value", "/tmp", "extra"],
-                  @["--force", "comment", "value", "/tmp"]]:
+    defer:
+      f.close()
+    for args in @[
+      @["comment", "value", "/tmp", "extra"], @["--force", "comment", "value", "/tmp"]
+    ]:
       let rec = newRecordingRunner()
       check run(args, f, f, rec.runner) == 64
       check rec.calls.len == 0

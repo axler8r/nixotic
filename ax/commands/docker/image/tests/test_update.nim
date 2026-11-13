@@ -16,10 +16,12 @@ suite "ax docker image update filterImages":
     check filterImages(@["axler8r/tool:latest", "nginx:latest"]) == @["nginx:latest"]
 
   test "drops a line containing <none> anywhere":
-    check filterImages(@["<none>:<none>", "repo:<none>", "nginx:latest"]) == @["nginx:latest"]
+    check filterImages(@["<none>:<none>", "repo:<none>", "nginx:latest"]) ==
+      @["nginx:latest"]
 
   test "drops a line containing devcontainer anywhere":
-    check filterImages(@["myorg/devcontainer:latest", "nginx:latest"]) == @["nginx:latest"]
+    check filterImages(@["myorg/devcontainer:latest", "nginx:latest"]) ==
+      @["nginx:latest"]
 
   test "keeps images that survive all filters":
     let input = @["nginx:latest", "postgres:16"]
@@ -40,12 +42,13 @@ suite "ax docker image update run":
     let dir = getTempDir() / "contract_update_docker_image_terminator"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
-    for args in @[@["--", "nginx:latest", "--"],
-                  @["nginx:latest", "--", "--"]]:
+    defer:
+      f.close()
+    for args in @[@["--", "nginx:latest", "--"], @["nginx:latest", "--", "--"]]:
       let rec = newRecordingRunner()
       withPath(dir):
         check run(args, f, f, rec.runner) == 0
@@ -57,12 +60,15 @@ suite "ax docker image update run":
     let dir = getTempDir() / "contract_update_docker_image_empty_terminator"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     let empty = openInput(dir, "")
-    defer: empty.close()
+    defer:
+      empty.close()
     let rec = newRecordingRunner()
     withPath(dir):
       check run(@["--"], f, f, rec.runner, empty) == 0
@@ -73,12 +79,15 @@ suite "ax docker image update run":
     let dir = getTempDir() / "contract_update_docker_image_stdin"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     let inp = openInput(dir, "nginx:latest\n\nredis:7\n")
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     withPath(dir):
       check run(@[], f, f, rec.runner, inp) == 0
@@ -90,12 +99,15 @@ suite "ax docker image update run":
     let dir = getTempDir() / "contract_update_docker_image_argv_wins"
     removeDir(dir)
     createDir(dir)
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "docker", "")
     let f = open("/dev/null", fmWrite)
-    defer: f.close()
+    defer:
+      f.close()
     let inp = openInput(dir, "piped:1\n")
-    defer: inp.close()
+    defer:
+      inp.close()
     let rec = newRecordingRunner()
     withPath(dir):
       check run(@["given:1"], f, f, rec.runner, inp) == 0

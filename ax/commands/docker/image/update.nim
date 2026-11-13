@@ -12,11 +12,16 @@ let cmdSpec* = CommandSpec(
   summary: "pull Docker images to their latest versions",
   usage: "ax docker image update [image...]",
   args: @[
-    ArgSpec(name: "image", required: false, variadic: true,
-            description: "image names (repo:tag); default: one per line on stdin, else all installed images")
+    ArgSpec(
+      name: "image",
+      required: false,
+      variadic: true,
+      description:
+        "image names (repo:tag); default: one per line on stdin, else all installed images",
+    )
   ],
   deps: @["docker"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc filterImages*(lines: seq[string]): seq[string] =
@@ -26,19 +31,24 @@ proc filterImages*(lines: seq[string]): seq[string] =
   ## (mirrors splitting `docker image list` output on newlines).
   result = @[]
   for line in lines:
-    if line.len == 0: continue
-    if line.startsWith("vsc"): continue
-    if line.startsWith("axler8r"): continue
-    if line.contains("<none>"): continue
-    if line.contains("devcontainer"): continue
+    if line.len == 0:
+      continue
+    if line.startsWith("vsc"):
+      continue
+    if line.startsWith("axler8r"):
+      continue
+    if line.contains("<none>"):
+      continue
+    if line.contains("devcontainer"):
+      continue
     result.add(line)
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner,
-  inp: File = stdin
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
+    inp: File = stdin,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax docker image update [image...]
@@ -59,9 +69,11 @@ Examples:
     ax docker image list -o json | jq -r '.[] | .repository + ":" + .tag' | ax docker image update"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
-  if not checkDeps(["docker"], errp): return 2
+  if not checkDeps(["docker"], errp):
+    return 2
 
   var images: seq[string]
   var positionalOnly = false
@@ -73,10 +85,8 @@ Examples:
 
   images = resolveItems(images, inp)
   if images.len == 0:
-    let listing = runner.capture(
-      "docker",
-      @["image", "list", "--format={{.Repository}}:{{.Tag}}"]
-    )
+    let listing =
+      runner.capture("docker", @["image", "list", "--format={{.Repository}}:{{.Tag}}"])
     if listing.exitCode != 0:
       error("Cannot list Docker images: " & listing.error.strip(), errp)
       return 1

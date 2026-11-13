@@ -9,9 +9,11 @@ proc zombieChildren(): seq[string] =
   ## child leaves an entry here; a capture that reaps it leaves none.
   let me = $getCurrentProcessId()
   for kind, path in walkDir("/proc"):
-    if kind != pcDir: continue
+    if kind != pcDir:
+      continue
     let pid = path.extractFilename
-    if pid.len == 0 or not pid.allCharsInSet({'0' .. '9'}): continue
+    if pid.len == 0 or not pid.allCharsInSet({'0' .. '9'}):
+      continue
     var status: string
     try:
       status = readFile(path / "status")
@@ -20,12 +22,17 @@ proc zombieChildren(): seq[string] =
     var name, state, parent = ""
     for line in status.splitLines():
       let f = line.splitWhitespace()
-      if f.len < 2: continue
+      if f.len < 2:
+        continue
       case f[0]
-      of "Name:": name = f[1]
-      of "State:": state = f[1]
-      of "PPid:": parent = f[1]
-      else: discard
+      of "Name:":
+        name = f[1]
+      of "State:":
+        state = f[1]
+      of "PPid:":
+        parent = f[1]
+      else:
+        discard
     if state == "Z" and parent == me:
       result.add(name)
 
@@ -49,7 +56,9 @@ suite "process runner":
     let dir = getTempDir() / "test_process_bigoutput"
     removeDir(dir)
     createDir(dir)
-    writeFakeExe(dir, "flood", """
+    writeFakeExe(
+      dir, "flood",
+      """
 i=0
 while [ $i -lt 8192 ]; do
   echo "0123456789012345678901234567890123456789012345678901234567890123"
@@ -57,7 +66,8 @@ while [ $i -lt 8192 ]; do
   i=$((i + 1))
 done
 exit 0
-""")
+""",
+    )
     var r: CommandResult
     withPath(dir):
       r = defaultRunner.capture("flood", @[])
@@ -176,8 +186,7 @@ exit 0
     removeDir(dir)
     createDir(dir)
     let log = dir / "env.log"
-    writeFakeExe(dir, "envdump", "echo \"INHERITED=$INHERITED\" > " &
-        log.quoteShell)
+    writeFakeExe(dir, "envdump", "echo \"INHERITED=$INHERITED\" > " & log.quoteShell)
     putEnv("INHERITED", "from-parent")
     var code: int
     withPath(dir):

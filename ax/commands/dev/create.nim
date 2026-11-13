@@ -12,19 +12,32 @@ let cmdSpec* = CommandSpec(
   summary: "scaffold a direnv + Nix Flakes development environment",
   usage: "ax dev create <template> [--name NAME] [--target VERSION] [packages...]",
   args: @[
-    ArgSpec(name: "template", required: true,
-            description: "tool, python, dotnet, or elixir (see ax dev templates)"),
-    ArgSpec(name: "packages", required: false, variadic: true,
-            description: "additional Nix packages (bare names, e.g. jq ripgrep)")
+    ArgSpec(
+      name: "template",
+      required: true,
+      description: "tool, python, dotnet, or elixir (see ax dev templates)",
+    ),
+    ArgSpec(
+      name: "packages",
+      required: false,
+      variadic: true,
+      description: "additional Nix packages (bare names, e.g. jq ripgrep)",
+    ),
   ],
   flags: @[
-    FlagSpec(long: "name", takesValue: true,
-             description: "project name (default: current directory name)"),
-    FlagSpec(long: "target", takesValue: true,
-             description: "language/SDK version; meaning depends on the template")
+    FlagSpec(
+      long: "name",
+      takesValue: true,
+      description: "project name (default: current directory name)",
+    ),
+    FlagSpec(
+      long: "target",
+      takesValue: true,
+      description: "language/SDK version; meaning depends on the template",
+    ),
   ],
   deps: @["direnv", "nix"],
-  dryRun: false
+  dryRun: false,
 )
 
 type ParsedArgs* = object
@@ -49,8 +62,10 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
       inc i
       continue
     if positionalOnly:
-      if result.templateName.len == 0: result.templateName = args[i]
-      else: result.packages.add args[i]
+      if result.templateName.len == 0:
+        result.templateName = args[i]
+      else:
+        result.packages.add args[i]
       inc i
       continue
     if args[i].startsWith("--name="):
@@ -87,14 +102,14 @@ proc parseArgs*(args: seq[string]): ParsedArgs =
 proc isValidPythonTarget*(target: string): bool =
   let parts = target.split(".")
   parts.len == 2 and parts[0] == "3" and parts[1].len > 0 and
-    parts[1].allCharsInSet({'0'..'9'})
+    parts[1].allCharsInSet({'0' .. '9'})
 
 proc isValidPackagePath*(name: string): bool =
   ## Deliberately only unquoted Nix attribute paths, never expressions.
   for part in name.split('.'):
-    if part.len == 0 or part[0] notin {'a'..'z', 'A'..'Z', '_'}:
+    if part.len == 0 or part[0] notin {'a' .. 'z', 'A' .. 'Z', '_'}:
       return false
-    if not part.allCharsInSet({'a'..'z', 'A'..'Z', '0'..'9', '_', '-', '\''}):
+    if not part.allCharsInSet({'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_', '-', '\''}):
       return false
     if part in ["if", "then", "else", "assert", "with", "let", "in", "rec", "inherit"]:
       return false
@@ -105,18 +120,18 @@ proc isValidDotNetTarget*(target: string): bool =
 
 proc isValidElixirTarget*(target: string): bool =
   let parts = target.split(".")
-  parts.len == 2 and parts[0].len > 0 and parts[0].allCharsInSet({'0'..'9'}) and
-    parts[1].len > 0 and parts[1].allCharsInSet({'0'..'9'})
+  parts.len == 2 and parts[0].len > 0 and parts[0].allCharsInSet({'0' .. '9'}) and
+    parts[1].len > 0 and parts[1].allCharsInSet({'0' .. '9'})
 
 const dotnetEnvAttrs =
   "\n          DOTNET_CLI_TELEMETRY_OPTOUT = \"1\";" &
   "\n          DOTNET_NOLOGO = \"1\";"
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax dev create <template> [opts] [packages...]
@@ -147,7 +162,8 @@ Examples:
     ax dev create elixir --target 1.17"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   let parsed = parseArgs(args)
   if parsed.missingFlagValue.len > 0:
     error("Missing value for " & parsed.missingFlagValue, errp)
@@ -159,8 +175,11 @@ Examples:
     error("Missing template (tool, python, dotnet, elixir)", errp)
     return 64
   if not isDevTemplate(parsed.templateName):
-    error("Unknown template: " & parsed.templateName &
-          " (supported: tool, python, dotnet, elixir)", errp)
+    error(
+      "Unknown template: " & parsed.templateName &
+        " (supported: tool, python, dotnet, elixir)",
+      errp,
+    )
     return 64
   for package in parsed.packages:
     if not isValidPackagePath(package):
@@ -184,16 +203,20 @@ Examples:
       error("Invalid target: " & parsed.target & " (expected format: 3.12)", errp)
       return 64
     let langNames =
-      if parsed.target.len > 0: @["python" & parsed.target.replace(".", ""), "uv"]
-      else: @["python3", "uv"]
+      if parsed.target.len > 0:
+        @["python" & parsed.target.replace(".", ""), "uv"]
+      else:
+        @["python3", "uv"]
     packageLines = formatPackageLines("pkgs.", langNames & parsed.packages)
   of "dotnet":
     if parsed.target.len > 0 and not isValidDotNetTarget(parsed.target):
       error("Unknown target: " & parsed.target & " (supported: 8, 9, 10)", errp)
       return 64
     let sdkNames =
-      if parsed.target.len > 0: @["dotnet-sdk_" & parsed.target]
-      else: @["dotnet-sdk_8", "dotnet-sdk_9", "dotnet-sdk_10"]
+      if parsed.target.len > 0:
+        @["dotnet-sdk_" & parsed.target]
+      else:
+        @["dotnet-sdk_8", "dotnet-sdk_9", "dotnet-sdk_10"]
     packageLines = formatPackageLines("pkgs.", sdkNames & parsed.packages)
     envAttrs = dotnetEnvAttrs
   of "elixir":
@@ -201,14 +224,18 @@ Examples:
       error("Invalid target: " & parsed.target & " (expected format: 1.17)", errp)
       return 64
     let langNames =
-      if parsed.target.len > 0: @["elixir_" & parsed.target.replace(".", "_")]
-      else: @["elixir"]
-    packageLines = formatPackageLines("pkgs.beamPackages.", langNames) &
-                    formatPackageLines("pkgs.", parsed.packages)
+      if parsed.target.len > 0:
+        @["elixir_" & parsed.target.replace(".", "_")]
+      else:
+        @["elixir"]
+    packageLines =
+      formatPackageLines("pkgs.beamPackages.", langNames) &
+      formatPackageLines("pkgs.", parsed.packages)
   else:
     discard # unreachable: isDevTemplate already vetted the name
 
-  if not checkDeps(["direnv", "nix"], errp): return 2
+  if not checkDeps(["direnv", "nix"], errp):
+    return 2
   let content = flakeNixContent(parsed.name, packageLines, envAttrs)
   scaffoldDevEnvironment(content, outp, errp, runner)
 

@@ -11,18 +11,17 @@ let cmdSpec* = CommandSpec(
   summary: "list every extended attribute",
   usage: "ax attr list <path>",
   args: @[
-    ArgSpec(name: "path", required: true,
-            description: "the file or directory to read")
+    ArgSpec(name: "path", required: true, description: "the file or directory to read")
   ],
   deps: @["getfattr"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax attr list <path>
@@ -40,7 +39,8 @@ Examples:
     ax attr list /path/to/directory"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
 
   var path = ""
   var positionalOnly = false
@@ -61,12 +61,14 @@ Examples:
       return 64
     inc i
 
-  if not requireArg(path, "path", errp): return 64
-  if not checkDeps(["getfattr"], errp): return 2
-  if not requirePathTarget(path, errp): return 1
+  if not requireArg(path, "path", errp):
+    return 64
+  if not checkDeps(["getfattr"], errp):
+    return 2
+  if not requirePathTarget(path, errp):
+    return 1
 
-  result = runner.runInherited(
-    "getfattr", @["--dump", "--", path])
+  result = runner.runInherited("getfattr", @["--dump", "--", path])
 
 when isMainModule:
   axMain(cmdSpec):

@@ -107,8 +107,8 @@ suite "ax vault remove run":
     check code == 0
     check rec.calls.len == 2
     check rec.calls[0].cmd == "sudo"
-    check rec.calls[0].args == @["-n", "losetup", "--associated", vaultFile,
-                    "--noheadings", "--output", "NAME"]
+    check rec.calls[0].args ==
+      @["-n", "losetup", "--associated", vaultFile, "--noheadings", "--output", "NAME"]
     check rec.calls[1].cmd == "rm"
     check rec.calls[1].args == @["--force", vaultFile]
 

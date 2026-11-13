@@ -11,11 +11,15 @@ let cmdSpec* = CommandSpec(
   summary: "enter an ephemeral Nix shell with ad-hoc packages",
   usage: "ax dev shell <packages...>",
   args: @[
-    ArgSpec(name: "packages", required: true, variadic: true,
-            description: "Nix packages (bare names, or full flake refs containing '#')")
+    ArgSpec(
+      name: "packages",
+      required: true,
+      variadic: true,
+      description: "Nix packages (bare names, or full flake refs containing '#')",
+    )
   ],
   deps: @["nix"],
-  dryRun: false
+  dryRun: false,
 )
 
 proc buildInstallables*(packages: seq[string]): seq[string] =
@@ -35,10 +39,10 @@ proc buildShellName*(packages: seq[string]): string =
   packages.join(" ")
 
 proc run*(
-  args: seq[string],
-  outp: File = stdout,
-  errp: File = stderr,
-  runner: Runner = defaultRunner
+    args: seq[string],
+    outp: File = stdout,
+    errp: File = stderr,
+    runner: Runner = defaultRunner,
 ): int =
   if args.len > 0 and (args[0] == "-h" or args[0] == "--help"):
     outp.writeLine """Usage: ax dev shell <packages...>
@@ -59,7 +63,8 @@ Examples:
     ax dev shell github:foo/bar#baz          # Ad-hoc shell from another flake"""
     return 0
 
-  if not validateArgs(cmdSpec, args, errp): return 64
+  if not validateArgs(cmdSpec, args, errp):
+    return 64
   var packages: seq[string] = @[]
   var positionalOnly = false
   for a in args:
@@ -71,7 +76,8 @@ Examples:
       return 64
     packages.add(a)
 
-  if not checkDeps(["nix"], errp): return 2
+  if not checkDeps(["nix"], errp):
+    return 2
 
   if packages.len == 0:
     error("Usage: ax dev shell <packages...>", errp)
@@ -86,8 +92,7 @@ Examples:
   env["IN_NIX_SHELL"] = "impure"
   env["name"] = buildShellName(packages)
 
-  result = runner.runInherited(
-    "nix", @["shell"] & installables, env)
+  result = runner.runInherited("nix", @["shell"] & installables, env)
 
 when isMainModule:
   axMain(cmdSpec):

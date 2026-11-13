@@ -9,8 +9,12 @@ proc mkTmpDir(name: string): string =
   createDir(result)
 
 proc runGit(dir: string, args: varargs[string]) =
-  let p = startProcess(findExe("git"), workingDir = dir, args = @args,
-                        options = {poUsePath, poStdErrToStdOut})
+  let p = startProcess(
+    findExe("git"),
+    workingDir = dir,
+    args = @args,
+    options = {poUsePath, poStdErrToStdOut},
+  )
   let output = p.outputStream.readAll()
   let code = p.waitForExit()
   p.close()
@@ -74,7 +78,7 @@ proc tagRunner(subject, tags: string, failedPhase = ""): RecordingRunner =
     CommandResult(exitCode: 0), # repository check
     CommandResult(exitCode: 0), # HEAD tags
     CommandResult(exitCode: 0, output: subject),
-    CommandResult(exitCode: 0, output: tags)
+    CommandResult(exitCode: 0, output: tags),
   ]
   for i, phase in ["tag --points-at", "log -1", "tag -l"]:
     if phase == failedPhase:
@@ -84,12 +88,13 @@ proc tagRunner(subject, tags: string, failedPhase = ""): RecordingRunner =
 suite "ax git tag create run":
   test "failed tag and log queries never create a tag":
     let dir = createTempDir("ax-tag-query-failure-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     writeFakeExe(dir, "git", "")
     let expectedArgs = @[
       @["tag", "--points-at", "HEAD"],
       @["log", "-1", "--format=%s"],
-      @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"]
+      @["tag", "-l", "v*.*.0+*", "--sort=-v:refname"],
     ]
     for i, phase in ["tag --points-at", "log -1", "tag -l"]:
       let rec = tagRunner("feat: change", "", phase)
@@ -113,12 +118,15 @@ suite "ax git tag create run":
 
   test "highest valid version wins despite malformed tags and unordered listing":
     let dir = createTempDir("ax-tags-", "")
-    defer: removeDir(dir)
+    defer:
+      removeDir(dir)
     let path = dir / "out"
     let f = open(path, fmWrite)
-    let rec = tagRunner("defect(core): fix", "v999.0.0+bad\n" &
-      "v2.5.0+20260101000000\nv1.9.0+20260101000000\n" &
-      "v999999999999999999999999.0.0+20260101000000\n")
+    let rec = tagRunner(
+      "defect(core): fix",
+      "v999.0.0+bad\n" & "v2.5.0+20260101000000\nv1.9.0+20260101000000\n" &
+        "v999999999999999999999999.0.0+20260101000000\n",
+    )
     let code = run(@["--dry-run"], f, stderr, rec.runner)
     f.close()
     check code == 0
@@ -253,7 +261,10 @@ suite "ax git tag create run":
     removeDir(dir)
     createDir(dir)
     let log = dir / "calls.log"
-    writeFakeExe(dir, "git", """
+    writeFakeExe(
+      dir,
+      "git",
+      """
 """ & fakeRecorder(log) & """
 
 case "$1 $2" in
@@ -263,7 +274,8 @@ case "$1 $2" in
   "tag -l") echo "" ;;
   "tag -s") exit 0 ;;
 esac
-""")
+""",
+    )
     let outPath = dir / "out.txt"
     let f = open(outPath, fmWrite)
     var code: int
