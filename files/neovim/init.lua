@@ -153,6 +153,14 @@ local role_hl = {
 
   -- mini.nvim (Appendix A.3). Unlisted Mini* groups keep mini's default
   -- links to float, diagnostic and search groups.
+  -- Bar bases. Statusline and tabline item groups are drawn on top of
+  -- these, so solarized8's reverse here would swap every segment's fg/bg.
+  StatusLine = { fg = '#657b83', bg = '#eee8d5' },
+  StatusLineNC = { fg = '#93a1a1', bg = '#eee8d5' },
+  TabLine = { fg = '#93a1a1', bg = '#eee8d5' },
+  TabLineSel = { fg = '#002b36', bg = '#fdf6e3', bold = true },
+  TabLineFill = { bg = '#eee8d5' },
+
   MiniStatuslineModeNormal = { fg = '#fdf6e3', bg = '#268bd2', bold = true },
   MiniStatuslineModeInsert = { fg = '#fdf6e3', bg = '#859900', bold = true },
   MiniStatuslineModeVisual = { fg = '#fdf6e3', bg = '#b58900', bold = true },

@@ -408,25 +408,29 @@ mini.nvim modules are set up in `files/neovim/plugins.lua`; their highlight
 groups are set in `role_hl` alongside the groups above. `role_hl` is reapplied
 on every `ColorScheme` event so a colorscheme reload does not clear them.
 
-| Token Slug                 | Highlight Group(s)                                                                             |
-| -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `status.mode_normal`       | `MiniStatuslineModeNormal`, `MiniStatuslineModeOther`, `MiniTablineTabpagesection`             |
-| `status.mode_insert`       | `MiniStatuslineModeInsert`                                                                     |
-| `status.mode_visual`       | `MiniStatuslineModeVisual`                                                                     |
-| `status.mode_replace`      | `MiniStatuslineModeReplace`                                                                    |
-| `status.mode_command`      | `MiniStatuslineModeCommand`                                                                    |
-| `status.bg`                | `MiniStatuslineDevinfo`, `MiniStatuslineFilename`, `MiniStatuslineFileinfo`, `MiniTablineFill` |
-| `status.inactive`          | `MiniStatuslineInactive`                                                                       |
-| `status.window`            | `MiniTablineVisible`, `MiniTablineHidden`                                                      |
-| `status.window_current`    | `MiniTablineCurrent`                                                                           |
-| `status.filename_modified` | `MiniTablineModifiedCurrent`, `MiniTablineModifiedVisible`, `MiniTablineModifiedHidden`        |
-| `ui.selection`             | `MiniPickMatchCurrent`, `MiniPickPreviewLine`, `MiniFilesCursorLine`                           |
-| `ui.mark`                  | `MiniPickMatchMarked`                                                                          |
-| `diff.added`               | `MiniDiffSignAdd`                                                                              |
-| `diff.changed`             | `MiniDiffSignChange`                                                                           |
-| `diff.deleted`             | `MiniDiffSignDelete`                                                                           |
+| Token Slug                 | Highlight Group(s)                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `status.mode_normal`       | `MiniStatuslineModeNormal`, `MiniStatuslineModeOther`, `MiniTablineTabpagesection`        |
+| `status.mode_insert`       | `MiniStatuslineModeInsert`                                                                |
+| `status.mode_visual`       | `MiniStatuslineModeVisual`                                                                |
+| `status.mode_replace`      | `MiniStatuslineModeReplace`                                                               |
+| `status.mode_command`      | `MiniStatuslineModeCommand`                                                               |
+| `status.bg`                | `StatusLine`, `MiniStatuslineDevinfo`, `MiniStatuslineFilename`, `MiniStatuslineFileinfo` |
+| `status.inactive`          | `StatusLineNC`, `MiniStatuslineInactive`                                                  |
+| `status.bg` (fill only)    | `TabLineFill`, `MiniTablineFill`                                                          |
+| `status.window`            | `TabLine`, `MiniTablineVisible`, `MiniTablineHidden`                                      |
+| `status.window_current`    | `TabLineSel`, `MiniTablineCurrent`                                                        |
+| `status.filename_modified` | `MiniTablineModifiedCurrent`, `MiniTablineModifiedVisible`, `MiniTablineModifiedHidden`   |
+| `ui.selection`             | `MiniPickMatchCurrent`, `MiniPickPreviewLine`, `MiniFilesCursorLine`                      |
+| `ui.mark`                  | `MiniPickMatchMarked`                                                                     |
+| `diff.added`               | `MiniDiffSignAdd`                                                                         |
+| `diff.changed`             | `MiniDiffSignChange`                                                                      |
+| `diff.deleted`             | `MiniDiffSignDelete`                                                                      |
 
-Mode foreground is always Light Background (`fdf6e3`). Modified tabline entries
+Mode foreground is always Light Background (`fdf6e3`) on the mode colour.
+Neovim draws statusline and tabline item groups on top of `StatusLine` and
+`TabLineFill`, so these base groups are set without `reverse`; solarized8's
+`reverse` would otherwise swap every segment's foreground and background. Modified tabline entries
 keep the background of their state: Light Background (`fdf6e3`) when current,
 Light BG Contrast (`eee8d5`) otherwise.
 
