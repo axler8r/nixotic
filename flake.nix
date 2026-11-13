@@ -100,7 +100,9 @@
         packages = nim.nimToolchain ++ [
           pkgs.gnumake
           # Editor tooling: Helix finds the Nim language server and
-          # formatter on the PATH direnv provides.
+          # formatter on the PATH direnv provides. nimlangserver crashes
+          # on the first opened file without nimble on PATH.
+          pkgs.nimble
           pkgs.nimlangserver
           pkgs.nph
         ];

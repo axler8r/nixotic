@@ -41,7 +41,7 @@ added/removed packages, size comparison, and cleaner error output.
 
 `make help` lists every target. All tools resolve through the flake, so their
 versions come from `flake.lock`; none is installed on the host. The devShell
-carries `nph` only so Helix can format Nim on save.
+also carries the Helix editor tools `nimlangserver`, `nimble` and `nph`.
 
 | Target        | Runs                                                                                                                   |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
