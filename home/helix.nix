@@ -244,6 +244,15 @@
           soft-wrap.enable = true;
         }
         {
+          # nimlangserver and nph come from the repository devShell.
+          name = "nim";
+          auto-format = true;
+          formatter = {
+            command = "nph";
+            args = [ "-" ];
+          };
+        }
+        {
           name = "nix";
           auto-format = true;
         }

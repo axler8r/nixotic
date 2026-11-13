@@ -270,8 +270,10 @@ dependency triggers benign `UnusedImport` warnings for entry-point-only imports.
 
 ## Local development
 
-`devShells.${system}.default` provides `nim` plus the runtime deps for
-editor/`nim-lsp` support; `.envrc` (`use flake`) activates it via direnv.
+`devShells.${system}.default` provides `nim`, its runtime deps, and the editor
+tools `nimlangserver` and `nph`; `.envrc` (`use flake`) activates it via direnv.
+Helix starts `nimlangserver` and formats with `nph` on save when launched from a
+shell inside the repository. `make format` runs the same `nph` over the tree.
 Neither is required for the build — `nix build .#ax` and `nix flake check`
 provide their own build/test environments. Run them only with user approval.
 

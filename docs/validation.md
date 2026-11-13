@@ -40,14 +40,14 @@ added/removed packages, size comparison, and cleaner error output.
 ## Formatting and Linting
 
 `make help` lists every target. All tools resolve through the flake, so their
-versions come from `flake.lock`; none is installed on the host or in the
-devShell.
+versions come from `flake.lock`; none is installed on the host. The devShell
+carries `nph` only so Helix can format Nim on save.
 
-| Target        | Runs                                                                                                |
-| ------------- | --------------------------------------------------------------------------------------------------- |
-| `make format` | `nix fmt -- --no-cache`: `nixfmt` for `*.nix`; `prettier` then `markdownlint-cli2 --fix` for `*.md` |
-| `make lint`   | the `formatting`, `nix-lint` and `markdown-lint` checks                                             |
-| `make test`   | every flake check, including the three above                                                        |
+| Target        | Runs                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `make format` | `nix fmt -- --no-cache`: `nixfmt` for `*.nix`; `nph` for `*.nim`; `prettier` then `markdownlint-cli2 --fix` for `*.md` |
+| `make lint`   | the `formatting`, `nix-lint` and `markdown-lint` checks                                                                |
+| `make test`   | every flake check, including the three above                                                                           |
 
 `make format` skips the treefmt cache so lint configuration changes always apply.
 `make format` never fails on Markdown findings it cannot fix; `make lint`

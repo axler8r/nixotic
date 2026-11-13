@@ -20,15 +20,15 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_.-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Quick Start:"
-	@echo "  make format             # Format Nix and Markdown files"
+	@echo "  make format             # Format Nix, Nim and Markdown files"
 	@echo "  make lint               # Run the formatting and lint checks"
 	@echo "  make check              # Evaluate the flake without building"
 	@echo "  make dry-run            # Show what a build of this host would do"
 
 
 # quality targets --------------------------------------------------->8---------
-format: ## Format Nix and Markdown files (nix fmt)
-	@echo "Formatting Nix and Markdown files..."
+format: ## Format Nix, Nim and Markdown files (nix fmt)
+	@echo "Formatting Nix, Nim and Markdown files..."
 	nix fmt -- --no-cache
 
 lint: ## Run the formatting, nix-lint and markdown-lint checks

@@ -1,5 +1,5 @@
-# Repository formatter for `nix fmt`: nixfmt for Nix, prettier then
-# markdownlint-cli2 --fix for Markdown. Unfixable Markdown findings do not
+# Repository formatter for `nix fmt`: nixfmt for Nix, nph for Nim, prettier
+# then markdownlint-cli2 --fix for Markdown. Unfixable Markdown findings do not
 # fail formatting; the markdown-lint check reports them.
 { pkgs }:
 pkgs.treefmt.withConfig {
@@ -7,6 +7,7 @@ pkgs.treefmt.withConfig {
 
   runtimeInputs = [
     pkgs.nixfmt
+    pkgs.nph
     pkgs.prettier
     pkgs.markdownlint-cli2
   ];
@@ -18,6 +19,15 @@ pkgs.treefmt.withConfig {
       nixfmt = {
         command = "nixfmt";
         includes = [ "*.nix" ];
+      };
+
+      nph = {
+        command = "nph";
+        includes = [
+          "*.nim"
+          "*.nims"
+          "*.nimble"
+        ];
       };
 
       prettier = {

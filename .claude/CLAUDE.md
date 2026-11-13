@@ -57,7 +57,7 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 ## Build Commands
 
 - `make help` — list the `make` targets.
-- `make format` — format Nix and Markdown files; safe to run.
+- `make format` — format Nix, Nim and Markdown files; safe to run.
 - `make lint`, `make check`, `make test` — lint, evaluate, and run all flake checks; these build, so offer them.
 - `nh os build` (`make build`, `make dry-run`) — test build without switching.
 - `nix flake check` — validate flake.

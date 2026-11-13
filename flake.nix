@@ -97,7 +97,13 @@
 
       devShells.${system}.default = pkgs.mkShell {
         name = "nixotic-nim";
-        packages = nim.nimToolchain ++ [ pkgs.gnumake ];
+        packages = nim.nimToolchain ++ [
+          pkgs.gnumake
+          # Editor tooling: Helix finds the Nim language server and
+          # formatter on the PATH direnv provides.
+          pkgs.nimlangserver
+          pkgs.nph
+        ];
       };
     };
 }
