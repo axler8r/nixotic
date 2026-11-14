@@ -70,11 +70,56 @@
 
       # Tab bar
       tab_bar_style = "powerline";
+
+      # Panes: tmux-style splits; stack is the zoom target
+      enabled_layouts = "splits,stack";
+      active_border_color = "#268bd2"; # ui.border_active
+      inactive_border_color = "#eee8d5"; # ui.border
     };
 
+    # tmux-like bindings on kitty_mod (ctrl+shift), mirroring files/tmux/tmux.conf.
+    # kitty "window" = tmux pane; kitty "tab" = tmux window.
     keybindings = {
       "kitty_mod+u" = "kitten unicode_input";
       "ctrl+shift+u" = "kitten unicode_input";
-    };
+
+      # Move between panes (replaces previous/next tab and scroll line)
+      "kitty_mod+left" = "neighboring_window left";
+      "kitty_mod+right" = "neighboring_window right";
+      "kitty_mod+up" = "neighboring_window up";
+      "kitty_mod+down" = "neighboring_window down";
+
+      # Split: | side by side, - stacked keeping focus (tmux split-window -v -d)
+      "kitty_mod+backslash" = "launch --location=vsplit --cwd=current";
+      "kitty_mod+minus" = "launch --location=hsplit --cwd=current --keep-focus";
+
+      # Zoom the active pane (tmux resize-pane -Z)
+      "kitty_mod+z" = "toggle_layout stack";
+
+      # List and search key bindings (tmux list-keys); replaces search_scrollback,
+      # which stays reachable via kitty_mod+h then /
+      "kitty_mod+slash" = "command_palette";
+    }
+    # Go to tab N (tmux select-window -t N)
+    // lib.listToAttrs (
+      map (n: lib.nameValuePair "kitty_mod+${toString n}" "goto_tab ${toString n}") (lib.range 1 9)
+    );
+
+    # Resize mode (tmux H/J/K/L): kitty_mod+r, then arrows or hjkl repeatedly;
+    # = resets, esc/enter or any other key leaves.
+    extraConfig = ''
+      map --new-mode resize --on-unknown end kitty_mod+r
+      map --mode resize left  resize_window narrower 5
+      map --mode resize h     resize_window narrower 5
+      map --mode resize right resize_window wider 5
+      map --mode resize l     resize_window wider 5
+      map --mode resize up    resize_window taller 3
+      map --mode resize k     resize_window taller 3
+      map --mode resize down  resize_window shorter 3
+      map --mode resize j     resize_window shorter 3
+      map --mode resize equal resize_window reset
+      map --mode resize esc   pop_keyboard_mode
+      map --mode resize enter pop_keyboard_mode
+    '';
   };
 }
