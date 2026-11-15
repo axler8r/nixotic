@@ -4,11 +4,9 @@
     ./base.nix
     ./atuin.nix
     ./bat.nix
-    ./btop.nix
     ./claude.nix
     ./codex.nix
     ./eza.nix
-    ./fastfetch.nix
     ./fd.nix
     ./gh.nix
     ./gnome.nix
@@ -25,41 +23,23 @@
   ];
 
   home.packages = with pkgs; [
-    # Version control & development
-    gitflow
-    parallel
-
     # AI coding assistants
     claude-code
     codex
-    docker-sbx # `sbx`: Docker sandboxes for agents
     github-copilot-cli
 
-    # Editors & text processing
-    universal-ctags
+    # Runtime tools for ax (attr, output, docker/git commands)
+    attr
+    gum
+    parallel
 
     # Productivity CLI tools
-    attr
-    bfs
-    choose
-    dust
-    duf
-    fdupes
-    gum
-    jq
     orpie
-    p7zip
-    pv
-    sd
-    socat
-    strace
     tokei
     tree
-    wget
-    yq
 
     # Media
-    ffmpeg
+    ffmpeg # also ax media video convert
     mpv
 
     # Documents

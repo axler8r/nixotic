@@ -4,7 +4,6 @@
   # User dotfiles
   home.file = {
     ".XCompose".source = ../files/system/XCompose;
-    ".ctags".source = ../files/system/ctags;
     ".hidden".source = ../files/system/hidden;
   };
 

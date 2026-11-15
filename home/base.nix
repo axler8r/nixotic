@@ -14,12 +14,6 @@
 
   home.homeDirectory = "/home/axl";
   home.packages = with pkgs; [
-    (aspellWithDicts (
-      dicts: with dicts; [
-        en
-        af
-      ]
-    ))
     bat
     leaf-markdown-viewer
     # Only the mandoc renderer — man-db provides man/apropos/whatis
