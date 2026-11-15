@@ -1,6 +1,8 @@
 # Package and Configuration Declaration Guide
 
-Where to declare packages in a NixOS + Home Manager configuration.
+Where to declare packages in a NixOS + Home Manager configuration. Whether a
+package should be installed at all is decided by
+[tooling-tiers.md](tooling-tiers.md).
 
 NixOS owns the system — services, root access, shared state. Home Manager owns
 the user environment — dotfiles, shell tools, typed configuration. Packages sit

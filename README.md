@@ -45,8 +45,10 @@ referenced or imported by the corresponding module. The `ax` CLI, the Nim
 toolbelt this flake builds and installs, lives in `ax/`; see
 [docs/ax-cli-design.md](docs/ax-cli-design.md).
 
-See [docs/packages.md](docs/packages.md#configuration-ownership) for ownership
-rules and [docs/validation.md](docs/validation.md#native-configuration-checks)
+See [docs/tooling-tiers.md](docs/tooling-tiers.md) for whether a tool is
+installed or fetched just in time,
+[docs/packages.md](docs/packages.md#configuration-ownership) for ownership
+rules, and [docs/validation.md](docs/validation.md#native-configuration-checks)
 for the focused native configuration check.
 
 ## License
