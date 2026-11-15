@@ -18,12 +18,18 @@ Prefer Development Container development over local development.
 In the absence of a Development Container project environment consider:
 
 This host is NixOS — a lean, declarative system where tools are not necessarily installed globally.
+Tools sit in one of three tiers:
 
-- When `which`, `command -v` fails:
-  - Use `nix run nixpkgs#<tool> -- <args>` to run a tool ephemerally (just-in-time, no install), or,
-  - use `nix shell nixpkgs#<tool>` to enter a shell with a tool available for a session.
-- Never use `pip`, `apt`, `brew`, `npm -g`, or any other package manager to install tools on the host.
-- Project-specific tools (dotnet, make, etc.) are declared in the project's `flake.nix` devShell and activated via `direnv`.
+1. **Installed** — the daily workflow spine (kitty, zsh, tmux, git, make, Helix, NeoVim, Claude Code, Codex, GitHub Copilot CLI, VS Code, Docker, Brave, Proton Mail, GNOME) plus a rescue kit (`htop`, `lsof`, `curl`, `file`). Servers: zsh, tmux, git, make, Helix, rescue kit.
+2. **Project-owned** — formatters, linters, language servers, toolchains: the project's flake (`formatter`, `checks`, devShell via `direnv`) or its Dev Container. The devShell carries what the shell and editor need; `make`-run tools belong in flake outputs.
+3. **Just in time** — everything else, when `command -v` fails:
+   - `nix run nixpkgs#<tool> -- <args>` for one command, or `nix shell nixpkgs#<tool>` for a session;
+   - inside a flake repo, `nix run --inputs-from . nixpkgs#<tool> -- <args>` to follow its lock.
+
+- Never use `pip`, `apt`, `brew`, `npm -g`, `nix profile install`, or any other package manager to install tools on the host.
+- Never add a tool to `home.packages` or `environment.systemPackages` unless asked; propose it with the tier reasoning instead. The user decides every promotion, demotion, and removal.
+- If you fetch the same tool just in time 3 or more times in one session, say so once at the end of the task as a promotion candidate. Make no other unprompted workflow suggestions.
+- Source of truth: `docs/tooling-tiers.md` in the nixotic repository (`~/.nixotic` where present).
 
 ## Workflow
 

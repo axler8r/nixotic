@@ -29,6 +29,7 @@ If touching theming, read `docs/colour-token-taxonomy.md` first and treat it as 
 - ZSH functions use PowerShell approved verbs.
 - ZSH functions use PascalCase Verb-Noun naming (see `docs/zsh-functions-conventions.md`, repo-relative source of truth).
 - Use `command -v` not `which` for command detection.
+- Adding, moving, or removing a package follows `docs/tooling-tiers.md` (whether) and `docs/packages.md` (where).
 - No conditional guards for Home Manager tools (they're always present).
 - ZSH completions use `home.packages` with a `pkgs.runCommand` derivation (see `home/zsh.nix`) — not `xdg.dataFile`, which is not on `$fpath`.
 - Let Stylix manage GNOME and desktop chrome only.
