@@ -1,7 +1,6 @@
 # Installing Nixotic
 
-Covers provisioning a new _Nixotic_ host with nixos-anywhere and the WSL install
-path. Also covers ZFS disk layout and ongoing ZFS operations.
+Covers provisioning a new _Nixotic_ host with nixos-anywhere. Also covers ZFS disk layout and ongoing ZFS operations.
 
 ## Read This First
 
@@ -287,84 +286,6 @@ the repo, and follow "Provision a New Host from a Nixotic Source" from Step 2.
 The steps are identical; a dedicated source VM is a convenience, not a
 requirement.
 
-## WSL Hosts (illumin8r)
-
-WSL hosts use a completely different install path. There is no ISO, no disk
-layout, no `hardware-configuration.nix`, no ZFS, and no bootloader. `illumin8r`
-is always installed this way.
-
-### Prerequisites (Windows side)
-
-1. Enable WSL2: `wsl --install` (or via Windows Features → Virtual Machine
-   Platform + Windows Subsystem for Linux).
-2. Confirm WSL2 is the default version: `wsl --set-default-version 2`.
-3. Download the latest NixOS-WSL release tarball from the
-   `nix-community/NixOS-WSL` GitHub releases page.
-
-### Step 1 — Import the NixOS-WSL distribution
-
-From PowerShell or Windows Terminal:
-
-```powershell
-wsl --import NixOS $env:LOCALAPPDATA\NixOS <path-to-tarball> --version 2
-```
-
-### Step 2 — Start the instance
-
-```powershell
-wsl -d NixOS
-```
-
-The initial default user is `nixos`.
-
-### Step 3 — Enable Nix flakes
-
-Inside the WSL instance:
-
-```bash
-mkdir -p /etc/nix
-echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
-```
-
-### Step 4 — Apply the nixotic configuration
-
-```bash
-nix-shell -p git --run 'git clone https://github.com/axler8r/nixotic.git /tmp/nixotic'
-sudo nixos-rebuild switch --flake /tmp/nixotic#illumin8r
-```
-
-This installs zsh, helix, git, tmux, tig, github-copilot-cli, and Docker, and
-sets `axl` as the default WSL user.
-
-### Step 5 — Restart WSL
-
-From PowerShell:
-
-```powershell
-wsl --terminate NixOS
-wsl -d NixOS
-```
-
-After restart the default user is `axl`, systemd is running, and Docker is
-active. No reconciliation step is needed — there are no generated values to
-patch back.
-
-### Step 6 — Move the repo into the user home
-
-```bash
-cp -r /tmp/nixotic ~/.nixotic
-```
-
-### Ongoing updates
-
-From inside the WSL instance:
-
-```bash
-cd ~/.nixotic
-git pull
-sudo nixos-rebuild switch --flake .#illumin8r
-```
-
 ## Disk Layout
 
 New hosts use a ZFS-on-root layout declared in
@@ -399,8 +320,7 @@ deliberately avoided — hibernation through a zvol deadlocks.
 by NixOS; the `USERDATA` datasets auto-mount at boot. There is no filesystem
 encryption, so the host boots fully unattended with no passphrase.
 
-**Existing hosts** (`ambul8r`, `cre8r`, `illumin8r`) keep their current layouts
-and will adopt ZFS-on-root only on a future reinstall. `ambul8r` in particular
+**Existing hosts** (`ambul8r`) keep their current layouts and will adopt ZFS-on-root only on a future reinstall. `ambul8r` in particular
 uses its own hand-generated `hardware-configuration.nix` with
 `disko.enableConfig = false`; that remains correct for its current layout.
 
@@ -411,8 +331,7 @@ which wipes root — does not touch personal data. `USERDATA` datasets mount
 directly into the home directory and survive reinstalls.
 
 New hosts use `rpool` (ZFS-on-root convention). `ambul8r` uses `dpool` and keeps
-its current pool structure until a future reinstall. `cre8r` currently uses an
-ext4 root layout.
+its current pool structure until a future reinstall.
 
 ```text
 rpool                          mountpoint=none
@@ -485,7 +404,7 @@ hibernate.
 ## ZFS Operations
 
 The pool name is `rpool` on new ZFS-on-root hosts. `ambul8r` uses `dpool` —
-substitute accordingly. `cre8r` currently has no ZFS pool.
+substitute accordingly.
 
 ### Common Commands
 

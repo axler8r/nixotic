@@ -18,11 +18,6 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nixos-wsl = {
-      url = "github:nix-community/NixOS-WSL";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -50,17 +45,6 @@
       nixosConfigurations = {
         # prepare:hosts — Prepare-NewHost inserts scaffolded hosts below this line.
         ambul8r = mkHost { hostPath = ./hosts/ambul8r/configuration.nix; };
-
-        illumin8r = mkHost {
-          hostPath = ./hosts/illumin8r/configuration.nix;
-          role = "server";
-          homeConfig = ./home/wsl.nix;
-        };
-
-        cre8r = mkHost {
-          hostPath = ./hosts/cre8r/configuration.nix;
-          role = "server";
-        };
       };
 
       apps.${system} = {

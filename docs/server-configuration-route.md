@@ -3,11 +3,9 @@
 This document shows what future Nixotic server hosts look like when they are
 scaffolded through `Prepare-NewHost` and evaluated through `flake.nix`.
 
-It describes the reusable server shape. Existing server-like hosts may differ:
-`cre8r` currently has its own ext4 VM layout and imports
-`profiles/platform/proxmox-vm.nix`, `illumin8r` is a WSL host importing
-`profiles/platform/wsl.nix`, while future scaffolded servers import the shared
-ZFS-on-root runtime module and use the shared ZFS-on-root disk wrapper.
+It describes the reusable server shape. No server host is declared today;
+scaffolded servers import the shared ZFS-on-root runtime module and use the
+shared ZFS-on-root disk wrapper.
 
 The diagrams show configuration composition and ownership boundaries. They do
 not show imperative execution order; NixOS and Home Manager modules are merged
@@ -118,10 +116,6 @@ It does not add the workstation-only Stylix modules.
 
 `mkHost` is the only place a host's role is declared. Host files never import a
 role module; they import only orthogonal profiles (storage, hardware, platform).
-
-Current-state note: `cre8r` imports `profiles/platform/proxmox-vm.nix`, and
-`illumin8r` imports `profiles/platform/wsl.nix` with `home/wsl.nix` as its
-`homeConfig`.
 
 ## Generated Host Module
 
@@ -237,8 +231,8 @@ flowchart TD
 `profiles/roles/server.nix` is the shared server role. It imports
 `profiles/roles/base.nix` and enables OpenSSH with key-only user login and root
 login disabled. `services.openssh.enable` is set with `lib.mkDefault` so a
-platform profile can switch it off: `profiles/platform/wsl.nix` does this
-because Windows owns the network edge.
+platform profile can switch it off, for example where another system owns the
+network edge.
 
 ```mermaid
 flowchart TD
@@ -274,9 +268,9 @@ across multiple servers, move it into `profiles/roles/server.nix`.
 Where a server runs is orthogonal to its role, so it is a separate profile
 rather than a host directory:
 
-- `profiles/platform/proxmox-vm.nix`: QEMU guest agent for Proxmox guests.
-- `profiles/platform/wsl.nix`: NixOS-WSL module, `wsl.*` settings, and
-  `services.openssh.enable = false`.
+None exist today. Add `profiles/platform/<name>.nix` when a platform needs its
+own settings, for example `services.qemuGuest.enable = true` for a Proxmox guest
+so it shuts down cleanly and reports its IP in the Proxmox UI.
 
 ## ZFS Runtime Route
 
@@ -385,7 +379,7 @@ They should differ only where the machine or service role requires it:
 - disk device name
 - fixed versus portable swap profile
 - generated hardware configuration
-- platform profile (Proxmox guest, WSL)
+- platform profile (for example a Proxmox guest)
 - server workload services
 - host-specific firewall, storage, or network settings
 - machine-specific firmware or driver quirks
@@ -396,7 +390,7 @@ They should differ only where the machine or service role requires it:
 | --------------------------------------------------------- | ----------------------------------------------------- |
 | Make every host behave differently, workstation or server | `profiles/roles/base.nix`                             |
 | Change the server SSH posture or add shared server policy | `profiles/roles/server.nix`                           |
-| Change behavior for every Proxmox guest or every WSL host | `profiles/platform/proxmox-vm.nix`, `wsl.nix`         |
+| Change behavior for every host on one platform            | `profiles/platform/<name>.nix`                        |
 | Change the default future server disk layout              | `profiles/storage/zfs-root-disk.nix`                  |
 | Change runtime ZFS behavior for new ZFS-on-root hosts     | `profiles/storage/zfs-root.nix`                       |
 | Change all server user tools or dotfiles                  | `home/server.nix`, imported `home/*.nix`, or `files/` |

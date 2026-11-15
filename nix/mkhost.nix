@@ -1,7 +1,8 @@
 # role is the single place a host's role is declared. It selects the system
 # role module (profiles/roles/<role>.nix, which imports base.nix), the home
 # profile (home/<role>.nix), and Stylix for workstations.
-# homeConfig overrides the home profile only (e.g. WSL).
+# homeConfig overrides the home profile only (e.g. a platform that needs its
+# own home profile).
 {
   inputs,
   self,
