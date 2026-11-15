@@ -127,6 +127,7 @@
       # Vitals - system stats on right side of panel
       "org/gnome/shell/extensions/vitals" = {
         position-in-panel = 2; # 0=left, 1=center, 2=right
+        monitor-cmd = "kitty htop"; # default gnome-system-monitor is excluded
         hot-sensors = [
           "_processor_usage_"
           "_memory_usage_"

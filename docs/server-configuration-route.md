@@ -246,7 +246,7 @@ flowchart TD
     Nix["Nix settings\nflakes, caches, GC"]
     Shell["system zsh\nnix-ld"]
     Sudo["sudo timestamp timeout"]
-    Packages["minimal system packages\nfile"]
+    Packages["rescue kit and make\ncurl, file, gnumake, htop, lsof"]
 
     MkHost --> Server
     Server --> SSH
@@ -309,7 +309,7 @@ flowchart TD
     BaseImports["base imports\ndircolors, direnv, files, git,\nhelix, starship, tmux, zsh"]
     Editor["EDITOR = hx"]
     GitEditor["git editor and merge tool\nforced to hx"]
-    BasePackages["base packages\naspell, bat, mandoc, tig"]
+    BasePackages["base packages\nbat, leaf-markdown-viewer, mandoc, tig"]
     Files["files/\ndotfiles, zsh functions,\ncompletions, app configs"]
 
     HM --> Headless

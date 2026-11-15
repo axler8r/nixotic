@@ -297,7 +297,7 @@ flowchart TD
 
     DesktopImports["workstation imports\natuin, bat, claude, codex, eza,\nfd, gh, gnome, gpg, htop,\njq, kitty, neovim, nh, ripgrep,\nstylix, vscode, yazi"]
     BaseImports["base imports\ndircolors, direnv, files, git,\nhelix, starship, tmux, zsh"]
-    DesktopPackages["workstation packages\ncodex, claude-code, dev tools,\nCLI tools, media tools"]
+    DesktopPackages["workstation packages\ncodex, claude-code, ax runtime tools,\nCLI tools, media tools"]
     GnomeUser["home/gnome.nix\nGNOME apps, dconf,\nXDG dirs, extensions"]
     Files["files/\ndotfiles, zsh functions,\ncompletions, app configs"]
     Editor["EDITOR = nvim"]
@@ -331,7 +331,7 @@ flowchart TD
     Fonts["Inter, Cascadia Code,\nDejaVu Serif, Noto Emoji"]
     Cursor["Bibata cursor"]
     DisabledSystemTargets["system target exceptions\nchromium, kmscon"]
-    DisabledHomeTargets["home target exceptions\nstarship, qt, vscode,\nkitty, helix, bat, yazi, btop"]
+    DisabledHomeTargets["home target exceptions\nstarship, qt, vscode,\nkitty, helix, bat, yazi"]
     Icons["Papirus-Light\nGTK icon theme"]
 
     WorkstationRole --> RootStylix

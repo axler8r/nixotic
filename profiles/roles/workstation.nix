@@ -97,5 +97,9 @@
     };
   };
 
+  # GNOME's GCR prompt; excluding seahorse would otherwise fall back to the
+  # bare X11 ssh-askpass.
+  programs.ssh.askPassword = "${pkgs.gcr_4}/libexec/gcr4-ssh-askpass";
+
   security.rtkit.enable = true;
 }
