@@ -42,13 +42,11 @@
     attr
     bfs
     choose
-    curl
     dust
     duf
     fdupes
     gum
     jq
-    lsof
     orpie
     p7zip
     pv

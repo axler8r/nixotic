@@ -59,18 +59,10 @@
     yelp # help viewer
   ];
   environment.systemPackages = with pkgs; [
-    # system tools
-    cryptsetup # LUKS encryption for vault functions
-    htop
-    iftop
-    iotop
-    nethogs
-    plocate
+    cryptsetup # LUKS encryption for ax vault
   ];
   fonts.packages = with pkgs; [
     cascadia-code
-    fira-code
-    jetbrains-mono
   ];
 
   users.users.axl = {

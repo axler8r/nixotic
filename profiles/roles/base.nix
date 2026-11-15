@@ -43,8 +43,13 @@
   nixpkgs.config.allowUnfree = true;
 
   environment.shells = with pkgs; [ zsh ];
+  # Rescue kit and make: Tier 1 on every host (docs/tooling-tiers.md).
   environment.systemPackages = with pkgs; [
+    curl
     file
+    gnumake
+    htop
+    lsof
   ];
 
   users.users.axl = {
