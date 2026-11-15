@@ -74,8 +74,10 @@ Examples:
 Examples in `home/workstation.nix`:
 
 - Version control: `tig`, `gitflow`
-- CLI tools: `curl`, `wget`, `tokei`, `fdupes`, `bfs`
-- Media: `ffmpeg`, `mpv`
+- CLI tools: `curl`, `jq`, `bfs`
+
+Occasional tools are fetched just in time rather than declared; see
+[tooling-tiers.md](tooling-tiers.md#3-just-in-time).
 
 Examples in `home/gnome.nix`:
 

@@ -11,6 +11,9 @@ actually used. The goal is a declared environment that is a deliberate, honest
 picture of how the work gets done — not minimalism for its own sake, and not a
 reproducible pile of things nobody opens.
 
+This describes the target. Current declarations predate the tiers; the first
+[workflow review](#workflow-review) drives the convergence.
+
 ## The Workflow Spine
 
 The daily workflow decides what is installed:
@@ -111,13 +114,15 @@ because this repository is not present on every host. In short:
 
 - A missing tool is fetched just in time. Agents never install tools with
   `pip`, `apt`, `brew`, `npm -g`, `nix profile install`, or any other package
-  manager.
+  manager on the host. A missing project tool goes through the project's `make`
+  target or devShell first.
 - Project tools go in the project's flake or Dev Container, not on the host.
 - Agents never add a tool to `home.packages` or `environment.systemPackages`
   unless asked; they propose it with the tier reasoning instead.
 - An agent that fetches the same tool 3 or more times in one session says so
-  once, at the end of the task, as a promotion candidate. Beyond that, workflow
-  suggestions come from the [workflow review](#workflow-review), not unprompted.
+  once, at the end of the task, as a promotion candidate. Beyond that, tooling or
+  workflow-habit suggestions come from the [workflow review](#workflow-review),
+  not unprompted. Task follow-ups and residual risk are still reported.
 
 ## Workflow Review
 

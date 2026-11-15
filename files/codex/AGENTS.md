@@ -78,7 +78,8 @@ one of three tiers:
    project's flake (`formatter`, `checks`, devShell via `direnv`) or its Dev
    Container. The devShell carries what the shell and editor need; `make`-run
    tools belong in flake outputs.
-3. **Just in time:** everything else, when `command -v` fails:
+3. **Just in time:** everything else, when `command -v` fails (a missing
+   project tool goes through the project's `make` target or devShell first):
    - `nix run nixpkgs#<tool> -- <args>` for one command, or
      `nix shell nixpkgs#<tool>` for a session;
    - inside a flake repo, `nix run --inputs-from . nixpkgs#<tool> -- <args>`
@@ -91,7 +92,8 @@ one of three tiers:
   promotion, demotion, and removal.
 - If you fetch the same tool just in time 3 or more times in one session, say
   so once at the end of the task as a promotion candidate. Make no other
-  unprompted workflow suggestions.
+  unprompted tooling or workflow-habit suggestions; task follow-ups and residual
+  risk are still reported.
 - Source of truth: `docs/tooling-tiers.md` in the nixotic repository
   (`~/.nixotic` where present).
 
