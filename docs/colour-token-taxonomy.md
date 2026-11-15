@@ -316,7 +316,7 @@ colours and editor syntax colours remain independent.
 | starship  | `files/starship/starship.toml`                      | Custom `solarized-light` palette imported into Home Manager — complete                                                      |
 | fzf       | `home/zsh.nix` (`programs.fzf`)                     | `FZF_DEFAULT_OPTS --color` — needs full build-out                                                                           |
 | tig       | `files/git/tigrc`                                   | `color` directives — sparse, needs expansion                                                                                |
-| btop      | `home/btop.nix`                                     | Theme file — needs build-out                                                                                                |
+| btop      | —                                                   | Not installed (Tier 3 since 2026-11-15)                                                                                     |
 | atuin     | `home/atuin.nix`                                    | Inherits terminal ANSI palette — no action needed                                                                           |
 
 ---
@@ -961,7 +961,7 @@ color "^Date: "       color245  default           # base0
 
 ---
 
-## Appendix K — btop (`home/btop.nix`)
+## Appendix K — btop (not installed)
 
 btop ships named themes. The closest available theme is `solarized_light`. Set
 it in `programs.btop.settings`:
@@ -990,6 +990,6 @@ implement as a follow-up.
 | -------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | delta                                  | Not configured | Diffs currently paged via bat. Add `[delta]` to `home/git.nix` if delta is installed. Slug mappings: `diff.*` and `ui.*` apply directly.                                                                                               |
 | lazygit                                | Not present    | Not in config. No action needed.                                                                                                                                                                                                       |
-| btop custom theme                      | Deferred       | Use `solarized_light` built-in for now. Custom theme file if needed.                                                                                                                                                                   |
+| btop custom theme                      | Not installed  | btop is Tier 3 since 2026-11-15; Appendix K stays as reference if it returns.                                                                                                                                                          |
 | VSCode Stylix                          | Disabled       | `stylix.targets.vscode.enable = false` intentional — Settings Sync manages it cross-platform. Install the standalone extension from `extensions/nixotic-solarized-light/`; Appendix C documents the TextMate scopes used in the theme. |
 | `solarized-base64` palette in starship | Dead code      | The `solarized-base64` palette in `home/starship.nix` is unused. Safe to remove.                                                                                                                                                       |

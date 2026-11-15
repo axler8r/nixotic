@@ -44,9 +44,9 @@ flowchart TD
 
 Examples:
 
-- System utilities: `file`, `htop`, `iftop`, `iotop`, `net-tools`
-- System administration: `clamav`, `cryptsetup`, `plocate`
-- Network tools: `nethogs`
+- Rescue kit and build, every host (`profiles/roles/base.nix`): `curl`,
+  `file`, `gnumake`, `htop`, `lsof`
+- System administration (`profiles/roles/workstation.nix`): `cryptsetup`
 
 ### 2. `users.users.<name>.packages`
 
@@ -68,21 +68,26 @@ Examples:
 
 ### 3. `home.packages`
 
-**Location:** `home/workstation.nix` or `home/gnome.nix` (GUI apps)  
+**Location:** `home/base.nix` (every host), `home/workstation.nix`, or
+`home/gnome.nix` (GUI apps)  
 **Use for:** Most user CLI tools and development packages
+
+Examples in `home/base.nix`:
+
+- Version control and paging: `tig`, `bat`
 
 Examples in `home/workstation.nix`:
 
-- Version control: `tig`, `gitflow`
-- CLI tools: `curl`, `jq`, `bfs`
+- AI coding assistants: `claude-code`, `codex`
+- CLI tools: `tree`, `tokei`
 
 Occasional tools are fetched just in time rather than declared; see
 [tooling-tiers.md](tooling-tiers.md#3-just-in-time).
 
 Examples in `home/gnome.nix`:
 
-- Browsers: `brave`, `firefox`, `ungoogled-chromium`
-- GUI apps: `obsidian`, `celluloid`, `gparted`
+- Browsers: `brave`, `ungoogled-chromium`
+- GUI apps: `obsidian`, `meld`, `protonmail-desktop`
 - GNOME extensions
 
 ### 4. `programs.<name>.enable`
@@ -98,7 +103,7 @@ Examples:
 - Editor: `programs.helix` → `home/helix.nix`
 - Editor: `programs.neovim` → `home/neovim.nix`
 - Prompt: `programs.starship` → `home/starship.nix`
-- File browser: `programs.ranger` → `home/ranger.nix`
+- File browser: `programs.yazi` → `home/yazi.nix`
 
 ## Configuration Ownership
 

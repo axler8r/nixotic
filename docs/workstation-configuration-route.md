@@ -295,7 +295,7 @@ flowchart TD
     Desktop["home/workstation.nix"]
     HomeBase["home/base.nix"]
 
-    DesktopImports["workstation imports\natuin, bat, btop, claude, eza,\nfastfetch, fd, gh, gnome, gpg,\nhtop, jq, kitty, neovim, nh,\nripgrep, stylix, vscode, yazi"]
+    DesktopImports["workstation imports\natuin, bat, claude, codex, eza,\nfd, gh, gnome, gpg, htop,\njq, kitty, neovim, nh, ripgrep,\nstylix, vscode, yazi"]
     BaseImports["base imports\ndircolors, direnv, files, git,\nhelix, starship, tmux, zsh"]
     DesktopPackages["workstation packages\ncodex, claude-code, dev tools,\nCLI tools, media tools"]
     GnomeUser["home/gnome.nix\nGNOME apps, dconf,\nXDG dirs, extensions"]

@@ -64,9 +64,8 @@ outputs, not the devShell.
 
 ### 3. Just in Time
 
-Troubleshooting and occasional tools — `strace`, `socat`, `ffmpeg`, `typst`,
-`tokei`, `orpie`, and the like — are fetched when needed and cost nothing while
-idle:
+Troubleshooting and occasional tools — `strace`, `socat`, `wget`, `bfs`, and the
+like — are fetched when needed and cost nothing while idle:
 
 ```bash
 nix run nixpkgs#<tool> -- <args>   # one command
