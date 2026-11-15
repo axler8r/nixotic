@@ -47,14 +47,31 @@
   ];
 
   # Environment
-  # Exclude GNOME bloat
+  # Exclude GNOME defaults not used in 90 days (docs/tooling-tiers.md)
   environment.gnome.excludePackages = with pkgs; [
+    baobab # disk usage analyser
     cheese # webcam
+    decibels # audio player
     epiphany # web browser
     geary # email client
+    gnome-calculator
+    gnome-calendar
+    gnome-characters
+    gnome-clocks
+    gnome-connections # remote desktop client
     gnome-console # replaced by gnome-terminal
     gnome-contacts
+    gnome-disk-utility # disks
+    gnome-font-viewer
+    gnome-logs
+    gnome-maps
+    gnome-music
+    gnome-system-monitor
     gnome-tour
+    gnome-weather
+    seahorse # passwords and keys
+    showtime # video player
+    simple-scan # document scanner
     snapshot # camera
     yelp # help viewer
   ];

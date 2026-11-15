@@ -9,27 +9,11 @@
   # GNOME Shell extensions and utilities
   home.packages = with pkgs; [
     brave
-    celluloid
-    dconf-editor
-    eyedropper
-    file-roller
-    firefox
     gnome-terminal
     ungoogled-chromium
-    gnome-podcasts
-    gnome-power-manager
-    gnome-tweaks
-    gparted
-    gnome-firmware
-    bustle
-    gnome-secrets
     meld
-    mission-center
     obsidian
     protonmail-desktop
-    raider
-    shortwave
-    sysprof
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.caffeine
     gnomeExtensions.dash-to-dock
@@ -44,10 +28,6 @@
   # Hide unwanted desktop entries
   xdg.desktopEntries.cups = {
     name = "Manage Printing";
-    noDisplay = true;
-  };
-  xdg.desktopEntries."org.gnome.Calendar" = {
-    name = "Calendar";
     noDisplay = true;
   };
   xdg.desktopEntries.nixos-manual = {
@@ -170,8 +150,6 @@
           "Browse"
           "Command"
           "Entertain"
-          "Manage"
-          "Monitor"
         ];
       };
 
@@ -182,7 +160,6 @@
           "brave-browser.desktop"
           "com.brave.Browser.desktop"
           "chromium-browser.desktop"
-          "firefox.desktop"
         ];
       };
 
@@ -193,6 +170,7 @@
           "Helix.desktop"
           "htop.desktop"
           "nvim.desktop"
+          "org.gnome.Terminal.desktop"
           "yazi.desktop"
         ];
       };
@@ -201,23 +179,10 @@
       "org/gnome/desktop/app-folders/folders/Assist" = {
         name = "Assist";
         apps = [
-          "com.github.ADBeveridge.Raider.desktop"
-          "com.github.finefindus.eyedropper.desktop"
-          "org.gnome.Calculator.desktop"
-          "org.gnome.Characters.desktop"
-          "org.gnome.clocks.desktop"
           "org.gnome.Extensions.desktop"
-          "org.gnome.FileRoller.desktop"
-          "org.gnome.font-viewer.desktop"
-          "org.gnome.Maps.desktop"
           "org.gnome.Papers.desktop"
-          "org.gnome.seahorse.Application.desktop"
           "org.gnome.Settings.desktop"
-          "org.gnome.SimpleScan.desktop"
           "org.gnome.TextEditor.desktop"
-          "org.gnome.tweaks.desktop"
-          "org.gnome.Weather.desktop"
-          "org.gnome.World.Secrets.desktop"
         ];
       };
 
@@ -225,44 +190,11 @@
       "org/gnome/desktop/app-folders/folders/Entertain" = {
         name = "Entertain";
         apps = [
-          "de.haeckerfelix.Shortwave.desktop"
-          "io.github.celluloid_player.Celluloid.desktop"
-          "org.gnome.Decibels.desktop"
           "org.gnome.Loupe.desktop"
-          "org.gnome.Music.desktop"
-          "org.gnome.Podcasts.desktop"
-          "org.gnome.Showtime.desktop"
           "mpv.desktop"
         ];
       };
-      # Monitor folder
-      "org/gnome/desktop/app-folders/folders/Monitor" = {
-        name = "Monitor";
-        apps = [
-          "btop.desktop"
-          "io.missioncenter.MissionCenter.desktop"
-          "org.freedesktop.Bustle.desktop"
-          "org.gnome.Logs.desktop"
-          "org.gnome.Sysprof.desktop"
-          "org.gnome.SystemMonitor.desktop"
-        ];
-      };
 
-      # Manage folder
-      "org/gnome/desktop/app-folders/folders/Manage" = {
-        name = "Manage";
-        apps = [
-          "ca.desrt.dconf-editor.desktop"
-          "gparted.desktop"
-          "nvidia-settings.desktop"
-          "org.gnome.baobab.desktop"
-          "org.gnome.Connections.desktop"
-          "org.gnome.Terminal.desktop"
-          "org.gnome.DiskUtility.desktop"
-          "org.gnome.Firmware.desktop"
-          "org.gnome.PowerStats.desktop"
-        ];
-      };
       # Keyboard input settings
       "org/gnome/desktop/input-sources" = {
         xkb-options = [
