@@ -33,8 +33,9 @@ are updated: flake update, format, lint, check, build, fix, `nh os switch`.
 
 ### 1. Installed
 
-Tools a daily workflow step touches. They are declared in `home/*.nix` or
-`profiles/roles/*.nix`, as [packages.md](packages.md) describes.
+Tools a daily workflow step touches. They are declared in `home/*.nix`,
+`profiles/roles/*.nix`, or `hosts/*/configuration.nix`, as
+[packages.md](packages.md) describes.
 
 - Terminal: kitty, zsh, tmux
 - Version control and build: git, make
@@ -76,6 +77,7 @@ Inside a flake repository, follow its lock instead of the system's nixpkgs:
 
 ```bash
 nix run --inputs-from . nixpkgs#<tool> -- <args>
+nix shell --inputs-from . nixpkgs#<tool>
 ```
 
 ## Rescue Kit
@@ -110,7 +112,9 @@ Axl decides every promotion, demotion, and removal. Agents only suggest.
 
 Agents follow the tiers by default. The deployed summaries live in
 `files/claude/CLAUDE.md` and `files/codex/AGENTS.md`; they are self-contained
-because this repository is not present on every host. In short:
+because this repository is not present on every host.
+`.github/copilot-instructions.md` carries the same summary for GitHub Copilot
+in this repository. In short:
 
 - A missing tool is fetched just in time. Agents never install tools with
   `pip`, `apt`, `brew`, `npm -g`, `nix profile install`, or any other package

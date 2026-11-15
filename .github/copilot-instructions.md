@@ -78,13 +78,35 @@ Repo-local `.scratchpad/copilot` is shared, gitignored scratch space:
 
 ## Host Tooling
 
-This host is NixOS and tools may not be globally installed.
+In the absence of a Development Container project environment: the host is
+NixOS, and tools are not necessarily installed globally. Tools sit in one of
+three tiers:
 
-- For one-off execution when a tool is missing, use
-  `nix run nixpkgs#<tool> -- <args>`.
-- For session-scoped availability, use `nix shell nixpkgs#<tool>`.
-- Do not install host tools with non-Nix global package managers (`pip`, `apt`,
-  `brew`, `npm -g`, etc.).
+1. **Installed** - the daily workflow spine (kitty, zsh, tmux, git, make, Helix,
+   NeoVim, Claude Code, Codex, GitHub Copilot CLI, VS Code, Docker, Brave,
+   Proton Mail, GNOME) plus a rescue kit (`htop`, `lsof`, `curl`, `file`).
+   Servers: zsh, tmux, git, make, Helix, rescue kit.
+2. **Project-owned** - formatters, linters, language servers, toolchains: the
+   project's flake (`formatter`, `checks`, devShell via `direnv`) or its Dev
+   Container. The devShell carries what the shell and editor need; `make`-run
+   tools belong in flake outputs.
+3. **Just in time** - everything else, when `command -v` fails (a missing
+   project tool goes through the project's `make` target or devShell first):
+   - `nix run nixpkgs#<tool> -- <args>` for one command, or
+     `nix shell nixpkgs#<tool>` for a session;
+   - inside a flake repo, add `--inputs-from .` to either command to follow its
+     lock.
+
+- Never use `pip`, `apt`, `brew`, `npm -g`, `nix profile install`, or any other
+  package manager to install tools on the host.
+- Never add a tool to `home.packages` or `environment.systemPackages` unless
+  asked; propose it with the tier reasoning instead. The user decides every
+  promotion, demotion, and removal.
+- If you fetch the same tool just in time 3 or more times in one session, say
+  so once at the end of the task as a promotion candidate. Make no other
+  unprompted tooling or workflow-habit suggestions; task follow-ups and residual
+  risk are still reported.
+- Source of truth: `docs/tooling-tiers.md`.
 
 ## Autonomy and Safety
 
