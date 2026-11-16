@@ -189,12 +189,6 @@ in
 
   home.file.".zshalias".source = ../files/zsh/zshalias;
 
-  xdg.dataFile."zsh/site-functions/_uv".text = builtins.readFile (
-    pkgs.runCommand "uv-completion" { } ''
-      ${pkgs.uv}/bin/uv generate-shell-completion zsh > $out
-    ''
-  );
-
   home.packages = [
     # Hand-written completions for the surviving zsh functions only; _ax
     # ships inside the ax package's own share/zsh/site-functions, generated
