@@ -303,6 +303,7 @@ colours and editor syntax colours remain independent.
 
 | Tool      | Config path                                         | Theme mechanism                                                                                                             |
 | --------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Stylix    | `files/stylix/solarized-light-nixotic.yaml`         | Base16 scheme for desktop chrome only, read by `stylix.nix` as a source path (no import-from-derivation)                    |
 | Kitty     | `home/kitty.nix`                                    | Manual ANSI palette — complete, no changes needed                                                                           |
 | Zsh       | `home/zsh.nix`                                      | `ZSH_HIGHLIGHT_STYLES` map — needs string/interpolation fix                                                                 |
 | Helix     | `home/helix.nix`                                    | `nixotic_solarized_light.toml` — needs markup/data/UI gaps                                                                  |
