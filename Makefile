@@ -5,6 +5,28 @@ HOST      := $(HOST)
 SYSTEM    ?= x86_64-linux
 TEST_NAME ?=
 INPUT     ?=
+OLD       ?=
+NEW       ?=
+
+# Commit message for a flake.lock change: compares the top-level inputs of two
+# lock files (OLD, NEW) and prints nothing when none of them changed.
+define LOCK_MESSAGE_JQ
+def inputs_of($$l): $$l.nodes.root.inputs | with_entries(select(.value | type == "string"));
+def node($$l; $$i; $$k): $$l.nodes[$$i[$$k] // ""];
+def day: .locked.lastModified | todate[:10];
+$$old[0] as $$o | $$new[0] as $$n | inputs_of($$o) as $$oi | inputs_of($$n) as $$ni
+| [ ($$oi + $$ni) | keys[] as $$k
+    | node($$o; $$oi; $$k) as $$a | node($$n; $$ni; $$k) as $$b
+    | select(($$a.locked | {rev, narHash}) != ($$b.locked | {rev, narHash}))
+    | { k: $$k,
+        from: (if $$a == null then "added" else ($$a | day) end),
+        to: (if $$b == null then "removed" else ($$b | day) end) } ]
+| select(length > 0)
+| (map(.k | length) | max) as $$w
+| "dep(system): update flake inputs\n\nupdates:\n"
+  + (map("- '\(.k)':" + " " * ($$w - (.k | length) + 1) + "\(.from) -> \(.to)") | join("\n"))
+endef
+export LOCK_MESSAGE_JQ
 
 
 # phony ------------------------------------------------------------->8---------
@@ -12,7 +34,7 @@ INPUT     ?=
         format lint check \
         test test-filter list-checks \
         dry-run build \
-        update
+        update lock-message
 
 
 # default target ---------------------------------------------------->8---------
@@ -71,3 +93,7 @@ build: ## Build HOST without switching (default: this host)
 update: ## Update flake inputs (all, or INPUT=<name>)
 	@echo "Updating flake inputs$(if $(INPUT), ($(INPUT)),)..."
 	nix flake update $(INPUT)
+
+lock-message:
+	@test -n "$(OLD)" -a -n "$(NEW)" || (echo "OLD or NEW is not set — usage: make lock-message OLD=<lock> NEW=<lock>" >&2 && exit 1)
+	@jq -rn --slurpfile old "$(OLD)" --slurpfile new "$(NEW)" "$$LOCK_MESSAGE_JQ"
