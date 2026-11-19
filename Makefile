@@ -92,12 +92,13 @@ build: ## Build HOST without switching (default: this host)
 
 # maintenance targets ----------------------------------------------->8---------
 update: ## Update flake inputs and commit flake.lock (all, or INPUT=<name>)
-	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
+	@cd "$$(git rev-parse --show-toplevel)" || exit 1; \
+	tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
 	git show HEAD:flake.lock > "$$tmp" || exit 1; \
 	echo "Updating flake inputs$(if $(INPUT), ($(INPUT)),)..."; \
 	nix flake update $(INPUT) || exit 1; \
 	if git diff --quiet HEAD -- flake.lock; then echo "flake.lock is up to date"; exit 0; fi; \
-	msg=$$($(MAKE) -s --no-print-directory -f $(abspath $(firstword $(MAKEFILE_LIST))) lock-message OLD="$$tmp" NEW=flake.lock) || exit 1; \
+	msg=$$(jq -rn --slurpfile old "$$tmp" --slurpfile new flake.lock "$$LOCK_MESSAGE_JQ") || exit 1; \
 	if [[ -z "$$msg" ]]; then echo "flake.lock changed outside top-level inputs; commit by hand" >&2; exit 1; fi; \
 	print -r -- "$$msg" | git commit --only flake.lock -F -
 
