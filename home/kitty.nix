@@ -71,8 +71,9 @@
       # Tab bar
       tab_bar_style = "powerline";
 
-      # Panes: tmux-style splits; stack is the zoom target
-      enabled_layouts = "splits,stack";
+      # Panes: kitty_mod+l cycles every layout; splits first so new tabs start
+      # with tmux-style splits; stack is also the kitty_mod+z zoom target
+      enabled_layouts = "splits,stack,tall,fat,grid,horizontal,vertical";
       active_border_color = "#268bd2"; # ui.border_active
       inactive_border_color = "#eee8d5"; # ui.border
     };
